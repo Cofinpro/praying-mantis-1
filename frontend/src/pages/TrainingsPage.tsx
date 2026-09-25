@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
+import { PageHeader } from '../components/PageHeader'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-function App() {
+export function TrainingsPage() {
   const [message, setMessage] = useState('Contacting backend...')
 
+  // The hello call from the old App.tsx. FE-0.2 moves it into src/api/client.ts.
   useEffect(() => {
     fetch(`${API_URL}/api/`)
       .then((res) => res.json())
@@ -13,11 +15,10 @@ function App() {
   }, [])
 
   return (
-    <main>
-      <h1>Hello World</h1>
-      <p>{message}</p>
-    </main>
+    <>
+      <PageHeader title="Trainings">Upcoming trainings for your level</PageHeader>
+      <p>The training list comes in FE-2.2.</p>
+      <p>Backend: {message}</p>
+    </>
   )
 }
-
-export default App

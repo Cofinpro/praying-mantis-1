@@ -37,7 +37,7 @@ function serveSeats(initial: Seat[], onReserve?: (body: { seat_id: number; date:
   return {
     posts,
     takeFirstSeat: () => {
-      seats = seats.map((s) => (s.id === 1 ? { ...s, status: 'taken', taken_by: { id: 6, name: 'Marta Lopes' }, bookable: false } : s))
+      seats = seats.map((s) => (s.id === 1 ? { ...s, status: 'taken', taken_by: { id: 6, name: 'Marta Lopes', avatar_url: null }, bookable: false } : s))
     },
   }
 }
@@ -99,7 +99,7 @@ describe('reserve a seat', () => {
 
   it("doesn't open for seats I can't book", async () => {
     serveSeats([
-      seat(1, 'DKB-01', 0, { status: 'taken', taken_by: { id: 6, name: 'Marta Lopes' }, bookable: false }),
+      seat(1, 'DKB-01', 0, { status: 'taken', taken_by: { id: 6, name: 'Marta Lopes', avatar_url: null }, bookable: false }),
       { ...seat(101, 'DEKA-01', 0), zone: 'Deka', bookable: false },
     ])
     const user = await openSeats()

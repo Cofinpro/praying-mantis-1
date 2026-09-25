@@ -1,6 +1,7 @@
 import { useId } from 'react'
 import type { Seat as SeatData } from '../api/seats'
 import type { SeatState } from '../seats/seatState'
+import { Avatar } from './Avatar'
 import styles from './Seat.module.css'
 import { CheckIcon, LockIcon } from './SeatIcons'
 
@@ -42,6 +43,7 @@ export function Seat({ seat, state, onSelect }: SeatProps) {
       </button>
       {state === 'taken' && (
         <span id={tooltipId} role="tooltip" className={styles.tooltip}>
+          {seat.taken_by && <Avatar name={seat.taken_by.name} src={seat.taken_by.avatar_url} size="xs" />}
           Taken by {takenBy}
         </span>
       )}

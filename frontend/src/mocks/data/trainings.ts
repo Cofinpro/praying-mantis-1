@@ -1,5 +1,6 @@
 import type { Level, TrainingRead, TrainingSummary } from '../../api/trainings'
 import type { ApprovalItem, EnrollmentRead } from '../../api/enrollments'
+import { mockAvatarUrl } from './avatars'
 import { canDecideFor, findSeedUserById } from './users'
 
 // Dates relative to today, so the mocks (and the live site on mocks) always have upcoming trainings.
@@ -160,7 +161,11 @@ export function listMockApprovals(viewer: { id: number; email: string; is_admin:
       .filter(([userId, status]) => status === 'pending' && canDecideFor(viewer, Number(userId)))
       .map(([userId]) => ({
         enrollment: mockEnrollment(training.id, Number(userId)),
-        user: { id: Number(userId), name: findSeedUserById(Number(userId))?.name ?? 'Unknown' },
+        user: {
+          id: Number(userId),
+          name: findSeedUserById(Number(userId))?.name ?? 'Unknown',
+          avatar_url: mockAvatarUrl(Number(userId)),
+        },
         training: toSummary(training, Number(userId)),
       })),
   )

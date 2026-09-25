@@ -609,6 +609,8 @@ export interface components {
             id: number;
             /** Name */
             name: string;
+            /** Avatar Url */
+            avatar_url: string | null;
         };
         /** Requester */
         Requester: {
@@ -616,6 +618,8 @@ export interface components {
             id: number;
             /** Name */
             name: string;
+            /** Avatar Url */
+            avatar_url: string | null;
         };
         /** ReservationCreate */
         ReservationCreate: {

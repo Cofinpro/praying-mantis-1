@@ -33,7 +33,7 @@ function request(id: number, name: string): ApprovalItem {
       requested_at: '2030-10-01T13:30:00Z',
       decided_at: null,
     },
-    user: { id, name },
+    user: { id, name, avatar_url: null },
     training,
   }
 }
@@ -120,5 +120,15 @@ describe('approvals', () => {
 
     expect(await within(joao).findByRole('alert')).toHaveTextContent('Sorry, this training just filled up.')
     expect(row('João Silva')).toBeInTheDocument()
+  })
+
+  it("shows the requester's photo when they have one", async () => {
+    const withPhoto = request(5, 'João Silva')
+    withPhoto.user.avatar_url = '/api/users/5/avatar?v=1'
+    serveApprovals([withPhoto])
+    await openApprovals()
+
+    const joao = await screen.findByRole('article', { name: 'João Silva' })
+    expect(joao.querySelector('img')).toHaveAttribute('src', expect.stringContaining('/api/users/5/avatar?v=1'))
   })
 })

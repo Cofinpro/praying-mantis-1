@@ -29,6 +29,7 @@ class Requester(BaseModel):
 
     id: int
     name: str
+    avatar_url: str | None
 
 
 class ApprovalRead(BaseModel):

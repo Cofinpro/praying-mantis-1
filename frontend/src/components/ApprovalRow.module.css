@@ -9,7 +9,13 @@
   background: var(--color-bg-surface);
 }
 
-.who,
+.who {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.whoText,
 .what,
 .decision {
   display: flex;

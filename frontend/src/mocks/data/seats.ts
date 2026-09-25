@@ -1,5 +1,6 @@
 import type { Client, Seat } from '../../api/seats'
 import { fromDayString, toDayString, twoWeeks } from '../../lib/days'
+import { mockAvatarUrl } from './avatars'
 import { findSeedUserById } from './users'
 
 // One zone per client, 10 seats each in 2 rows of 5: DKB-01 … UNION-10 (BE-6.1 seeds the same shape).
@@ -38,7 +39,7 @@ export function listMockSeats(viewer: { id: number; client: Client }, day: strin
     return {
       ...seat,
       status,
-      taken_by: status === 'taken' && user ? { id: user.id, name: user.name } : null,
+      taken_by: status === 'taken' && user ? { id: user.id, name: user.name, avatar_url: mockAvatarUrl(user.id) } : null,
       bookable: status === 'free' && seat.zone === viewer.client,
     }
   })

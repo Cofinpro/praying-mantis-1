@@ -84,6 +84,20 @@ describe('create-training form', () => {
     expect(sent[0]).toMatchObject({ trainer_id: null, external_trainer_name: 'Acme Academy' })
   })
 
+  it('keeps the trainer list open when you come back to the field right after leaving it', async () => {
+    const user = userEvent.setup()
+    renderRoute('/admin/trainings/new')
+    await screen.findByRole('heading', { name: 'New training' })
+
+    await user.click(screen.getByRole('combobox', { name: 'Trainer' }))
+    await user.click(screen.getByLabelText('Name'))
+    await user.click(screen.getByRole('combobox', { name: 'Trainer' }))
+    // Longer than the 150 ms the list waits before closing after a blur
+    await new Promise((resolve) => setTimeout(resolve, 250))
+
+    expect(screen.getByRole('listbox', { name: 'Trainers' })).toBeInTheDocument()
+  })
+
   it('shows the agreed rules next to each field and sends nothing', async () => {
     const sent = captureCreate()
     const user = userEvent.setup()

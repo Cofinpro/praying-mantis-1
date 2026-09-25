@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type KeyboardEvent } from 'react'
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
 import { searchUsers, type UserSummary } from '../api/users'
 import { useDebouncedValue } from '../hooks/useDebouncedValue'
 import type { TrainerChoice } from '../trainings/trainingForm'
@@ -35,6 +35,14 @@ export function TrainerPicker({ value, onChange, help, error }: TrainerPickerPro
   const [activeIndex, setActiveIndex] = useState(0)
   const [users, setUsers] = useState<UserSummary[]>([])
   const [searchFailed, setSearchFailed] = useState(false)
+  // The pending "close after blur" timer. A ref, not state: changing it must not re-render.
+  const closeTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+
+  // Coming back to the field before that timer fires must keep the list open.
+  function openList() {
+    clearTimeout(closeTimer.current)
+    setOpen(true)
+  }
 
   // Only search once typing pauses. While a choice is shown, list everyone instead of searching for its label.
   const search = useDebouncedValue(value.kind === 'none' ? query.trim() : '')
@@ -77,7 +85,7 @@ export function TrainerPicker({ value, onChange, help, error }: TrainerPickerPro
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault()
       const step = event.key === 'ArrowDown' ? 1 : -1
-      setOpen(true)
+      openList()
       setActiveIndex((index) => (index + step + options.length) % options.length)
     } else if (event.key === 'Enter' && open) {
       // Enter picks the highlighted option instead of submitting the form.
@@ -111,13 +119,15 @@ export function TrainerPicker({ value, onChange, help, error }: TrainerPickerPro
           onChange={(event) => {
             setQuery(event.target.value)
             setActiveIndex(0)
-            setOpen(true)
+            openList()
             // Typing changes the answer: nothing is picked until an option is chosen.
             if (value.kind !== 'none') onChange({ kind: 'none' })
           }}
-          onFocus={() => setOpen(true)}
+          onFocus={openList}
           // Closing on blur waits a moment, so a click on an option still lands.
-          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          onBlur={() => {
+            closeTimer.current = setTimeout(() => setOpen(false), 150)
+          }}
           onKeyDown={handleKeyDown}
         />
         <svg className={styles.chevron} width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">

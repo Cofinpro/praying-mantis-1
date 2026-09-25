@@ -4,5 +4,7 @@ Import every model here, so Alembic sees all tables through Base.metadata.
 """
 
 from app.database import Base
+from app.models.enums import Client, Level
+from app.models.user import User
 
-__all__ = ["Base"]
+__all__ = ["Base", "Client", "Level", "User"]

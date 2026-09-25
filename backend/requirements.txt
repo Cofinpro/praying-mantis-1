@@ -4,3 +4,4 @@ pymysql
 cryptography
 pydantic-settings
 alembic
+pwdlib[argon2]

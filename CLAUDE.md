@@ -2,61 +2,103 @@
 
 Coding dojo project: a FastAPI backend and a React frontend.
 
+The full plan (data model, decisions, user stories, milestones) is in `plan.md`. The stories are tracked in Jira: project **SCRUM** ("Coding dojo") at https://bernardo-santos-cofinpro.atlassian.net.
+
 ## Project explanation
 
-We are trying to build a internal platform for a company where we can do several different actions, these actions are:
+We are building an internal company platform that brings existing systems together in one place. Its features:
 
-* Book trainings
-* Reserve seats in the office
-* Fill your timesheets (Done by another group in another tech stack so doesnt matter)
-* Schedule vacations (Also done by the other group so we dont care)
-* Fill expense sheet (For now we dont do it)
+| Feature | Owner | In scope? |
+|---|---|---|
+| Book trainings | us | ✅ |
+| Reserve seats in the office | us | ✅ |
+| Timesheets | another group, another tech stack | ❌ (a nav link at most) |
+| Vacations | another group | ❌ (a nav link at most) |
+| Expense sheets | nobody yet | ❌ |
 
+**Tech stack:**
+- **Backend:** Python, FastAPI, SQLAlchemy (sync), MySQL
+- **Frontend:** React + TypeScript on Vite, with pnpm
 
-Our tech stack is divided into frontend and backend technologies, for the backend we decided to use:
+A second goal is **learning** these technologies, so we prefer the approach that teaches something over a shortcut that hides it.
 
-* Python
-* FastAPI
-* MySQL
+We are **experienced developers**, new to this stack: one comes from **Vue**, the other from **Java**. Skip general frontend/backend basics in explanations and in `learnings.md`. Focus on what's specific to React, Python, FastAPI, SQLAlchemy and MySQL, and on how it differs from Vue and from Java/Spring/JPA.
 
-For the frontend we decided to roll with react and pnpm.
+## Team and workflow
 
+Two developers:
+- **Diogo** (BE dev): backend and database. Stories are `BE-x.y`, with the Jira labels `backend` and `diogo`, assigned to him.
+- **Bernardo** (FE dev): frontend. Stories are `FE-x.y`, with the Jira labels `frontend` and `bernardo`, assigned to him.
 
-The basis of this project is to improve already existing systems and to combine them all into a single platform.
+Everything is built in **one day**. The Jira board holds all issues in a single "Build day" sprint, ranked in build order. Take the top card in your lane whose blockers ("is blocked by" links) are done.
 
-## Database
+For every feature:
+1. **Together**: agree the questions, the screens and the **API contract** (endpoints, JSON, error codes). Jira label: `together`.
+2. **In parallel**: BE implements the contract. FE builds against MSW mocks that follow the contract.
+3. **Integrate**: FE switches from the mocks to the real API.
+4. **Demo and reflect**: add entries to `learnings.md`.
 
-For this project we have already sketched a database model.
+Each story gets its own branch and PR (e.g. `SCRUM-12-be-login`). The *other* developer reviews every PR.
 
-For booking trainings are that we have a user table with name, email, client(same enum as zone in the seats id), role (enum with Junior, Expert, Senior, Architect, senior architect), isTeamLead (Boolean), TeamLead (which refers to another user that is this users teamlead). Then we have a trainings table with name, id, description, dateTime, maxSeats, Trainer (A user, or External, in which case it should just show external) and a list of enrolled users.
+## Data model
 
-For reserving seats in the office we thought about having the table for users, a table called Seats with a id, and zone (which can be: DKB, Deka, VV, DBIS and UNION) and a ReservedSeat table which has a user, a seat and a date
+This is the target model, a refined version of our first sketch (see `plan.md` §4 for the reasons). Tables are snake_case and plural; SQLAlchemy models are singular.
 
-We know that this might not be the best structure so if you find any possible improvements be sure to tell us.
+- **users**: name, email (unique), password_hash, client (`DKB|Deka|VV|DBIS|UNION`), level (`junior|expert|senior|architect|senior_architect`), is_admin, team_lead_id → users (nullable)
+  - "Is team lead" is **derived** (someone has you as `team_lead_id`), not stored
+  - "Privileged account" = `is_admin`
+- **trainings**: name, description, starts_at and ends_at (**UTC**), max_seats, trainer_id → users (NULL = **External**), external_trainer_name (optional), created_by, cancelled_at (soft cancel)
+- **training_levels**: (training_id, level). A training can target several levels.
+- **enrollments**: training_id, user_id, status (`pending|approved|rejected|withdrawn`), decision_comment, requested_at, decided_by, decided_at
+  - UNIQUE (training_id, user_id)
+- **notifications**: user_id, type, message, link, read_at, created_at
+- **seats**: label (unique, e.g. `DKB-03`), zone (same `Client` enum as users), pos_x and pos_y (grid position on the map)
+- **seat_reservations**: seat_id, user_id, date
+  - UNIQUE (seat_id, date) and UNIQUE (user_id, date): one person per seat and one seat per person per day
+
+**Derived values:**
+- *Seats left* = max_seats − approved enrollments
+- *Completed training* = an approved enrollment whose training has ended and isn't cancelled
 
 ## Feature workflow
 
-##### Bookings trainings:
+### Booking trainings
 
-FIrst, a priviliged account can create trainings with the name, the description, the date, the trainer, and the skill level for the training (or multiple)
+1. An **admin** creates a training with name, description, start and end, trainer (a user or External), one or more skill levels, and max seats.
+2. Employees open the **Trainings** tab. They see upcoming trainings for **their own level**, open one, read the description, and **request to join**. That creates a `pending` enrollment.
+3. The employee's **team lead** gets a notification (email is a stretch goal) and **approves or rejects** it on the **Approvals** page. Approval re-checks capacity. Users without a team lead are approved by an admin.
+4. The employee gets a notification with the result. They can withdraw while the enrollment is pending or approved, as long as the training hasn't started.
+5. The **Profile** tab shows upcoming, pending and completed trainings.
 
-After that, the users with that skill level can go onto the trainings tab of our website, and see all trainings for their skill level, open them, read the description, and make a request to join. Whenever a user enrolls, his teamlead receives a notification (and maybe an email) telling him that he has to approve the enrollment of his training, after which the user receives a confirmation notification (and maybe also an email) telling him that he is now enrolled
+Status flow: `pending → approved | rejected`; `pending | approved → withdrawn`.
 
-The user can also see all his completed training in his profile tab
+### Reserving seats
 
-##### Reserving seats 
-
-The user logs onto the page, and finds a reserve your seat tab, where he can see a map of the available seats, click on the ones that are of his client and reserve them for a day which he can choose. if the seat is already taken it appears as red, if not its just white.
+1. On the **Seats** tab the user picks a day and sees a map of all seats.
+2. Colours: **white = free**, **red = taken**, **green = mine**, **greyed = another client's zone** (not clickable). Hovering a taken seat shows who took it.
+3. Clicking a free seat in the user's own client zone reserves it for that day. If the user already has a seat that day, the reservation moves.
+4. Default rules until we decide otherwise:
+   - bookings up to 2 weeks ahead
+   - no weekends
+   - no past days
 
 ## Layout
 
-- `backend/` — FastAPI + SQLAlchemy on MySQL (via PyMySQL)
-  - `app/main.py` — app and routes (`/`, `/health/db`)
-  - `app/database.py` — engine, `SessionLocal`, `Base`, `get_db` dependency
-  - `.env.example` — DB settings; copy to `backend/.env` (git-ignored)
-- `frontend/` — React 19 + TypeScript on Vite, managed with **pnpm**
+What exists today:
+- `backend/`: FastAPI + SQLAlchemy on MySQL (via PyMySQL)
+  - `app/main.py`: the app and its routes (`/`, `/health/db`), plus CORS
+  - `app/database.py`: engine, `SessionLocal`, `Base`, and the `get_db` dependency
+  - `.env.example`: DB settings and `CORS_ORIGINS`. Copy it to `backend/.env` (git-ignored).
+- `frontend/`: React 19 + TypeScript on Vite, managed with **pnpm**
   - `src/App.tsx` calls the backend at `VITE_API_URL` (default `http://localhost:8000`)
-- `.github/workflows/deploy-pages.yml` — builds `frontend/` and deploys it to GitHub Pages on every push to `main`
+- `.github/workflows/deploy-pages.yml`: builds `frontend/` and deploys it to GitHub Pages on every push to `main`
+
+Planned structure (story BE-0.2):
+```
+backend/app/{main.py, config.py, database.py, models/, schemas/, routers/, services/}
+backend/alembic/   backend/tests/
+frontend/src/{pages/, components/, api/, mocks/}
+```
 
 ## Commands
 
@@ -67,7 +109,7 @@ cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env   # then fill in DB credentials
-fastapi dev app/main.py   # http://localhost:8000
+fastapi dev app/main.py   # http://localhost:8000, API docs at /docs
 ```
 
 Allowed frontend origins are set by `CORS_ORIGINS` (comma-separated).
@@ -84,13 +126,31 @@ pnpm lint     # oxlint
 
 ## Deployment
 
-GitHub Pages hosts only the static frontend; the backend is not deployed anywhere.
+GitHub Pages hosts only the static frontend. The backend isn't deployed anywhere yet (story BE-7.1).
 The Pages build uses `--base=/<repo-name>/` and reads the backend URL from the
 repo variable `VITE_API_URL` (Settings → Secrets and variables → Actions → Variables).
+Once MSW is in place (FE-0.2), the Pages site can run on mocks until a backend exists.
 
 ## Conventions
 
 - Use pnpm for the frontend, never npm or yarn.
-- DB access goes through the `get_db` dependency in `app/database.py`.
-- Record architectural or tooling choices in `decisions.md`.
-- Record useful things to learn in `learnings.md` as we are trying to learn some new tech.
+- **API:**
+  - REST + JSON, all routes under `/api` (the existing `/` and `/health/db` move there in BE-0.2)
+  - Errors use FastAPI's `{"detail": ...}`. Business-rule conflicts return 409 with `{"detail": {"code": "...", "message": "..."}}`.
+  - Datetimes are ISO 8601 in UTC (`...Z`), and dates are `YYYY-MM-DD`
+- **Backend:**
+  - DB access goes through the `get_db` dependency
+  - Business rules live in `services/`, not in routers
+  - Pydantic schemas (`schemas/`) are the API contract; SQLAlchemy models (`models/`) are the database shape
+  - Every schema change needs an Alembic migration (no `create_all`)
+  - Enums are stored as VARCHAR (`Enum(..., native_enum=False)`)
+  - Tests use pytest against a real MySQL test database
+- **Frontend:**
+  - React Router for pages, TanStack Query for server data, CSS Modules for styles
+  - `src/api/client.ts` is the only code that talks to the API
+  - TypeScript API types are generated from `/openapi.json`
+- **Permissions:** the backend enforces all of them. Hiding buttons in the UI is only a convenience.
+- **Docs:**
+  - Record architectural or tooling choices in `decisions.md`
+  - Record useful things to learn in `learnings.md`, grouped by topic (React, Python, FastAPI, SQLAlchemy, MySQL, …), since we're here to learn new tech
+  - Keep `learnings.md` to stack-specific insights and comparisons with Vue / Java, not general programming basics

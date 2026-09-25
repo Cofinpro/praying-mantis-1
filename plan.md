@@ -1,7 +1,8 @@
 # Plan — Praying Mantis internal platform
 
-> Draft for review, written 2026-09-25. Nothing here is decided until you agree with it.
-> Anything marked **❓** is an open question, and anything marked **💡** is a recommendation you can override.
+> Adopted 2026-09-25. The recommendations (💡) and the open-question defaults are logged as decisions in `decisions.md`.
+> To change one, add a new entry there. The stories are tracked in Jira project **SCRUM**.
+> Anything marked **❓** was an open question; its default applies until someone decides otherwise.
 
 ---
 
@@ -1150,3 +1151,34 @@ Solid arrows = must happen first, within one lane. Dotted arrows = FE can build 
 | Q15 | F5: can users edit their own level or client? | No, admins only |
 | Q16 | Does the level order Junior → Expert → Senior → Architect → Senior Architect match the company ladder? (It matters if we ever show "this level and above".) | Yes, as written |
 | Q17 | D13/D14: are you both happy with MSW mocks and generated TypeScript types? They add some setup in F0 but remove a lot of waiting later. | Yes |
+
+---
+
+## 9. Jira mapping
+
+Project **SCRUM** ("Coding dojo") at https://bernardo-santos-cofinpro.atlassian.net.
+
+**Labels:**
+- Role: `backend`, `frontend`, `together`
+- Person: `diogo` (backend, assigned to Diogo), `bernardo` (frontend, assigned to Bernardo). Joint sessions carry both labels.
+- Milestone: `M1`–`M6`
+- Extras: `swap-candidate`, `stretch`
+
+Board: https://bernardo-santos-cofinpro.atlassian.net/jira/software/projects/SCRUM/boards/1
+
+All issues are in one sprint, "Build day — 25 Sep", ranked in build order. Dependencies are Jira "Blocks" links.
+
+Handy filters:
+- `project = SCRUM AND labels = backend AND labels = M1`
+- `project = SCRUM AND labels = together`
+
+| Feature (epic) | 🤝 Together | ⚙️ Backend | 🖥️ Frontend |
+|---|---|---|---|
+| F0 Foundations — SCRUM-5 | SCRUM-13 | BE-0.1 SCRUM-14 · BE-0.2 SCRUM-15 · BE-0.3 SCRUM-16 | FE-0.1 SCRUM-17 · FE-0.2 SCRUM-18 · FE-0.3 SCRUM-19 |
+| F1 Users and login — SCRUM-6 | SCRUM-20 | BE-1.1 SCRUM-21 · BE-1.2 SCRUM-22 · BE-1.3 SCRUM-23 | FE-1.1 SCRUM-24 · FE-1.2 SCRUM-25 |
+| F2 Trainings — SCRUM-7 | SCRUM-26 | BE-2.1 SCRUM-27 · BE-2.2 SCRUM-28 · BE-2.3 SCRUM-29 | FE-2.1 SCRUM-30 · FE-2.2 SCRUM-31 · FE-2.3 SCRUM-32 · FE-2.4 SCRUM-33 |
+| F3 Enrollment and approval — SCRUM-8 | SCRUM-34 | BE-3.1 SCRUM-35 · BE-3.2 SCRUM-36 · BE-3.3 SCRUM-37 | FE-3.1 SCRUM-38 · FE-3.2 SCRUM-39 · FE-3.3 SCRUM-40 |
+| F4 Notifications — SCRUM-9 | SCRUM-41 | BE-4.1 SCRUM-42 · BE-4.2 SCRUM-43 | FE-4.1 SCRUM-44 |
+| F5 Profile — SCRUM-10 | SCRUM-45 | BE-5.1 SCRUM-46 | FE-5.1 SCRUM-47 |
+| F6 Seat reservations — SCRUM-11 | SCRUM-48 | BE-6.1 SCRUM-49 · BE-6.2 SCRUM-50 · BE-6.3 SCRUM-51 | FE-6.1 SCRUM-52 · FE-6.2 SCRUM-53 · FE-6.3 SCRUM-54 |
+| F7 Going live — SCRUM-12 | SCRUM-55 | BE-7.1 SCRUM-56 | FE-7.1 SCRUM-57 · FE-7.2 SCRUM-58 |

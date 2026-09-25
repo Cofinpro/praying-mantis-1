@@ -1,7 +1,11 @@
 // The only module that knows where the API lives. Everything else calls the functions in src/api/*.ts.
 // It also owns the login token: it adds it to every request and drops it when the API answers 401.
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+// On mocks (the live site until FE-7.1, and `pnpm dev:mock`) calls stay on the page's own origin: MSW's
+// handlers match `*/api/...` anywhere. Pointing them at http://localhost:8000 broke phones, where Chrome
+// may block a public site from calling localhost before the mock service worker can answer.
+const API_URL =
+  import.meta.env.VITE_API_URL || (import.meta.env.VITE_USE_MOCKS === 'true' ? '' : 'http://localhost:8000')
 
 // localStorage survives refreshes and new tabs, but any script on the page can read it (XSS).
 // See decisions.md → "Authentication".

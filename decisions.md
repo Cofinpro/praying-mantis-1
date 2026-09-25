@@ -138,6 +138,15 @@ Template:
 - Services raise `Conflict` / `ValidationFailed` (`app/errors.py`); handlers in `main.py` turn them into 409 / 422.
 **Consequences:** FE's edit form can send the whole form or only changes; both work. Notifying enrolled people on cancel is a `TODO(BE-4.1)` in `cancel_training`.
 
+## 2026-09-25 — On mocks, API calls go to the page's own origin
+**Status:** Accepted
+**Context:** On a phone (Chrome), logging in to the live site failed with "Something went wrong". The Pages build runs on MSW mocks but still sent API calls to the default `http://localhost:8000`. Chrome on phones can block a public site's requests to `localhost` (local-network protection) before the mock service worker answers them, so `fetch` failed.
+**Decision:**
+- With `VITE_USE_MOCKS=true` and no `VITE_API_URL`, `api/client.ts` uses the page's own origin (`/api/...`). MSW's `*/api/...` handlers match any origin, so nothing else changes.
+- The login page tells a network failure ("Can't reach the server, check your connection") apart from a rejected login.
+
+**Consequences:** The live site works on phones while it still runs on mocks. FE-7.1 later replaces the mocks with the real backend URL.
+
 ## 2026-09-25 — Accessibility and responsive pass (FE-7.2)
 **Status:** Accepted
 **Context:** FE-7.2 asks for keyboard-only use, Lighthouse accessibility ≥ 90 on the main pages, and layouts that work at 375 px.

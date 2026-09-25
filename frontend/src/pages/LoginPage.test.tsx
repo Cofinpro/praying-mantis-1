@@ -32,6 +32,15 @@ describe('login', () => {
     expect(router.state.location.pathname).toBe('/login')
   })
 
+  it("says it can't reach the server when the request itself fails", async () => {
+    server.use(http.post('*/api/auth/login', () => HttpResponse.error()))
+    renderRoute('/login')
+
+    await logIn('sofia@preyingmantis.test', 'password123')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent("Can't reach the server")
+  })
+
   it('redirects to /login when not logged in', async () => {
     const { router } = renderRoute('/seats')
 

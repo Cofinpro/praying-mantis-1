@@ -25,12 +25,10 @@ export const rejectEnrollment = (id: number, comment: string | null) =>
 // Only my own, only while pending or approved, only before the training starts (409 training_started).
 export const withdrawEnrollment = (id: number) => api.post<EnrollmentRead>(`/api/enrollments/${id}/withdraw`)
 
-// Hand-written until BE-5.1 adds GET /api/me/enrollments (F5 contract in plan.md).
 // upcoming = approved and not ended; pending = waiting for a decision; completed = approved, ended, not cancelled.
+// The trainings carry the hand-written my_enrollment_id (see trainings.ts).
 export type MyEnrollments = {
-  upcoming: TrainingSummary[]
-  pending: TrainingSummary[]
-  completed: TrainingSummary[]
+  [K in keyof components['schemas']['MyEnrollments']]: TrainingSummary[]
 }
 
 export const getMyEnrollments = () => api.get<MyEnrollments>('/api/me/enrollments')

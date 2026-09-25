@@ -27,4 +27,5 @@ export const queryKeys = {
   notifications: ['notifications'] as const,
   // One cache entry per day: switching back to a date you've seen is instant
   seats: (date: string) => ['seats', date] as const,
+  myReservations: ['reservations', 'me'] as const,
 }

@@ -45,4 +45,28 @@ export function listMockSeats(viewer: { id: number; client: Client }, day: strin
   return { status: 200 as const, seats }
 }
 
-export { reservationsFor }
+let nextReservationId = 1
+
+// POST /api/reservations, with BE-6.3's rules: my client's zone only, a valid day, one seat per person per
+// day (an existing one is moved), and 409 seat_taken when someone else has it.
+export function reserveMockSeat(viewer: { id: number; client: Client }, seatId: number, day: string) {
+  const seat = layout.find((s) => s.id === seatId)
+  if (!seat) return { status: 404 as const, detail: 'Seat not found' }
+  if (!twoWeeks().some((d) => d.day === day && d.bookable)) {
+    return { status: 422 as const, detail: [{ loc: ['body', 'date'], msg: 'Pick a weekday within the next two weeks' }] }
+  }
+  if (seat.zone !== viewer.client) return { status: 403 as const, detail: "This seat is in another client's zone" }
+  const taken = reservationsFor(day)
+  if (taken[seatId] && taken[seatId] !== viewer.id) {
+    return { status: 409 as const, detail: { code: 'seat_taken', message: 'This seat was just taken' } }
+  }
+  for (const [id, userId] of Object.entries(taken)) {
+    if (userId === viewer.id) delete taken[Number(id)]
+  }
+  taken[seatId] = viewer.id
+  return {
+    status: 201 as const,
+    reservation: { id: nextReservationId++, date: day, seat: { id: seat.id, label: seat.label, zone: seat.zone } },
+  }
+}
+

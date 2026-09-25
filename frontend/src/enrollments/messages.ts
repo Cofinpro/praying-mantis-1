@@ -10,6 +10,7 @@ const MESSAGES: Record<string, string> = {
   training_cancelled: 'This training was cancelled.',
   not_pending: 'This request was already decided.',
   not_withdrawable: 'This request can no longer be withdrawn.',
+  seat_taken: 'Sorry, this seat was just taken.',
 }
 
 export function enrollmentErrorMessage(error: unknown): string {

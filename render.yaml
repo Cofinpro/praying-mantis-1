@@ -1,0 +1,42 @@
+# Render Blueprint: the backend's hosting setup, read by Render from this repo.
+# Render dashboard → New → Blueprint → pick this repo. See decisions.md (hosting).
+services:
+  - type: web
+    name: praying-mantis-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    # Only changes under backend/ trigger a deploy (FE-only pushes don't)
+    rootDir: backend
+    # Docker paths are relative to the repo root, not to rootDir
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    # A deploy only goes live once this returns 200, so a wrong DB setting
+    # keeps the previous version running instead of breaking the site
+    healthCheckPath: /api/health/db
+    # Deploy after the GitHub checks (Backend tests) on main have passed
+    autoDeployTrigger: checksPass
+    envVars:
+      # From the Aiven service's "Connection information". sync: false means
+      # Render asks for the value when the Blueprint is created; it's never in git.
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_SSL_CA
+        sync: false
+      # Aiven's defaults, not secret
+      - key: DB_USER
+        value: avnadmin
+      - key: DB_NAME
+        value: defaultdb
+      # Render generates a random secret once and keeps it
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://cofinpro.github.io
+      # Demo data on every start (the free plan has no shell). Fake users only.
+      - key: SEED_ON_START
+        value: "true"

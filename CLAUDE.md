@@ -231,7 +231,7 @@ docker run --rm -p 8000:8000 --network praying-mantis-1_default \
   praying-mantis-backend
 ```
 
-Settings come only from environment variables (the image has no `.env`). On a host, set them in its secret store:
+Settings come only from environment variables (the image has no `.env`). On a host, set them in its secret store. For Render, `render.yaml` (repo root) declares the service and every variable; secrets are marked `sync: false` and entered in Render's dashboard.
 
 | Variable | Required | Notes |
 |---|---|---|

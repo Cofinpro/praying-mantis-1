@@ -1,0 +1,3 @@
+allowBuilds:
+  # msw copies its service worker into public/ after install, so it stays in sync with the package version
+  msw: true

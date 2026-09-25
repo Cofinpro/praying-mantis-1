@@ -3,6 +3,18 @@ import { cleanup } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll } from 'vitest'
 import { server } from '../mocks/server'
 
+// jsdom has <dialog> but not showModal()/close() yet. This stand-in only toggles `open` and fires
+// "close", which is all our ConfirmDialog relies on; focus trapping is the browser's job.
+if (!HTMLDialogElement.prototype.showModal) {
+  HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
+    this.open = true
+  }
+  HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) {
+    this.open = false
+    this.dispatchEvent(new Event('close'))
+  }
+}
+
 // Every API call in a test must have a handler, as in the browser (see mocks/browser.ts).
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
 

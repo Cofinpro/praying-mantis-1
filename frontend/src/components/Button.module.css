@@ -33,3 +33,13 @@
 .ghost:hover:not(:disabled) {
   background: var(--color-bg-subtle);
 }
+
+/* Figma: red/500 fill with white text (4.8:1). A darker red on hover. */
+.danger {
+  background: var(--color-action-danger);
+  color: var(--color-text-on-brand);
+}
+
+.danger:hover:not(:disabled) {
+  background: var(--color-status-rejected-fg);
+}

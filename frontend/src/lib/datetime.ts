@@ -5,6 +5,14 @@ export function localInputToUtcIso(value: string): string {
   return new Date(value).toISOString()
 }
 
+// The way back, to pre-fill a form: "2026-10-14T08:00:00Z" → "2026-10-14T09:00" in Lisbon summer time.
+// The getters (getHours() etc.) read local time; toISOString() would give UTC.
+export function utcIsoToLocalInput(iso: string): string {
+  const d = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 // Intl.DateTimeFormat formats in the browser's time zone, so UTC from the API shows as local time.
 // en-GB gives "Tue 14 Oct 2026" and a 24-hour clock, as in Figma. Created once: building one is slow.
 const dayFormat = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })

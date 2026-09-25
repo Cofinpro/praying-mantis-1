@@ -85,3 +85,12 @@ export function getMockTraining(viewer: { id: number; level: Level; is_admin: bo
   }
   return { ...toSummary(training, viewer.id), description: training.description }
 }
+
+// PATCH /api/trainings/{id} and POST …/cancel. Like the backend, a cancelled training can't change.
+export function updateMockTraining(id: number, changes: Partial<MockTraining>) {
+  const training = mockTrainings.find((t) => t.id === id)
+  if (!training) return 'not_found' as const
+  if (training.cancelled) return 'cancelled' as const
+  Object.assign(training, changes)
+  return training
+}

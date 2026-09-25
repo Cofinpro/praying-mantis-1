@@ -1,9 +1,9 @@
 import { http, HttpResponse } from 'msw'
 import type { CurrentUser, LoginRequest, TokenResponse } from '../api/auth'
 import type { DbHealthResponse, HelloResponse } from '../api/health'
-import type { TrainingCreate, TrainingRead, TrainingSummary } from '../api/trainings'
+import type { TrainingCreate, TrainingRead, TrainingSummary, TrainingUpdate } from '../api/trainings'
 import { isLevel } from '../trainings/levels'
-import { getMockTraining, listMockTrainings, mockTrainings, toSummary } from './data/trainings'
+import { getMockTraining, listMockTrainings, mockTrainings, toSummary, updateMockTraining } from './data/trainings'
 import type { UserSummary } from '../api/users'
 import { findSeedUserByEmail, findSeedUserById, searchSeedUsers, SEED_PASSWORD, toCurrentUser } from './data/users'
 
@@ -20,6 +20,8 @@ function userFromRequest(request: Request) {
 
 const notAuthenticated = () => HttpResponse.json({ detail: 'Not authenticated' }, { status: 401 })
 const adminsOnly = () => HttpResponse.json({ detail: 'Admins only' }, { status: 403 })
+const trainingNotFound = () => HttpResponse.json({ detail: 'Training not found' }, { status: 404 })
+const conflict = (code: string, message: string) => HttpResponse.json({ detail: { code, message } }, { status: 409 })
 
 
 // One handler per endpoint, answering with contract-shaped data. The `*` matches any origin, so the handlers
@@ -65,7 +67,7 @@ export const handlers = [
     const training = getMockTraining(user, Number(params.id))
     return training
       ? HttpResponse.json<TrainingRead>(training)
-      : HttpResponse.json({ detail: 'Training not found' }, { status: 404 })
+      : trainingNotFound()
   }),
 
   // Trusts the body: the form validates it first. The real backend checks every rule again (422).
@@ -95,5 +97,35 @@ export const handlers = [
       { ...toSummary(training, user.id), description: training.description },
       { status: 201 },
     )
+  }),
+
+  // Trusts the body like POST does; applies only the fields that were sent.
+  http.patch('*/api/trainings/:id', async ({ request, params }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    if (!user.is_admin) return adminsOnly()
+    const { trainer_id, ...changes } = (await request.json()) as TrainingUpdate
+    const trainer = trainer_id ? findSeedUserById(trainer_id) : undefined
+    const result = updateMockTraining(Number(params.id), {
+      ...(Object.fromEntries(Object.entries(changes).filter(([, v]) => v !== undefined)) as Partial<TrainingRead>),
+      ...(trainer_id !== undefined && { trainer: trainer ? { id: trainer.id, name: trainer.name } : null }),
+    })
+    if (result === 'not_found') return trainingNotFound()
+    if (result === 'cancelled') return conflict('training_cancelled', 'This training was cancelled')
+    return HttpResponse.json<TrainingRead>({ ...toSummary(result, user.id), description: result.description })
+  }),
+
+  http.post('*/api/trainings/:id/cancel', ({ request, params }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    if (!user.is_admin) return adminsOnly()
+    const training = mockTrainings.find((t) => t.id === Number(params.id))
+    if (training && training.starts_at <= new Date().toISOString()) {
+      return conflict('training_started', 'This training has already started')
+    }
+    const result = updateMockTraining(Number(params.id), { cancelled: true })
+    if (result === 'not_found') return trainingNotFound()
+    if (result === 'cancelled') return conflict('training_cancelled', 'This training was already cancelled')
+    return HttpResponse.json<TrainingRead>({ ...toSummary(result, user.id), description: result.description })
   }),
 ]

@@ -57,6 +57,7 @@
   --color-bg-brand-subtle: var(--primitive-orange-50);
   --color-bg-inverse: var(--primitive-neutral-900);
   --color-bg-danger-subtle: var(--primitive-red-50);
+  --color-bg-overlay: rgb(19 19 19 / 0.4); /* behind modal dialogs: ink at 40% */
 
   /* Text */
   --color-text-primary: var(--primitive-neutral-900);

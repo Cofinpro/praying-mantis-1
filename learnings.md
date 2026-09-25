@@ -24,6 +24,21 @@ We're both experienced developers (one from **Vue**, one from **Java**), so skip
 - **`children` = the default slot**: whatever goes between `<PageHeader>…</PageHeader>` arrives as the `children` prop (type `ReactNode`). Named slots are just more props that take JSX.
 - **State that resets itself on navigation**: instead of a `useEffect` that closes the phone menu when the URL changes (a watcher in Vue terms), `TopBar` stores *the path the menu was opened on* and derives `menuOpen = openedAt === pathname`. When the path changes, the menu is closed on the same render, with no extra render and no effect. The React docs call this "you might not need an effect": derive values instead of syncing state.
 - **Whitespace in JSX flex items**: `<span> ↗</span>` next to text inside a `display: flex` element loses its leading space, because every child becomes a flex item and the whitespace at the edges of each item is dropped. Use `gap` instead of spaces.
+- **StrictMode runs effects twice in dev** (mount → cleanup → mount), to surface effects that don't clean up. For a fetch in `useEffect`, return a cleanup that sets an `ignore` flag, so a response arriving after the cleanup doesn't set state. Production runs them once. TanStack Query (FE-2.2) handles this for us.
+
+## Vite
+
+- **Env variables** are read at **build time**, not runtime: `import.meta.env.VITE_API_URL` is replaced by the literal string when Vite builds, so changing it needs a rebuild (unlike Spring's `application.properties`, read at startup). Only names starting with `VITE_` reach the browser, so a secret without the prefix can't leak by accident. Every value is a **string**: compare with `=== 'true'`, not truthiness.
+- **Modes** pick extra env files: `vite --mode mock` loads `.env.mock` on top of `.env`, a bit like Spring profiles (`application-mock.properties`). `*.local` files are for your machine and git-ignored.
+- **Dead code from env checks**: because the value is inlined, `if (import.meta.env.VITE_USE_MOCKS !== 'true') return` becomes `if (true) return` in a normal build, and the `await import('./mocks/browser')` after it is dropped, together with MSW. A dynamic `import()` also puts code in its own chunk, loaded only when reached.
+- **Typing env variables**: declare them in `src/vite-env.d.ts` (`interface ImportMetaEnv`). This is TypeScript **declaration merging**: an interface with the same name adds fields to Vite's own `ImportMetaEnv`, instead of replacing it.
+
+## MSW and OpenAPI types
+
+- **MSW** registers a **service worker** (`public/mockServiceWorker.js`) that sits between the page and the network, so `fetch` really runs and shows up in DevTools as a normal request, answered by the worker. The app code is identical with and without mocks, which isn't true of the Vue-world habit of swapping an axios adapter or importing fake JSON.
+- A service worker only controls pages **under its own path**, so on GitHub Pages it must be registered from `/<repo>/mockServiceWorker.js` (we use `BASE_URL`). It also needs HTTPS or `localhost`.
+- The first page load waits for `worker.start()` before rendering. Otherwise the first requests could go out before the worker is ready and hit the real network.
+- **`openapi-typescript`** turns `/openapi.json` into plain TypeScript types (`paths`, `components['schemas']`), with no runtime code. It's the TS counterpart of generating a Java client from an OpenAPI spec, except nothing checks the response at runtime: `api.get<T>()` just **trusts** that the JSON matches `T`. A FastAPI route without a `response_model` generates `unknown`, so ask BE for response models.
 
 ## Python
 

@@ -14,6 +14,19 @@ Template:
 
 ---
 
+## 2026-09-25 — API client: a hand-written `fetch` wrapper, MSW in dev and on Pages
+**Status:** Accepted
+**Context:** FE-0.2 needs one place that talks to the API, mocks so the frontend doesn't wait for the backend, and types generated from `/openapi.json`.
+**Decision:**
+- **Client:** a small hand-written wrapper in `src/api/client.ts` (`api.get<T>(path)` and so on) around `fetch`, not `openapi-fetch` or axios. We write it once to learn how it works. It throws `ApiError` with `status`, FastAPI's `detail`, and `code` for 409 business-rule conflicts.
+- **Endpoint functions:** one module per area (`src/api/health.ts`, later `trainings.ts`…) with a typed function per endpoint. Pages and hooks call those, never `api` or `fetch` directly, so TanStack Query can wrap them later.
+- **Types:** `openapi-typescript` generates `src/api/schema.d.ts` (`pnpm gen:api`), and it is **committed**, so `pnpm build` and CI never need a running backend. Routes without a `response_model` generate `unknown`, so their types are hand-written next to the endpoint function until the backend adds one.
+- **Mocks:** MSW, switched on by `VITE_USE_MOCKS=true`. `pnpm dev:mock` uses a Vite mode (`.env.mock`) to set it. Handlers match `*/api/...`, so they don't depend on `VITE_API_URL`. An API call without a handler logs an MSW error, and other requests (fonts, Vite modules) pass through silently.
+- **GitHub Pages:** the deploy workflow builds with `VITE_USE_MOCKS=true` unless the repo variable says `false`, so the live site works before the backend is deployed (BE-7.1). The worker is registered from `BASE_URL`, so it works under `/<repo>/`.
+**Consequences:** Every new endpoint needs three things: its function in `src/api/`, an MSW handler, and a `pnpm gen:api` run once BE has merged it. Without mocks, MSW is dead code that Vite drops from the bundle. The live site shows mock data until someone flips `VITE_USE_MOCKS`.
+
+---
+
 ## 2026-09-25 — App shell: GitHub Pages deep links via 404.html, React Router data mode
 **Status:** Accepted
 **Context:** FE-0.1 needs client-side routes that survive a refresh on GitHub Pages. Pages is static hosting, so a refresh on `/praying-mantis-1/trainings` asks for a file that doesn't exist and gets a 404.

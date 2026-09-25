@@ -1,17 +1,22 @@
 import { useEffect, useState } from 'react'
+import { getHello } from '../api/health'
 import { PageHeader } from '../components/PageHeader'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 export function TrainingsPage() {
   const [message, setMessage] = useState('Contacting backend...')
 
-  // The hello call from the old App.tsx. FE-0.2 moves it into src/api/client.ts.
+  // Temporary: shows that the API client works, with mocks or the real backend. TanStack Query replaces
+  // this kind of effect from FE-2.2.
   useEffect(() => {
-    fetch(`${API_URL}/api/`)
-      .then((res) => res.json())
-      .then((data: { message: string }) => setMessage(data.message))
-      .catch(() => setMessage(`Backend unreachable at ${API_URL}`))
+    // StrictMode runs effects twice in dev, and a slow first response could land after the second one.
+    // The flag makes the cleanup ignore a response that arrives after unmount.
+    let ignore = false
+    getHello()
+      .then((data) => !ignore && setMessage(data.message))
+      .catch(() => !ignore && setMessage('Backend unreachable'))
+    return () => {
+      ignore = true
+    }
   }, [])
 
   return (

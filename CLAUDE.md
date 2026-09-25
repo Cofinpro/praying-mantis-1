@@ -102,11 +102,18 @@ What exists today:
   - `tests/`: pytest. `conftest.py` provides the `db` and `client` fixtures (see Testing below).
   - `.env.example`: DB settings and `CORS_ORIGINS`. Copy it to `backend/.env` (git-ignored).
 - `frontend/`: React 19 + TypeScript on Vite, managed with **pnpm**
-  - `src/App.tsx` calls the backend at `VITE_API_URL` (default `http://localhost:8000`)
+  - `src/main.tsx`: mounts `<RouterProvider>` (from `react-router/dom`) and loads Inter and the global CSS
+  - `src/router.tsx`: the route table. `/login` stands alone; every other page is a child of `Layout`
+  - `src/components/`: `Layout` (TopBar + `<Outlet />`), `TopBar`, `NavItem`, `Logo`, `Avatar`, `NotificationBell`, `PageHeader`. Each has a `.module.css`
+  - `src/pages/`: one component per route (placeholders until their stories)
+  - `src/config/navigation.ts`: the nav links, the external Timesheets/Vacations links, and the placeholder user
+  - `src/styles/tokens.css`: the Figma variables as CSS custom properties
+  - `public/404.html` + the inline script in `index.html`: deep links on GitHub Pages (see `decisions.md`)
+  - `src/pages/TrainingsPage.tsx` still calls the backend at `VITE_API_URL` directly, until FE-0.2
 - `.github/workflows/deploy-pages.yml`: builds `frontend/` and deploys it to GitHub Pages on every push to `main`
 - `.github/workflows/backend-tests.yml`: runs `pytest` and `alembic check` against a MySQL service container on every PR that touches `backend/`
 
-Planned frontend structure (FE-0.1): `frontend/src/{pages/, components/, api/, mocks/}`
+Planned next (FE-0.2): `frontend/src/{api/, mocks/}`
 
 ## Commands
 
@@ -213,12 +220,17 @@ Once MSW is in place (FE-0.2), the Pages site can run on mocks until a backend e
   - Enums are stored as VARCHAR (`Enum(..., native_enum=False)`)
   - Tests use pytest against a real MySQL test database (never SQLite). Every PR needs green CI.
 - **Frontend:**
-  - React Router for pages, TanStack Query for server data, CSS Modules for styles
+  - React Router (v8, data mode with `createBrowserRouter`) for pages, TanStack Query for server data, CSS Modules for styles
+  - `BrowserRouter`-style URLs with `basename` = Vite's `BASE_URL`. Deep links on GitHub Pages work through `public/404.html`
+  - Profile has no nav item: the avatar and name in the TopBar link to `/profile` (as in Figma)
+  - Timesheets and Vacations are external nav items with `href: null` (shown disabled) until we get their URLs
+  - Font: Inter via `@fontsource-variable/inter` (self-hosted, no Google Fonts)
   - `src/api/client.ts` is the only code that talks to the API
   - TypeScript API types are generated from `/openapi.json`
 - **Design:**
   - Figma is the visual reference: [PreyingMantis — Design](https://www.figma.com/design/FFlbgdessRR1pHvP0MGpQh) (pages Foundations, Components, Screens). The spec is `docs/superpowers/specs/2026-09-25-figma-design-design.md`
-  - The Figma team is on the Starter plan: max 3 pages per file, and about 20 MCP read calls a month, so prefer reviewing in Figma over screenshot tools
+  - The Figma team is on the Starter plan: max 3 pages per file, and about 20 MCP read calls a month, so prefer reviewing in Figma over screenshot tools. When the MCP quota is spent, the Figma REST API (`api.figma.com/v1/files/…`, `/v1/images/…`) with a personal access token still works. Keep the token out of the repo
+  - Tokens in code live in `frontend/src/styles/tokens.css`. Text styles are `font` shorthands: `font: var(--font-h1)`
   - Cofinpro theming (from cofinpro.pt): orange `#FD6202`, ink `#131313`, accents green `#60D391`, purple `#8242D8`, blue `#006CFF`, font **Inter**, pill buttons, 16px card corners
   - Light mode only, desktop mocks only (1440 wide)
   - Design tokens: Figma variables and CSS custom properties share names (`color/text/primary` ↔ `--color-text-primary`). Components use only semantic tokens, never primitives or raw hex

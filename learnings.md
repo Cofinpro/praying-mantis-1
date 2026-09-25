@@ -7,6 +7,24 @@ We're both experienced developers (one from **Vue**, one from **Java**), so skip
 - Python / FastAPI / SQLAlchemy vs Java / Spring / JPA
 - gotchas and idioms of these tools
 
+## React Router (vs vue-router)
+
+- **Route table**: `createBrowserRouter([...])` takes an array of route objects, much like vue-router's `routes`. The main difference is `element: <TrainingsPage />`: you pass a rendered element (JSX), not the component itself (`component: TrainingsPage` in Vue).
+- **`<Outlet />` = `<router-view>`**: a parent route's element renders `<Outlet />` where its matched child goes. A route with only `element` and `children` (no `path`) is a **layout route**: it wraps its children without adding a URL segment. That's how every page except `/login` gets the TopBar.
+- **`index: true`** marks the child that renders at the parent's own path (like a child with `path: ''` in vue-router). We use it with `<Navigate to="/trainings" replace />` as the redirect for `/`, since routes have no `redirect:` key.
+- **`NavLink`** passes `{ isActive }` to a `className` **function** instead of adding a `router-link-active` class for you. It matches child routes too (`/trainings/42` keeps "Trainings" active) unless you pass `end`. It also sets `aria-current="page"`.
+- **`useParams()`** is `useRoute().params`. Values are always `string | undefined`, so convert `id` to a number yourself.
+- **v8 imports**: there's no `react-router-dom` package anymore. Everything comes from `react-router`, except `RouterProvider`, which comes from `react-router/dom`. Many tutorials still show v6/v7 imports.
+- **`basename`**: the router strips it from every URL and adds it to every `<Link>`. We set it to Vite's `import.meta.env.BASE_URL`, so links work under `/` locally and under `/praying-mantis-1/` on GitHub Pages without changing any `to=`.
+
+## React
+
+- **CSS Modules vs Vue `scoped`**: Vite supports `*.module.css` out of the box. `import styles from './TopBar.module.css'` gives an object of **renamed** class names (`styles.bar` → `_bar_x1y2z`), and you apply them with `className={styles.bar}`. Vue's `scoped` keeps your class names and adds a `data-v-*` attribute instead. There's no `:deep()`: to style a child component, give it a `className` prop, or target it structurally (`.nav > *`).
+- **Combining classes** is plain string work (`` `${styles.item} ${isActive ? styles.active : ''}` ``). There's no built-in `:class="{ active: isActive }"` object syntax; the `clsx` package adds one if it gets painful.
+- **`children` = the default slot**: whatever goes between `<PageHeader>…</PageHeader>` arrives as the `children` prop (type `ReactNode`). Named slots are just more props that take JSX.
+- **State that resets itself on navigation**: instead of a `useEffect` that closes the phone menu when the URL changes (a watcher in Vue terms), `TopBar` stores *the path the menu was opened on* and derives `menuOpen = openedAt === pathname`. When the path changes, the menu is closed on the same render, with no extra render and no effect. The React docs call this "you might not need an effect": derive values instead of syncing state.
+- **Whitespace in JSX flex items**: `<span> ↗</span>` next to text inside a `display: flex` element loses its leading space, because every child becomes a flex item and the whitespace at the edges of each item is dropped. Use `gap` instead of spaces.
+
 ## Python
 
 - **`python-dotenv`**: `load_dotenv()` copies the key/value pairs from `.env` into `os.environ`, and `os.getenv("X", default)` reads them. It does **not** override variables that are already set in the shell. It runs once at import time, so after editing `.env` you must restart the server (`fastapi dev` only reloads on `.py` changes). There's no `application.properties` / profile system like Spring; the `.env` file plays that role. Since BE-0.2 we use **`pydantic-settings`** instead (`app/config.py`): a `BaseSettings` class whose fields are read from env vars / `.env`, **type-converted and validated at startup** (a missing `DB_NAME` crashes immediately with a clear error, not at the first query). Field `db_user` matches env var `DB_USER` (case-insensitive). Closest Java equivalent: a Spring `@ConfigurationProperties` class with `@Validated`.

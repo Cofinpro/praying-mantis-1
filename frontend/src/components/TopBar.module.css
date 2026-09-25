@@ -1,0 +1,113 @@
+.bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  padding: 0 var(--space-10);
+  border-bottom: 1px solid var(--color-border-default);
+  background: var(--color-bg-surface);
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-10);
+}
+
+.home {
+  display: inline-flex;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.user {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-pill);
+  font: var(--font-label);
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+
+.user:hover .userName {
+  text-decoration: underline;
+}
+
+.menuButton {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.menuButton:hover {
+  background: var(--color-bg-subtle);
+}
+
+/* Below ~1000px the full bar doesn't fit: the nav moves into a panel under the bar, opened by the menu button */
+@media (max-width: 1023px) {
+  .bar {
+    padding: 0 var(--space-4);
+  }
+
+  .menuButton {
+    display: inline-flex;
+  }
+
+  .nav {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    z-index: 10;
+    flex-direction: column;
+    align-items: stretch;
+    padding: var(--space-2) var(--space-4) var(--space-4);
+    border-bottom: 1px solid var(--color-border-default);
+    background: var(--color-bg-surface);
+    box-shadow: var(--shadow-md);
+  }
+
+  .navOpen {
+    display: flex;
+  }
+
+  /* Bigger touch targets in the panel */
+  .nav > * {
+    min-height: 44px;
+  }
+}
+
+/* Phones: only the avatar is left of the user block (the name stays for screen readers) */
+@media (max-width: 600px) {
+  .userName {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

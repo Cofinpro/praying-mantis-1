@@ -367,9 +367,9 @@ These stories don't depend on each other across roles, so both of you can start 
 **Story:** As the FE dev, I can run component tests locally and on every PR.
 
 **Acceptance criteria**
-- `pnpm test` runs Vitest with React Testing Library, and tests reuse the MSW handlers
-- The PR workflow runs `pnpm lint`, `pnpm build` and `pnpm test`
-- First test: the app shell renders the nav links
+- `pnpm test` runs Vitest with React Testing Library, and tests reuse `src/mocks/handlers.ts` through `msw/node` (`setupServer`)
+- A PR workflow runs `pnpm lint`, `pnpm build` and `pnpm test` on every PR that touches `frontend/` (like `backend-tests.yml` does for `backend/`)
+- First test: the app shell renders the nav links (Trainings, Seats, Approvals, plus the disabled Timesheets and Vacations)
 
 **📚 Learn**
 - Testing Library's "test what the user sees" philosophy
@@ -430,7 +430,7 @@ These stories don't depend on each other across roles, so both of you can start 
 **Depends on:** BE-1.1
 
 **📚 Learn**
-- FastAPI `Depends` and `OAuth2PasswordBearer`
+- FastAPI `Depends` and `HTTPBearer` (why not `OAuth2PasswordBearer`: see `decisions.md`)
 - What's inside a JWT, and why you never put secrets in it
 - Hashing vs encryption
 
@@ -440,9 +440,9 @@ These stories don't depend on each other across roles, so both of you can start 
 **Story:** As the system, I only let admins do admin things and only let team leads act on their own reports.
 
 **Acceptance criteria**
-- A `require_admin` dependency returns 403 for non-admins
-- An `is_team_lead(user)` helper, and `is_team_lead` filled in on `/me`
-- `GET /api/users?search=` works (admin only)
+- A `require_admin` dependency (built on BE-1.2's `CurrentUser`) returns 403 for non-admins
+- `GET /api/users?search=` works (admin only) and returns `[{id, name, email, level}]` for the trainer picker
+- *Already done:* `User.is_team_lead` (derived property, BE-1.1) and the `is_team_lead` field on `/me` (BE-1.2)
 - Tests show the difference between 401 and 403
 
 **Depends on:** BE-1.2
@@ -459,9 +459,11 @@ These stories don't depend on each other across roles, so both of you can start 
 
 **Acceptance criteria**
 - The `/login` form shows the API's error message on a 401
-- After login I go to `/trainings`, and the top bar shows my name
+- After login I go to `/trainings`, and the top bar shows my name from `/me` (replaces `placeholderUser` in `config/navigation.ts`)
 - Every other page redirects to `/login` when I'm not logged in
-- Logout clears the token and goes to `/login`. Any 401 from the API does the same.
+- Logout clears the token and goes to `/login`. Any 401 from the API does the same, **except** the login call itself, where a 401 just shows the error.
+- `src/api/auth.ts` (`login()`, `getMe()`) plus MSW handlers for both, accepting the seed logins
+- Types come from `pnpm gen:api` once BE-1.2 is merged (`CurrentUserRead`, `TokenResponse`), not hand-written
 - Built with plain `fetch` + `useEffect` / `useState` (**D7**). Write down in `learnings.md` what felt clumsy.
 
 **Tasks:** an `AuthContext` (`user`, `login()`, `logout()`), a `useAuth()` hook, a `<RequireAuth>` route wrapper, and token handling in `api/client.ts`
@@ -481,8 +483,9 @@ These stories don't depend on each other across roles, so both of you can start 
 **Story:** As a user, I only see the navigation that applies to me.
 
 **Acceptance criteria**
-- "Approvals" only shows when `is_team_lead` is true, and "New training" only when `is_admin` is true
-- Visiting an admin page as a non-admin shows a friendly "Not allowed" page
+- "Approvals" only shows when `is_team_lead` **or** `is_admin` is true (admins approve users without a team lead, Q6)
+- The "New training" button on `/trainings` only shows when `is_admin` is true (in Figma it's a page button, not a nav item)
+- Visiting an admin page as a non-admin, or `/approvals` as someone who is neither a team lead nor an admin, shows a friendly "Not allowed" page
 
 **Depends on:** FE-1.1
 
@@ -544,7 +547,7 @@ These stories don't depend on each other across roles, so both of you can start 
 **Acceptance criteria**
 - `Training` and `TrainingLevel` models plus a migration, matching section 4.3
 - `POST /api/trainings` matches the contract, is admin-only, and enforces every agreed validation rule with Pydantic validators
-- Seed adds about 8 trainings (past, future, cancelled, full, different levels, external trainer)
+- Seed adds about 8 trainings (past, future, cancelled, different levels, external trainer, one with few seats that BE-3.1 fills up)
 - A test for every validation rule
 
 **Depends on:** BE-1.3
@@ -594,7 +597,7 @@ These stories don't depend on each other across roles, so both of you can start 
 **Story:** As an admin, I can create a training through a form, and I see validation errors next to the right field.
 
 **Acceptance criteria**
-- `/admin/trainings/new` fields: name, description (multi-line), start and end (`datetime-local`), trainer (a searchable user picker **or** an "External" checkbox with an optional name), levels (multi-select), max seats
+- `/admin/trainings/new` fields: name, description (multi-line), start and end (`datetime-local`), trainer (a searchable user picker **or** an "External" checkbox with an optional name), levels (a checkbox group, as in Figma), max seats
 - Client-side validation for the agreed rules. Server 422 errors are also mapped onto fields.
 - Local time → UTC conversion on submit
 - On success, redirect to `/trainings/:id`
@@ -690,6 +693,7 @@ These stories don't depend on each other across roles, so both of you can start 
 - `Enrollment` model plus a migration (UNIQUE `training_id` + `user_id`)
 - An `enrollment_service.request(user, training)` function holds **all** the rules, and the router only maps errors to status codes
 - `my_enrollment_status` and `seats_left` from BE-2.2 now use real data
+- Seed adds enrollments: a **full** training, pending requests for each team lead and the admin, and approved enrollments in past trainings (so Profile's "Completed" has data)
 - **TDD:** write one test per acceptance rule *before* the code
 
 **Depends on:** BE-2.2
@@ -705,7 +709,7 @@ These stories don't depend on each other across roles, so both of you can start 
 **Story:** As a team lead, I can list and decide my reports' pending requests.
 
 **Acceptance criteria**
-- `/api/approvals` only returns *my* reports' pending enrollments
+- `/api/approvals` only returns *my* reports' pending enrollments (admins also see users without a team lead)
 - Approving locks the training row (`with_for_update()`), recounts approved enrollments and refuses when full. This all happens in one transaction.
 - `decided_by`, `decided_at` and `decision_comment` are stored
 - Tests: approving someone who isn't my report (403), approving when full (409), approving twice (409), plus a test that simulates two leads approving the last seat
@@ -750,17 +754,17 @@ These stories don't depend on each other across roles, so both of you can start 
 ---
 
 #### 🖥️ FE-3.2 Approvals page
-**Story:** As a team lead, I see pending requests from my reports and approve or reject them.
+**Story:** As a team lead (or an admin, for users without a team lead), I see pending requests and approve or reject them.
 
 **Acceptance criteria**
-- `/approvals` table as in the wireframe, with an empty state ("Nothing to approve 🎉")
-- Reject opens a small dialog with an optional comment
+- `/approvals` is a list of `ApprovalRow`s as in Figma (employee, training, requested at, an optional comment field, Approve / Reject), with an empty state ("Nothing to approve")
+- The comment is sent with either decision (`decision_comment`)
 - Rows disappear after a decision without a reload. If the training was full, the row shows why.
 
-**Depends on:** FE-1.2. Mocks until BE-3.2 is merged.
+**Depends on:** FE-1.2, FE-2.2 (TanStack Query). Mocks until BE-3.2 is merged.
 
 **📚 Learn**
-- Tables in React (keys!)
+- Lists in React (keys!)
 - Optimistic updates vs refetching: try both and compare
 
 ---
@@ -922,7 +926,7 @@ These stories don't depend on each other across roles, so both of you can start 
 **Story:** As the BE dev, I have every office seat in the database with its zone and grid position.
 
 **Acceptance criteria**
-- `Seat` model plus a migration. Seed data follows the agreed layout.
+- `Seat` model plus a migration. Seed data follows the Figma Seats screen: one zone per client, about 10 seats each, labels like `DKB-03` up to `UNION-10`
 - Share the seed layout (a small table or picture) with FE, so the mocks look the same
 
 **Depends on:** BE-1.1
@@ -941,7 +945,7 @@ These stories don't depend on each other across roles, so both of you can start 
 - `bookable` = free, the zone matches my client, and the date is valid
 - Date rules (past, too far ahead, weekend) return 422
 
-**Depends on:** BE-6.1, BE-6.3 (for the reservations table). The endpoint can ship first with everything free.
+**Depends on:** BE-6.1, BE-6.3 (for the reservations table), BE-1.2 (current user).
 
 **📚 Learn**
 - `LEFT JOIN`
@@ -958,7 +962,7 @@ These stories don't depend on each other across roles, so both of you can start 
 - `GET /me` and `DELETE` match the contract, with owner-only checks
 - Tests cover every rule, including "two users, same seat, same day"
 
-**Depends on:** BE-6.1
+**Depends on:** BE-6.1, BE-1.2 (current user)
 
 🧠 **Think:** compare this approach (a unique constraint, *optimistic*) with BE-3.2's row lock (*pessimistic*). Why does each fit its case? That's a great `learnings.md` entry.
 
@@ -973,9 +977,10 @@ These stories don't depend on each other across roles, so both of you can start 
 **Story:** As an employee, I can pick a date and see the office map with each seat's status.
 
 **Acceptance criteria**
-- `/seats` has a date picker (default today, respecting the agreed date rules) and a legend
+- `/seats` has a weekday picker for the next two weeks, as in Figma (weekends and past days disabled; defaults to today, or the next weekday), and a legend with icons and labels
 - `SeatMap` and `Seat` components laid out on a CSS Grid from `pos_x`/`pos_y`, grouped by zone
-- Colours and icons as agreed. Hovering or focusing a taken seat shows who took it.
+- Seat states from the design: free = white, taken = crimson + lock icon, mine = Cofinpro green + check icon, other client = grey hatched. Hovering or focusing a taken seat shows the "Taken by …" tooltip.
+- A "Your seat on <date>" summary
 - Keyboard: Tab through seats, with a useful `aria-label` like "DKB-03, taken by Ana Silva"
 - The query is keyed by date, so switching back to a date you've seen is instant
 
@@ -1103,6 +1108,7 @@ flowchart LR
       B23 --> B41
       B33 --> B51[BE-5.1 My enrollments]
       B11 --> B61[BE-6.1 Seats] --> B63[BE-6.3 Reserve] --> B62[BE-6.2 Map]
+      B12 --> B63
       B62 --> B71[BE-7.1 Deploy]
       B51 --> B71
     end
@@ -1114,6 +1120,7 @@ flowchart LR
       F11 --> F22[FE-2.2 List] --> F23[FE-2.3 Detail] --> F31[FE-3.1 Join] --> F33[FE-3.3 Withdraw]
       F23 --> F24
       F12 --> F32[FE-3.2 Approvals]
+      F22 --> F32
       F22 --> F41[FE-4.1 Bell]
       F22 --> F51[FE-5.1 Profile]
       F22 --> F61[FE-6.1 Map] --> F62[FE-6.2 Reserve] --> F63[FE-6.3 My reservations]

@@ -9,7 +9,7 @@ Every seed user's password is SEED_PASSWORD.
 Local development only: never run this against a real environment.
 """
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
@@ -23,6 +23,7 @@ from app.models import (
     Notification,
     NotificationType,
     Seat,
+    SeatReservation,
     Training,
     User,
 )
@@ -122,6 +123,32 @@ def seat_layout() -> list[tuple[str, Client, int, int]]:
     ]
 
 
+# (days from the next weekday: 0 = the next one, 1 = the one after; user; seat label)
+SEED_RESERVATIONS: list[tuple[int, str, str]] = [
+    (0, "sofia", "DKB-03"),
+    (0, "joao", "DKB-04"),
+    (0, "tiago", "DEKA-01"),
+    (0, "pedro", "VV-05"),
+    (0, "ines", "UNION-02"),
+    (0, "laura", "DBIS-07"),
+    (1, "marta", "DKB-03"),
+    (1, "miguel", "DEKA-06"),
+    (1, "beatriz", "UNION-02"),
+]
+
+
+def next_weekdays(count: int) -> list[date]:
+    """The next `count` office weekdays, starting tomorrow."""
+    from app.services.seats import office_today  # local import: seats imports settings at load
+
+    days, day = [], office_today()
+    while len(days) < count:
+        day += timedelta(days=1)
+        if day.weekday() < 5:
+            days.append(day)
+    return days
+
+
 def email_for(local_part: str) -> str:
     return f"{local_part}@{EMAIL_DOMAIN}"
 
@@ -170,6 +197,36 @@ def seed_seats(db: Session) -> list[Seat]:
         seats.append(seat)
     db.commit()
     return seats
+
+
+def seed_reservations(db: Session) -> list[SeatReservation]:
+    """Adds the seed reservations for the next two weekdays, then commits.
+
+    Safe to run on a live demo: a seed reservation is skipped when that seat is
+    already taken that day or that person already has a seat, so it never
+    overrides a real booking and never hits a UNIQUE constraint.
+    """
+    days = next_weekdays(2)
+    users = {u.email: u for u in db.scalars(select(User).where(User.email.like(f"%@{EMAIL_DOMAIN}")))}
+    seats = {seat.label: seat for seat in db.scalars(select(Seat))}
+    booked = {
+        (r.seat_id, r.date) for r in db.scalars(select(SeatReservation).where(SeatReservation.date.in_(days)))
+    }
+    people = {
+        (r.user_id, r.date) for r in db.scalars(select(SeatReservation).where(SeatReservation.date.in_(days)))
+    }
+    added = []
+    for offset, local_part, label in SEED_RESERVATIONS:
+        day, user, seat = days[offset], users[email_for(local_part)], seats[label]
+        if (seat.id, day) in booked or (user.id, day) in people:
+            continue
+        reservation = SeatReservation(seat_id=seat.id, user_id=user.id, date=day)
+        db.add(reservation)
+        booked.add((seat.id, day))
+        people.add((user.id, day))
+        added.append(reservation)
+    db.commit()
+    return added
 
 
 def seed_trainings(db: Session) -> list[Training]:
@@ -294,6 +351,9 @@ def main() -> None:
 
         seats = seed_seats(db)
         print(f"Seeded {len(seats)} seats: {SEATS_PER_ZONE} per zone ({', '.join(z.value for z in Client)}).")
+
+        added = seed_reservations(db)
+        print(f"Seeded {len(added)} new seat reservations for the next two weekdays.")
 
         trainings = seed_trainings(db)
         print(f"Seeded {len(trainings)} trainings.")

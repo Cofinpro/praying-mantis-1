@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 
-from app.models import Client, Enrollment, EnrollmentStatus, Level, Notification, Seat, Training, TrainingLevel, User
+from app.models import Client, Enrollment, EnrollmentStatus, Level, Notification, Seat, SeatReservation, Training, TrainingLevel, User
 from app.security import hash_password, verify_password
 from app.seed import (
     SEED_ENROLLMENTS,
@@ -14,6 +14,7 @@ from app.seed import (
     seed,
     seed_enrollments,
     seed_notifications,
+    seed_reservations,
     seed_seats,
     seed_trainings,
 )
@@ -233,3 +234,33 @@ class TestSeedSeats:
         with pytest.raises(IntegrityError):
             db.flush()
         db.rollback()
+
+
+class TestSeedReservations:
+    def test_reservations_follow_the_rules_and_reruns_add_nothing(self, db):
+        seed(db)
+        seed_seats(db)
+        first = seed_reservations(db)
+        second = seed_reservations(db)
+
+        assert len(first) == 9 and second == []
+        for r in first:
+            assert r.date.weekday() < 5
+            assert r.seat.zone == r.user.client  # only in your own zone
+
+    def test_a_real_booking_wins_over_the_seed(self, db):
+        seed(db)
+        seats = {s.label: s for s in seed_seats(db)}
+        from app.seed import next_weekdays
+
+        day = next_weekdays(1)[0]
+        sofia = db.scalar(select(User).where(User.email == "sofia@preyingmantis.test"))
+        other = db.scalar(select(User).where(User.email == "marta@preyingmantis.test"))
+        db.add(SeatReservation(seat_id=seats["DKB-03"].id, user_id=other.id, date=day))  # Sofia's seed seat
+        db.add(SeatReservation(seat_id=seats["DKB-09"].id, user_id=sofia.id, date=day))  # Sofia already has one
+        db.flush()
+
+        seed_reservations(db)  # must not raise
+
+        assert db.scalar(select(SeatReservation).where(SeatReservation.seat_id == seats["DKB-03"].id,
+                                                       SeatReservation.date == day)).user_id == other.id

@@ -14,6 +14,22 @@ Template:
 
 ---
 
+## 2026-09-25 — Seat reservations: optimistic, by unique constraint
+**Status:** Accepted
+**Context:** BE-6.3 implements reserve / move / list / cancel per the F6 contract, with Q3 and Q14 answered by the defaults.
+**Decision:**
+- **The database decides who gets a seat**: UNIQUE (`seat_id`, `date`) and UNIQUE (`user_id`, `date`). `POST /api/reservations` just inserts; an `IntegrityError` on the seat constraint becomes 409 `seat_taken`, and one on the user constraint (the same person in two tabs) becomes 409 `already_reserved`. There's no lock and no "is it free?" check first.
+- **Moving** (Q3): if I already have a seat that day, the old row is deleted and the new one inserted in one transaction. If the insert fails, the rollback restores the old seat. Reserving my own seat again returns it unchanged.
+- **Date rules** (Q14):
+  - past → 422 `date_in_past`
+  - more than 14 days ahead → 422 `date_too_far`
+  - Saturday or Sunday → 422 `date_weekend`
+  - today and today + 14 are allowed
+  - "today" is the **office's** date (`OFFICE_TIMEZONE`, default `Europe/Lisbon`), not UTC's
+- Another client's zone → 403. An unknown seat → 404. `GET /reservations/me` lists today onwards. `DELETE` is owner-only (403), and past ones are 409 `reservation_in_past`, while today's can still be cancelled.
+- The seed adds reservations for the next two weekdays and skips any that would clash, so `SEED_ON_START` on the live site can't crash on a constraint or override a real booking.
+**Consequences:** The FE handles `seat_taken` by refreshing the map ("someone was faster"). `tzdata` is a dependency, so the time zone works in the slim Docker image.
+
 ## 2026-09-25 — Office layout: a 5 × 2 grid per client zone
 **Status:** Accepted (Q11 default: a fake layout until the company gives a real floor plan)
 **Context:** BE-6.1 needs every seat with a zone and a position. The design (Figma Seats screen) groups the map by client zone with about 10 seats each, and seats are 68 × 56 so `UNION-10` fits.

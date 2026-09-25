@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     # The frontend's base URL, for links in emails
     app_url: str = "http://localhost:5173"
 
+    # Seat bookings (Q14): "today" is the office's date, not UTC's
+    office_timezone: str = "Europe/Lisbon"
+    booking_days_ahead: int = 14
+
     # Signs the JWTs. Required, no default: a leaked default would let anyone forge tokens.
     # HS256 needs at least 32 bytes.
     jwt_secret: str = Field(min_length=32)

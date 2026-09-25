@@ -52,6 +52,8 @@ jobs:
       DB_HOST: 127.0.0.1
       DB_PORT: 3306
       DB_NAME: praying_mantis
+      # Test-only value, not a real secret
+      JWT_SECRET: ci-only-jwt-secret-not-used-anywhere-else-000
 
     steps:
       - uses: actions/checkout@v5

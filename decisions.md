@@ -14,6 +14,16 @@ Template:
 
 ---
 
+## 2026-09-25 — Login details: HTTPBearer, and no email format check on login
+**Status:** Accepted
+**Context:** BE-1.2 implements the F1 auth contract from `plan.md` (JSON body `{email, password}` → `{access_token, token_type}`).
+**Decision:**
+- **`HTTPBearer`**, not `OAuth2PasswordBearer`, reads the token. Both read `Authorization: Bearer …`. But `OAuth2PasswordBearer` makes the `/docs` "Authorize" button post a *form* to the login URL, and our login takes JSON (per the contract), so it would fail. With `HTTPBearer`, you paste a token into "Authorize".
+- **The login email is a plain string**, not Pydantic's `EmailStr`. `EmailStr` rejects reserved domains such as `.test`, so the seed users (`@preyingmantis.test`) couldn't log in. Login doesn't need a format check anyway: an email that matches no user gets the same 401. Endpoints that *create* users should still use `EmailStr`.
+- Tokens: `sub` = user id, `iat`, `exp` (8 h), HS256 with `JWT_SECRET` (required, at least 32 characters). Decoding pins the algorithm and requires `sub` and `exp`.
+- An unknown email still runs one Argon2 verification against a dummy hash, so response times don't reveal which emails exist.
+**Consequences:** The contract is unchanged. `JWT_SECRET` must be set everywhere, including CI and, later, the deployment (BE-7.1).
+
 ## 2026-09-25 — Test isolation: one rolled-back transaction per test
 **Status:** Accepted
 **Context:** BE-0.3 asks whether each test should start clean through a transaction rollback or by truncating tables.

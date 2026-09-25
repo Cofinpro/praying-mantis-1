@@ -1,3 +1,4 @@
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import URL
 
@@ -15,6 +16,12 @@ class Settings(BaseSettings):
 
     # Comma-separated in .env, e.g. "http://localhost:5173,https://cofinpro.github.io"
     cors_origins: str = "http://localhost:5173,https://cofinpro.github.io"
+
+    # Signs the JWTs. Required, no default: a leaked default would let anyone forge tokens.
+    # HS256 needs at least 32 bytes.
+    jwt_secret: str = Field(min_length=32)
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 8 * 60
 
     @property
     def database_url(self) -> URL:

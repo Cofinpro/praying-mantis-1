@@ -24,6 +24,8 @@ class SeatReservation(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     date: Mapped[date] = mapped_column(Date)
     created_at: Mapped[datetime] = mapped_column(UtcDateTime, default=utc_now)
+    # When the "your seat tomorrow" reminder went out (services/reminders.py); NULL = not yet
+    reminded_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
 
     seat: Mapped[Seat] = relationship()
     user: Mapped[User] = relationship()

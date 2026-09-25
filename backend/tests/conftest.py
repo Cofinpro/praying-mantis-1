@@ -7,7 +7,12 @@
 - ``client`` (per test): a TestClient whose ``get_db`` dependency returns ``db``.
 """
 
+import os
 from pathlib import Path
+
+# Before app.config is imported: no reminder loop in tests. It would open its own
+# sessions on the real database, outside each test's rolled-back transaction.
+os.environ["REMINDERS_EVERY_MINUTES"] = "0"
 
 import pytest
 from alembic import command

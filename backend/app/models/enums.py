@@ -44,6 +44,8 @@ class NotificationType(enum.StrEnum):
     TRAINING_CANCELLED = "training_cancelled"  # -> everyone waitlisted, pending or approved
     TRAINING_CHANGED = "training_changed"  # -> everyone waitlisted, pending or approved
     WAITLIST_PROMOTED = "waitlist_promoted"  # -> the person who moved up from the waitlist
+    TRAINING_REMINDER = "training_reminder"  # -> everyone approved, the day before it starts
+    SEAT_REMINDER = "seat_reminder"  # -> whoever booked a seat, the working day before
 
 
 def enum_column(enum_class: type[enum.Enum]) -> Enum:

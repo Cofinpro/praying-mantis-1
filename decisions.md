@@ -14,6 +14,25 @@ Template:
 
 ---
 
+## 2026-09-25 — Reminders the day before, from a loop inside the web process
+**Status:** Accepted
+**Context:** People forget trainings and seat bookings. Something has to run on a schedule, but Render's free plan has no cron jobs or workers, and the web service sleeps after 15 idle minutes.
+**Decision:**
+- **What is reminded:**
+  - An **approved** enrollment when its training (not cancelled) starts within the next **24 h**: `training_reminder`.
+  - A seat reservation for the **next working day** (on a Friday, that's Monday): `seat_reminder`. Seats booked the same day are skipped: you just booked it.
+  - Each reminder is an in-app notification plus an email (when SMTP is on).
+- **Once only:** `reminded_at` on `enrollments` and `seat_reservations` marks what was sent. The select uses `FOR UPDATE SKIP LOCKED`, so two processes (e.g. during a deploy) never send the same one twice.
+- **Where it runs:**
+  - `app/scheduler.py` runs `services/reminders.send_due()` every `REMINDERS_EVERY_MINUTES` (default 15, 0 = off; the tests set 0). It's an asyncio task started in FastAPI's lifespan, and the sync DB work runs in a thread.
+  - `.github/workflows/wake-backend.yml` calls the health check at 07:00 and 16:00 UTC on working days, so a sleeping Render instance wakes and catches up.
+  - `POST /api/admin/reminders/run` runs it on demand.
+
+**Consequences:**
+- There's no separate worker or queue to deploy.
+- Reminders are only as punctual as the process is awake: on the free plan, up to the next wake-up.
+- With a paid plan or a real scheduler, only the trigger changes; `send_due()` stays the same.
+
 ## 2026-09-25 — Waitlist for full trainings
 **Status:** Accepted
 **Context:** A full training turned people away, and a freed seat went to whoever happened to look first.

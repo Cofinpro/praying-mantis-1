@@ -38,7 +38,7 @@ function serveNotifications(initial = notifications) {
 }
 
 async function renderLoggedIn() {
-  await storeLoginToken('joao@preyingmantis.test')
+  await storeLoginToken('joao@cofinpro.pt')
   return renderRoute('/trainings')
 }
 

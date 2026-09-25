@@ -52,7 +52,7 @@ function serveApprovals(items: ApprovalItem[]) {
 }
 
 async function openApprovals() {
-  await storeLoginToken('sofia@preyingmantis.test')
+  await storeLoginToken('sofia@cofinpro.pt')
   renderRoute('/approvals')
 }
 

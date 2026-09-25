@@ -43,7 +43,7 @@ describe('API client auth handling', () => {
     authToken.set('existing-token')
     unsubscribe = onUnauthorized(listener)
 
-    await expect(login({ email: 'sofia@preyingmantis.test', password: 'wrong' })).rejects.toMatchObject({
+    await expect(login({ email: 'sofia@cofinpro.pt', password: 'wrong' })).rejects.toMatchObject({
       status: 401,
       detail: 'Invalid email or password',
     })

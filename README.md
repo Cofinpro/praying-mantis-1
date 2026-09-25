@@ -65,9 +65,10 @@ Every seed user has the password `password123`. For example:
 
 | Email | Role |
 |---|---|
-| `admin@preyingmantis.test` | Admin |
-| `sofia@preyingmantis.test` | Team lead |
-| `joao@preyingmantis.test` | Employee (reports to Sofia) |
+| `admin@cofinpro.pt` | Admin |
+| `bernardo.santos@cofinpro.pt`, `diogo.santos@cofinpro.pt` | Admins |
+| `sofia@cofinpro.pt` | Team lead |
+| `joao@cofinpro.pt` | Employee (reports to Sofia) |
 
 The full list is in `backend/app/seed.py`.
 

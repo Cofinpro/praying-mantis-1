@@ -111,7 +111,7 @@ def test_me_for_a_team_lead(client, lead, employee):
 def test_seed_users_can_log_in(client, db):
     seed(db)
     response = client.post(
-        "/api/auth/login", json={"email": "admin@preyingmantis.test", "password": SEED_PASSWORD}
+        "/api/auth/login", json={"email": "admin@cofinpro.pt", "password": SEED_PASSWORD}
     )
 
     assert response.status_code == 200

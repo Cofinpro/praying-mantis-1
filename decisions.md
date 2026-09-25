@@ -155,6 +155,17 @@ Template:
 - Services raise `Conflict` / `ValidationFailed` (`app/errors.py`); handlers in `main.py` turn them into 409 / 422.
 **Consequences:** FE's edit form can send the whole form or only changes; both work. Notifying enrolled people on cancel is a `TODO(BE-4.1)` in `cancel_training`.
 
+## 2026-09-25 — Seed logins use @cofinpro.pt, plus admin accounts for both devs
+**Status:** Accepted
+**Context:** The seed users had `@preyingmantis.test` addresses. We want company-style logins, and our own admin accounts.
+**Decision:**
+- Every seed email is `<local part>@cofinpro.pt` (`sofia@cofinpro.pt`, `admin@cofinpro.pt`, …).
+- There are two new admins: `bernardo.santos@cofinpro.pt` (Bernardo Santos) and `diogo.santos@cofinpro.pt` (Diogo Santos), both DBIS / senior_architect with no team lead. They're added **last**, so every other seed user keeps its id on a fresh database.
+- The seed **renames** existing `@preyingmantis.test` rows instead of creating new ones (`rename_old_domains()`), so ids, enrollments, reservations and notifications survive. This includes the Render database, which re-seeds on every start.
+- The MSW mocks, the tests and the docs use the new addresses.
+
+**Consequences:** The password is still the shared `password123`, and the live login page shows it. So anyone who can open the site can sign in as either admin. That's fine for demo data, but not for anything real.
+
 ## 2026-09-25 — The live site talks to the Render backend
 **Status:** Accepted
 **Context:** FE-7.1. BE-7.1 deployed the backend on Render, and every endpoint the frontend uses is live (BE-6.2 and BE-4.1 included). The AC says "the `VITE_API_URL` repo variable is set".

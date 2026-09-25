@@ -172,25 +172,27 @@ python -m app.seed        # add the seed users (safe to run again)
 fastapi dev app/main.py   # http://localhost:8000, API docs at /docs
 ```
 
-**Seed logins (local only):** every password is `password123`. Emails are `<first name>@preyingmantis.test`.
+**Seed logins** (local, and the Render demo): every password is `password123`. Emails are `<first name>@cofinpro.pt`, plus `bernardo.santos@` and `diogo.santos@` for the two of us.
 
 | Email | Client | Level | Role / team lead |
 |---|---|---|---|
-| `admin@preyingmantis.test` | DBIS | senior_architect | **Admin**, no team lead |
-| `sofia@preyingmantis.test` | DKB | architect | **Team lead** of João, Marta, Pedro, Rita |
-| `tiago@preyingmantis.test` | Deka | senior_architect | **Team lead** of Inês, Miguel, Carolina, Bruno |
-| `ines@preyingmantis.test` | UNION | senior | **Team lead** of Beatriz, Hugo, Laura. Reports to Tiago |
-| `joao@preyingmantis.test` | DKB | junior | Sofia |
-| `marta@preyingmantis.test` | DKB | expert | Sofia |
-| `pedro@preyingmantis.test` | VV | senior | Sofia |
-| `rita@preyingmantis.test` | DBIS | junior | Sofia |
-| `miguel@preyingmantis.test` | Deka | expert | Tiago |
-| `carolina@preyingmantis.test` | Deka | junior | Tiago |
-| `bruno@preyingmantis.test` | VV | architect | Tiago |
-| `beatriz@preyingmantis.test` | UNION | expert | Inês |
-| `hugo@preyingmantis.test` | UNION | junior | Inês |
-| `laura@preyingmantis.test` | DBIS | senior | Inês |
-| `rafael@preyingmantis.test` | VV | expert | **No team lead** (an admin approves his requests) |
+| `admin@cofinpro.pt` | DBIS | senior_architect | **Admin**, no team lead |
+| `sofia@cofinpro.pt` | DKB | architect | **Team lead** of João, Marta, Pedro, Rita |
+| `tiago@cofinpro.pt` | Deka | senior_architect | **Team lead** of Inês, Miguel, Carolina, Bruno |
+| `ines@cofinpro.pt` | UNION | senior | **Team lead** of Beatriz, Hugo, Laura. Reports to Tiago |
+| `joao@cofinpro.pt` | DKB | junior | Sofia |
+| `marta@cofinpro.pt` | DKB | expert | Sofia |
+| `pedro@cofinpro.pt` | VV | senior | Sofia |
+| `rita@cofinpro.pt` | DBIS | junior | Sofia |
+| `miguel@cofinpro.pt` | Deka | expert | Tiago |
+| `carolina@cofinpro.pt` | Deka | junior | Tiago |
+| `bruno@cofinpro.pt` | VV | architect | Tiago |
+| `beatriz@cofinpro.pt` | UNION | expert | Inês |
+| `hugo@cofinpro.pt` | UNION | junior | Inês |
+| `laura@cofinpro.pt` | DBIS | senior | Inês |
+| `rafael@cofinpro.pt` | VV | expert | **No team lead** (an admin approves his requests) |
+| `bernardo.santos@cofinpro.pt` | DBIS | senior_architect | **Admin**, no team lead |
+| `diogo.santos@cofinpro.pt` | DBIS | senior_architect | **Admin**, no team lead |
 
 Re-running the seed resets these users to the values above (matched by email) and never duplicates them.
 

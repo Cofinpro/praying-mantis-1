@@ -27,7 +27,7 @@ function serveTraining(body: TrainingRead) {
 }
 
 async function openAsEmployee(path: string) {
-  await storeLoginToken('joao@preyingmantis.test')
+  await storeLoginToken('joao@cofinpro.pt')
   return renderRoute(path)
 }
 

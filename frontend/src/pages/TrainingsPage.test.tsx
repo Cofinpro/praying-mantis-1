@@ -53,7 +53,7 @@ async function renderAs(email: string, path = '/trainings') {
 describe('training list', () => {
   it('shows a card per training with date, trainer, levels, seats and my status', async () => {
     serveTrainings([reactBasics, sqlPerformance])
-    await renderAs('joao@preyingmantis.test')
+    await renderAs('joao@cofinpro.pt')
 
     const card = (await screen.findByRole('heading', { name: 'React Basics' })).closest('article')!
     expect(within(card).getByText('Tue 15 Oct 2030 · 09:00–12:00')).toBeInTheDocument()
@@ -74,7 +74,7 @@ describe('training list', () => {
 
   it("shows the employee's own level next to the subtitle", async () => {
     serveTrainings([reactBasics])
-    await renderAs('joao@preyingmantis.test')
+    await renderAs('joao@cofinpro.pt')
 
     expect(await screen.findByText(/Upcoming trainings for your level/)).toHaveTextContent('Junior')
   })
@@ -86,7 +86,7 @@ describe('training list', () => {
         return HttpResponse.json([reactBasics])
       }),
     )
-    await renderAs('joao@preyingmantis.test')
+    await renderAs('joao@cofinpro.pt')
 
     expect(await screen.findByRole('status')).toHaveTextContent('Loading trainings…')
     expect(await screen.findByRole('heading', { name: 'React Basics' })).toBeInTheDocument()
@@ -95,7 +95,7 @@ describe('training list', () => {
 
   it('shows the empty state when there are no trainings for my level', async () => {
     serveTrainings([])
-    await renderAs('joao@preyingmantis.test')
+    await renderAs('joao@cofinpro.pt')
 
     expect(await screen.findByText('No upcoming trainings for your level yet')).toBeInTheDocument()
   })
@@ -107,7 +107,7 @@ describe('training list', () => {
         serverDown ? HttpResponse.json({ detail: 'Boom' }, { status: 500 }) : HttpResponse.json([reactBasics]),
       ),
     )
-    await renderAs('joao@preyingmantis.test')
+    await renderAs('joao@cofinpro.pt')
 
     // A 5xx is retried once (after 1 s) before the error shows, so wait longer than findBy's default.
     expect(await screen.findByRole('alert', {}, { timeout: 3000 })).toHaveTextContent("Couldn't load trainings")
@@ -121,7 +121,7 @@ describe('training list', () => {
 describe('level filter', () => {
   it('lets an admin filter by level, and keeps it in the URL', async () => {
     const requested = serveTrainings([reactBasics])
-    const { router } = await renderAs('admin@preyingmantis.test')
+    const { router } = await renderAs('admin@cofinpro.pt')
     await screen.findByRole('heading', { name: 'React Basics' })
 
     await userEvent.selectOptions(screen.getByLabelText('Level'), 'Senior')
@@ -133,7 +133,7 @@ describe('level filter', () => {
 
   it('is not shown to employees', async () => {
     serveTrainings([reactBasics])
-    await renderAs('joao@preyingmantis.test')
+    await renderAs('joao@cofinpro.pt')
     await screen.findByRole('heading', { name: 'React Basics' })
 
     expect(screen.queryByLabelText('Level')).not.toBeInTheDocument()

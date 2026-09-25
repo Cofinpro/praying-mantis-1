@@ -38,7 +38,7 @@ async function fillValidForm(user: ReturnType<typeof userEvent.setup>) {
 
 describe('create-training form', () => {
   beforeEach(async () => {
-    await storeLoginToken('admin@preyingmantis.test')
+    await storeLoginToken('admin@cofinpro.pt')
   })
 
   it('sends the training with UTC times and goes to its page', async () => {

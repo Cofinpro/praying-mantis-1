@@ -2,9 +2,9 @@ import { screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { renderRoute, storeLoginToken } from '../test/render'
 
-const admin = 'admin@preyingmantis.test'
-const teamLead = 'sofia@preyingmantis.test'
-const employee = 'joao@preyingmantis.test'
+const admin = 'admin@cofinpro.pt'
+const teamLead = 'sofia@cofinpro.pt'
+const employee = 'joao@cofinpro.pt'
 
 async function renderAs(email: string, path: string) {
   await storeLoginToken(email)

@@ -17,7 +17,7 @@ describe('login', () => {
   it('goes to /trainings and shows my name after logging in', async () => {
     const { router } = renderRoute('/login')
 
-    await logIn('sofia@preyingmantis.test', 'password123')
+    await logIn('sofia@cofinpro.pt', 'password123')
 
     expect(await screen.findByRole('link', { name: 'Sofia Martins' })).toHaveAttribute('href', '/profile')
     expect(router.state.location.pathname).toBe('/trainings')
@@ -26,7 +26,7 @@ describe('login', () => {
   it("shows the API's error message on a 401 and stays on the login page", async () => {
     const { router } = renderRoute('/login')
 
-    await logIn('sofia@preyingmantis.test', 'wrong-password')
+    await logIn('sofia@cofinpro.pt', 'wrong-password')
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Invalid email or password')
     expect(router.state.location.pathname).toBe('/login')
@@ -36,7 +36,7 @@ describe('login', () => {
     server.use(http.post('*/api/auth/login', () => HttpResponse.error()))
     renderRoute('/login')
 
-    await logIn('sofia@preyingmantis.test', 'password123')
+    await logIn('sofia@cofinpro.pt', 'password123')
 
     expect(await screen.findByRole('alert')).toHaveTextContent("Can't reach the server")
   })
@@ -50,7 +50,7 @@ describe('login', () => {
     )
     renderRoute('/login')
 
-    await logIn('sofia@preyingmantis.test', 'password123')
+    await logIn('sofia@cofinpro.pt', 'password123')
 
     expect(await screen.findByText('The server is waking up. This can take up to a minute.', {}, { timeout: 6000 })).toBeInTheDocument()
   }, 10_000)
@@ -63,7 +63,7 @@ describe('login', () => {
   })
 
   it('stays logged in across a refresh', async () => {
-    await storeLoginToken('tiago@preyingmantis.test')
+    await storeLoginToken('tiago@cofinpro.pt')
 
     const { router } = renderRoute('/seats')
 
@@ -72,7 +72,7 @@ describe('login', () => {
   })
 
   it('goes to /login when the stored token is rejected (e.g. expired)', async () => {
-    await storeLoginToken('tiago@preyingmantis.test')
+    await storeLoginToken('tiago@cofinpro.pt')
     server.use(http.get('*/api/auth/me', () => HttpResponse.json({ detail: 'Not authenticated' }, { status: 401 })))
 
     const { router } = renderRoute('/seats')
@@ -85,7 +85,7 @@ describe('login', () => {
 
 describe('logout', () => {
   it('clears the token and goes to /login', async () => {
-    await storeLoginToken('joao@preyingmantis.test')
+    await storeLoginToken('joao@cofinpro.pt')
     const { router } = renderRoute('/trainings')
 
     await userEvent.click(await screen.findByRole('button', { name: 'Log out' }))

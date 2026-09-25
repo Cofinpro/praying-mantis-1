@@ -23,7 +23,7 @@ const training: TrainingRead = {
 
 async function openTraining(current: TrainingRead) {
   server.use(http.get('*/api/trainings/:id', () => HttpResponse.json(current)))
-  await storeLoginToken('joao@preyingmantis.test')
+  await storeLoginToken('joao@cofinpro.pt')
   renderRoute('/trainings/12')
   return screen.findByRole('complementary', { name: 'Your place' })
 }
@@ -54,7 +54,7 @@ describe('join button', () => {
         return HttpResponse.json({ id: 1, training_id: 12, user_id: 5, status: 'pending' }, { status: 201 })
       }),
     )
-    await storeLoginToken('joao@preyingmantis.test')
+    await storeLoginToken('joao@cofinpro.pt')
     renderRoute('/trainings/12')
     const panel = await screen.findByRole('complementary', { name: 'Your place' })
 

@@ -38,7 +38,7 @@ function serveTraining(initial: TrainingRead) {
 }
 
 async function openPanel() {
-  await storeLoginToken('joao@preyingmantis.test')
+  await storeLoginToken('joao@cofinpro.pt')
   renderRoute('/trainings/12')
   return screen.findByRole('complementary', { name: 'Your place' })
 }

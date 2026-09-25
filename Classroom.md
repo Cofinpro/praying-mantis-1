@@ -1,9 +1,11 @@
 # Classroom: React for a Vue developer, taught through PreyingMantis
 
-Two parts, both built from code we actually wrote (FE-0.3 → FE-7.2):
+Three parts, all built from code we actually wrote (FE-0.3 → FE-7.2, and the features after):
 
 - **Part 1: the tour (15 min).** The mental model, the file map, and how the pieces talk to each other.
-- **Part 2: the deep dive (≈ 60 min).** Twelve chapters. Each one takes a React idea, shows the Vue idea it replaces, quotes the file where we use it, and explains the trap we fell into (or nearly did). Part 2 ends with **exercises you can do in this codebase**, with hints and solutions.
+- **Part 2: the deep dive (≈ 60 min).** Twelve chapters. Each one takes a React idea, shows the Vue idea it replaces, quotes the file where we use it, and explains the trap we fell into (or nearly did).
+- **Part 3: after the board (≈ 30 min).** Uploads, downloads with a token, a state machine in the UI, cache surgery, a report page, accessibility fixes, and the backend ideas behind them.
+- At the end: **war stories**, **exercises you can do in this codebase** (with hints and solutions) and **check yourself** questions.
 
 ```
  You know Vue                                You'll know after this
@@ -51,20 +53,24 @@ frontend/src/
 ├── api/
 │   ├── client.ts         ← your axios instance: base URL, Bearer token, 401 → logout, ApiError
 │   ├── queryClient.ts    ← the TanStack cache + every query key (one place!)
-│   ├── auth.ts, trainings.ts, enrollments.ts, notifications.ts, seats.ts, users.ts
+│   ├── auth.ts, trainings.ts, enrollments.ts, notifications.ts, seats.ts, users.ts,
+│   │   adminUsers.ts, feedback.ts, materials.ts, reports.ts
 │   └── schema.d.ts       ← GENERATED from FastAPI (never edit)
 ├── auth/                 ← a Pinia "auth store", done with Context
 │   ├── AuthProvider.tsx, AuthContext.ts, useAuth.ts
 │   ├── RequireAuth.tsx, RequirePermission.tsx, permissions.ts
 ├── components/           ← reusable UI, each with a .module.css
 │     TopBar, NotificationBell, TrainingCard, TrainingForm, TrainerPicker, ConfirmDialog,
-│     JoinButton, WithdrawButton, ApprovalRow, SeatMap, Seat, DayPicker, MyReservations…
+│     JoinButton, WithdrawButton, ApprovalRow, SeatMap, Seat, DayPicker, MyReservations,
+│     AvatarEditor, UserForm, ChangePassword, Stars, FeedbackSection, MaterialsSection…
 ├── pages/                ← one component per route (views/ in Vue)
 ├── trainings/            ← plain TS: trainingForm.ts (validation, API mapping), levels.ts, display.ts
 ├── enrollments/          ← plain TS: joinState.ts, messages.ts (error code → sentence)
 ├── seats/                ← plain TS: seatState.ts
 ├── hooks/                ← composables/: useDebouncedValue
-├── lib/                  ← utils/: datetime.ts (instants, UTC), days.ts (calendar days)
+├── lib/                  ← utils/: datetime.ts (instants, UTC), days.ts (calendar days),
+│                            image.ts (shrink photos), csv.ts, download.ts (save a Blob)
+├── users/                ← plain TS: userForm.ts, fieldErrors.ts (422 → field)
 ├── mocks/                ← MSW: handlers.ts, data/*.ts (a tiny fake backend), browser.ts, server.ts
 └── test/                 ← setup.ts, render.tsx (renderRoute, storeLoginToken)
 ```
@@ -115,6 +121,7 @@ flowchart TD
   layout --> ap["/approvals → RequirePermission(canApprove)"]
   layout --> adm["/admin → RequirePermission(isAdmin) + &lt;Outlet/&gt;"]
   adm --> nt["trainings/new, trainings/:id/edit"]
+  adm --> au["users, users/new, users/:id/edit, reports"]
 ```
 
 `<Outlet />` = `<router-view>`. Guards are **components** that render either their children or `<Navigate to="/login" replace />`, instead of a `beforeEach`.
@@ -573,6 +580,153 @@ flowchart LR
 
 ---
 
+# Part 3: what we built after the Jira board was done
+
+Nine features came after FE-7.2: profile pictures, user management, ratings, the waitlist, reminders, admin reports, training materials, plus photos in approvals and a mobile cleanup. Each one taught something new. This part picks the ideas worth keeping, with the file to open next to each.
+
+```
+ Chapter                                  Open this file
+ ───────                                  ──────────────
+ 3.1 Files in: uploads                    components/AvatarEditor.tsx, MaterialsSection.tsx, lib/image.ts
+ 3.2 Files out: downloads with a token    api/client.ts (api.blob), lib/download.ts, lib/csv.ts
+ 3.3 A state machine in the UI            enrollments/joinState.ts, components/JoinButton.tsx
+ 3.4 Cache surgery vs invalidation        MaterialsSection.tsx, FeedbackSection.tsx, AvatarEditor.tsx
+ 3.5 A report page: derive everything     pages/AdminReportsPage.tsx
+ 3.6 Accessibility we got wrong           components/Stars.tsx, MaterialsSection.tsx
+ 3.7 The backend side, for comparison     backend/app/services/*.py, scheduler.py
+```
+
+## 3.1 Files in: uploads
+
+**Vue:** `<input type="file" @change="onFile">`, then `axios.post(url, formData)`.
+**React:** the same DOM, the same `FormData`. What changes is how we *wire* it.
+
+```tsx
+// components/MaterialsSection.tsx (AvatarEditor does the same)
+const inputRef = useRef<HTMLInputElement>(null)
+…
+<input ref={inputRef} type="file" accept={ACCEPT} className="visually-hidden" tabIndex={-1} aria-hidden="true"
+  onChange={(event) => {
+    const file = event.target.files?.[0]
+    if (file) upload.mutate(file)
+    event.target.value = ''            // so choosing the same file again still fires onChange
+  }} />
+<Button onClick={() => inputRef.current?.click()}>+ Add file</Button>
+```
+
+- **A real `<input>`, hidden, opened by a real button.** A file input can't be styled well, so we hide it and click it through a ref (§ 2.5). Keyboard and screen-reader users get a normal button. `tabIndex={-1}` + `aria-hidden` keep the hidden input out of the way.
+- **An uncontrolled input on purpose.** A file input's `value` is read-only, so `value={…}` (§ 2.9) is impossible. We read `event.target.files` once and hand the `File` to a mutation. Resetting `value = ''` is the one write the browser allows.
+- **`FormData` goes through `client.ts` untouched.** `request()` checks `body instanceof FormData` and then *doesn't* set `Content-Type`. The browser must write `multipart/form-data; boundary=…` itself. Set it by hand and the boundary is missing, so the server can't parse the body.
+- **Shrink before you send** (`lib/image.ts`): `createImageBitmap` + a `<canvas>` + `canvas.toBlob` turn a 5 MB phone photo into a ~20 KB square JPEG. `toBlob` takes a callback, so we wrap it in a `Promise`. That's the standard way to make any callback API awaitable.
+- **Never trust the name or the type.** The backend picks the Content-Type from the extension, checks the first bytes (`%PDF-`, `PK`, the PNG signature…) and strips folders from the filename. `accept=".pdf,…"` only filters the file picker.
+
+## 3.2 Files out: downloads that need the login token
+
+`<a href="/api/…/file" download>` can't send `Authorization: Bearer …`, so it gets a 401. We fetch the file ourselves and hand it to the browser:
+
+```ts
+// api/client.ts: the same request() as every other call (token, 401 → logout, ApiError), but blob() instead of json()
+blob: (path: string) => request<Blob>('GET', path, undefined, { as: 'blob' }),
+
+// lib/download.ts
+export function saveFile(filename: string, blob: Blob) {
+  const url = URL.createObjectURL(blob)          // a blob:… URL that points at memory
+  const link = document.createElement('a')       // never mounted in the React tree
+  link.href = url
+  link.download = filename
+  link.click()
+  setTimeout(() => URL.revokeObjectURL(url), 0)   // free the memory once the download has started
+}
+```
+
+- **Downloading is a mutation, not a query.** It's an action the user triggers, with a pending state and an error, and nothing to cache. `useMutation({ mutationFn: async (m) => saveFile(m.filename, await downloadMaterial(…)) })`.
+- **`mutation.variables`** tells you *which* row is busy: `disabled={download.isPending && download.variables?.id === material.id}`. One mutation serves the whole list.
+- **The CSV export** (`lib/csv.ts`) uses the same `saveFile`. It builds the text from data the page already has, so there's no endpoint. Two details matter:
+  - a **BOM** (`﻿`) at the start, or Excel reads "João" as "JoÃ£o"
+  - **formula injection**: a user named `=HYPERLINK("http://evil")` becomes a live formula in Excel. Cells starting with `= + - @` get a leading `'`.
+
+## 3.3 A state machine in the UI: the waitlist
+
+The backend has a real state machine (`ALLOWED_MOVES` in `services/enrollments.py`):
+
+```mermaid
+stateDiagram-v2
+  [*] --> pending: request (seats left)
+  [*] --> waitlisted: join waitlist (full)
+  waitlisted --> pending: a place opens up
+  pending --> approved
+  pending --> rejected
+  waitlisted --> withdrawn
+  pending --> withdrawn
+  approved --> withdrawn
+```
+
+The frontend never *stores* where you are in it. It **derives** it on every render (§ 2.2):
+
+```ts
+// enrollments/joinState.ts
+if (training.my_enrollment_status === 'waitlisted') return 'waitlisted'
+…
+if (training.seats_left <= 0) return 'join_waitlist'
+return 'can_join'
+```
+
+- **The state picks the endpoint at click time:** `mutationFn: (state) => (state === 'join_waitlist' ? joinWaitlist : requestToJoin)(training.id)`, called as `join.mutate(state)`. The button, its label and its hint all come from the same derived value, so they can't disagree.
+- **Early returns belong after the hooks.** `JoinButton` shows "You're the trainer of this training" instead of the button, but only after `useAuth`, `useQueryClient` and `useMutation` have run. Hooks must be called in the same order on every render. In Vue, `setup()` runs once, so this rule doesn't exist there.
+- **The position is data, not maths.** "You're #2 in line" is `my_waitlist_position` from the API, computed in SQL. The client can't count the queue: it only sees itself.
+
+## 3.4 Cache surgery vs invalidation
+
+After a write there are two ways to update the screen (§ 2.8):
+
+| | `invalidateQueries({ queryKey })` | `setQueryData(key, updater)` |
+|---|---|---|
+| What happens | marks matching queries stale and refetches the ones on screen | writes the new value straight into the cache |
+| Cost | one more request | none |
+| Right when | the write changes things you can't compute (seats left, ratings, other lists) | the response *is* the new data, or the change is obvious |
+| Where we use it | `FeedbackSection` (a rating changes the average on every card) | `AvatarEditor` (the API returns the new `me`), `MaterialsSection` (append the new file, filter out the deleted one) |
+
+```ts
+// MaterialsSection.tsx
+onSuccess: (added) => queryClient.setQueryData<Material[]>(key, (list) => [...(list ?? []), added]),
+```
+
+- **Always a new array** (`[...list, added]`, `list.filter(…)`), never `list.push()`. TanStack compares by reference, like React state (§ 2.1).
+- **Key hierarchies pay off again.** `trainingMaterials(id)` is `['trainings', 'materials', id]`, so anything that invalidates `['trainings']` (a cancel, an edit) refreshes the files too.
+
+## 3.5 A report page: derive everything
+
+`AdminReportsPage` holds just three pieces of state: `from`, `to` and `client`. Everything else is computed:
+
+- **Server-side filters go in the query key:** `queryKeys.trainingReport(from, to)`. A new date is a new key, so a new fetch, and each range is cached separately. `placeholderData: (previous) => previous` keeps the old table on screen while the next range loads.
+- **Client-side filters are a plain `.filter()` in the body:** `report.data?.filter((r) => !client || r.client === client)`. There's no `useMemo` (§ 2.6): a few hundred rows filter in microseconds.
+- **Totals are a pure function of the rows** (`trainingTotals`). The average rating is **weighted** by `rating_count`: one training with a single 5 and another with three 3s average **3.5**, not 4.
+- **Semantic tables:** `<th scope="col">` and `<th scope="row">`, wrapped in `overflow-x: auto`. The tests find rows by their header, like a screen reader does: `getByRole('row', { name: /Agile/ })`.
+
+## 3.6 Accessibility we got wrong (and how we found out)
+
+| What we had | What Lighthouse / a screen reader said | Fix |
+|---|---|---|
+| `<span aria-label="Rated 4.5 out of 5">★★★★★</span>` | "aria-label is prohibited" on a `<span>`: it has no role, so it can't have a name | visually hidden text + `aria-hidden` on the stars (`Stars.tsx`) |
+| star radios labelled "★★★" | "black star, black star, black star, radio button" | `aria-label="3 stars"` on each radio; they're radios, so arrow keys work for free |
+| several "Download" / "Delete" buttons | ten identical names in the buttons list | ``aria-label={`Download ${material.filename}`}`` |
+
+**The rule:** `aria-label` names elements that *have* a role (buttons, links, inputs, landmarks, `role="img"`). For plain text, write the text, and hide it visually if you must.
+
+## 3.7 The backend side, for comparison (what Diogo would recognise from Spring)
+
+| Need | Spring / JPA | What we did in FastAPI / SQLAlchemy |
+|---|---|---|
+| Run a job every 15 min | `@Scheduled(fixedRate = …)` | an `asyncio` task started in `lifespan` (`scheduler.py`), with the sync DB work in `asyncio.to_thread` |
+| Don't send a reminder twice, even from two processes | `@Lock(PESSIMISTIC_WRITE)` + skip-locked hint | `.with_for_update(skip_locked=True)` + a `reminded_at` column |
+| "My place in the queue" on every row | `@Formula` or a DTO projection | a correlated scalar subquery with `aliased(Enrollment)` |
+| Count per status in one pass | `COUNT(CASE …)` in JPQL | `func.sum(case(…))`, since MySQL has no `FILTER` |
+| Store files | usually S3 | a deferred `MEDIUMBLOB` (Render's disk is wiped on every deploy) |
+
+One gotcha changes how you read our services: **`autoflush=False`**. A status you set in Python isn't in the database until `db.flush()`, so a `COUNT(*)` right after it still sees the old value. `promote_waitlist()` flushes first. Hibernate would have flushed for you.
+
+---
+
 ## War stories: bugs we actually hit
 
 | Bug | Symptom | Cause | Fix | Lesson |
@@ -583,6 +737,11 @@ flowchart LR
 | "Mon12Oct" | Screen readers read the day buttons as one word | Three `<span>`s without spaces | `aria-label` | Check accessible names, not just visuals |
 | 1fr overflow | The Seats page scrolled sideways at 375 px | `1fr` = `minmax(auto, 1fr)` never shrinks below its content | `minmax(0, 1fr)`, `min-width: 0` | Test at 375 px |
 | UTC day | (Avoided) the seat map booking yesterday near midnight | `toISOString().slice(0,10)` is the UTC day | `lib/days.ts` builds local `YYYY-MM-DD` | Calendar days aren't instants |
+| "Enrolled ✓" forever | A training that ended weeks ago still said "See you there!" | `joinState` didn't look at `ends_at` | a `'completed'` state | Every derived state needs a "the time has passed" case |
+| Multipart in jsdom | Upload tests crashed deep inside MSW (`_buffer`) | jsdom's `fetch` can't encode `FormData` bodies | stub `uploadAvatar` / `uploadMaterial` with `vi.mock` | Test your code, not the test environment's gaps |
+| `expect.any(Blob)` fails | The download test failed although the right file arrived | Node's `Blob` and jsdom's `Blob` are different classes | assert `await blob.text()` | Assert on content, not on class identity |
+| Trainer gets a 404 | Sofia couldn't open the training she gives | the detail page filtered by *her* level (architect) | trainers see their own trainings | Every new role needs a pass over the existing rules |
+| `aria-label` on a `<span>` | Lighthouse: "prohibited ARIA attribute" | a name on an element with no role | visually hidden text | Names are for roles; text is for text |
 
 ---
 
@@ -663,6 +822,36 @@ onError: (_e, { day }, context) => queryClient.setQueryData(queryKeys.seats(day)
 Then ask yourself whether it's worth it here. Compare with the approvals decision in § 2.8.
 </details>
 
+**6. Show the waitlist position on the training card** ("Waitlisted · #2") in the list and on the Profile page.
+<details><summary>Hint</summary>
+
+`TrainingCard` already gets the whole `TrainingSummary`, and `my_waitlist_position` is on it. It's a derived label, like `seatsLabel` in `trainings/display.ts`.
+</details>
+<details><summary>Solution sketch</summary>
+
+Add ``export const waitlistLabel = (t) => t.my_enrollment_status === 'waitlisted' && t.my_waitlist_position ? `#${t.my_waitlist_position} in line` : null`` to `display.ts`. Render it next to the badge in `TrainingCard`. Test: serve a waitlisted training with position 2 from `/api/me/enrollments` and expect "#2 in line" in the Pending section.
+</details>
+
+**7. Sort the Reports tables by clicking a column header.**
+<details><summary>Hint</summary>
+
+State: `const [sort, setSort] = useState<{ key: keyof TrainingReportRow; dir: 'asc' | 'desc' }>()`. The sorted rows are **derived** (§ 2.2): don't copy them into state. Headers become `<button>`s inside `<th aria-sort="ascending">`.
+</details>
+<details><summary>Solution sketch</summary>
+
+`const rows = sort ? [...data].sort((a, b) => compare(a[sort.key], b[sort.key]) * (sort.dir === 'asc' ? 1 : -1)) : data`. Copy before sorting, because `.sort()` mutates the cached array (§ 3.4). `aria-sort` goes only on the sorted column. The CSV should export the rows in the order on screen, so pass `rows`, not `data`. Test: click "Approved" twice and expect the first row to be the training with the most approvals.
+</details>
+
+**8. Keep the report's date range in the URL** (`/admin/reports?from=2026-09-01`), so a link shows the same report.
+<details><summary>Hint</summary>
+
+`useSearchParams()` from `react-router` works like Vue Router's `route.query` plus `router.replace({ query })`. The URL *becomes* the state, so the two `useState`s go away.
+</details>
+<details><summary>Solution sketch</summary>
+
+`const [params, setParams] = useSearchParams(); const from = params.get('from') ?? ''`. On change: `setParams((p) => { value ? p.set('from', value) : p.delete('from'); return p }, { replace: true })`. `replace` keeps each keystroke out of the Back button history. The query key doesn't change: it still reads `from` and `to`.
+</details>
+
 ---
 
 ## Check yourself
@@ -695,4 +884,24 @@ The mutation invalidates `['trainings']`, and the profile's key is `['trainings'
 <details><summary>6. Optimistic or pessimistic for approving a request, and why?</summary>
 
 Pessimistic: the approval can fail with `training_full`, and that message belongs on the row. An optimistic removal would hide the row and then have to bring it back with an error.
+</details>
+
+<details><summary>7. Why don't we set <code>Content-Type</code> for a file upload?</summary>
+
+The browser has to write `multipart/form-data; boundary=…` itself, with the boundary it used to separate the parts. Set the header by hand and the boundary is missing, so the server can't split the body.
+</details>
+
+<details><summary>8. Why is downloading a material a <code>useMutation</code> and not a plain link?</summary>
+
+A link can't send the Bearer token, so it would get a 401. And downloading is an action with a pending state and an error, not data to cache, so a mutation fits better than a query.
+</details>
+
+<details><summary>9. After uploading a file we use <code>setQueryData</code>; after rating a training we invalidate. Why the difference?</summary>
+
+The upload's response *is* the new list item, so appending it is exact and free. A rating changes values the client can't compute (the average on every card, `my_rating` in lists), so we let the server recompute them.
+</details>
+
+<details><summary>10. Where does "You're #2 in line" come from, and why not count in the browser?</summary>
+
+From `my_waitlist_position`, a correlated subquery on the backend. The browser only knows its own enrollment, not everyone else's in the queue.
 </details>

@@ -14,6 +14,12 @@ Template:
 
 ---
 
+## 2026-09-25 — Contract addition: `my_enrollment_id` on training responses
+**Status:** Accepted (additive: existing FE code keeps working)
+**Context:** Withdrawing needs the enrollment's id (`POST /api/enrollments/{id}/withdraw`), but training responses only carried `my_enrollment_status`. After a page reload FE had no way to find the id.
+**Decision:** `TrainingSummary` and `TrainingRead` gain `my_enrollment_id: int | null`: the id of the viewer's own enrollment in that training (any status), or `null` if they have none. It's another correlated subquery in the same training query, so it's still one query. It appears everywhere trainings are returned: the list, the detail, create/edit/cancel, the approvals list and the profile.
+**Consequences:** FE regenerates its API types (`pnpm gen:api`) and uses `my_enrollment_id` for the Withdraw button instead of remembering the id from the request call.
+
 ## 2026-09-25 — Seat map: one LEFT JOIN, and what "bookable" means
 **Status:** Accepted
 **Context:** BE-6.2 implements `GET /api/seats?date=` per the F6 contract.

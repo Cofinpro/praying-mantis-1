@@ -212,3 +212,35 @@ def test_request_is_reflected_in_the_training_detail(client, junior, make_traini
     body = client.get(f"/api/trainings/{training.id}", headers=auth_headers(junior)).json()
 
     assert body["my_enrollment_status"] == "pending"
+
+
+# --- my_enrollment_id, so FE can withdraw after a reload ---
+
+
+def test_my_enrollment_id_is_my_own_enrollment(client, junior, make_user, make_training, enroll):
+    training = make_training()
+    mine = enroll(junior, training, EnrollmentStatus.PENDING)
+    enroll(make_user(), training, EnrollmentStatus.APPROVED)  # someone else's
+
+    detail = client.get(f"/api/trainings/{training.id}", headers=auth_headers(junior)).json()
+    listing = client.get("/api/trainings", headers=auth_headers(junior)).json()
+
+    assert detail["my_enrollment_id"] == mine.id
+    assert listing[0]["my_enrollment_id"] == mine.id
+
+
+def test_my_enrollment_id_is_null_without_an_enrollment(client, junior, make_training):
+    training = make_training()
+
+    assert client.get(f"/api/trainings/{training.id}", headers=auth_headers(junior)).json()["my_enrollment_id"] is None
+
+
+def test_withdraw_using_my_enrollment_id_from_the_detail(client, junior, make_training):
+    training = make_training()
+    request_seat(client, junior, training.id)
+
+    # Like FE after a page reload: it only has the training
+    enrollment_id = client.get(f"/api/trainings/{training.id}", headers=auth_headers(junior)).json()["my_enrollment_id"]
+    response = client.post(f"/api/enrollments/{enrollment_id}/withdraw", headers=auth_headers(junior))
+
+    assert response.json()["status"] == "withdrawn"

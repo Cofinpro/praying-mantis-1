@@ -32,13 +32,13 @@ def engine():
     assert TEST_DB_NAME.endswith("_test")
 
     # Connect to the server without selecting a database, to (re)create the test DB
-    server_engine = create_engine(settings.url_for(None))
+    server_engine = create_engine(settings.url_for(None), connect_args=settings.db_connect_args)
     with server_engine.connect() as conn:
         conn.execute(text(f"DROP DATABASE IF EXISTS `{TEST_DB_NAME}`"))
         conn.execute(text(f"CREATE DATABASE `{TEST_DB_NAME}`"))
     server_engine.dispose()
 
-    engine = create_engine(settings.url_for(TEST_DB_NAME))
+    engine = create_engine(settings.url_for(TEST_DB_NAME), connect_args=settings.db_connect_args)
 
     # Build the schema exactly like production does: through the migrations
     alembic_cfg = Config(BACKEND_DIR / "alembic.ini")

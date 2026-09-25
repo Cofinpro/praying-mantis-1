@@ -1,3 +1,6 @@
+import tempfile
+from functools import cached_property
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import URL
@@ -13,6 +16,11 @@ class Settings(BaseSettings):
     db_host: str = "127.0.0.1"
     db_port: int = 3306
     db_name: str
+    # The database server's CA certificate as PEM text (from the host's dashboard).
+    # PyMySQL already encrypts whenever the server offers TLS, but without a CA it
+    # doesn't check *who* it's talking to. With it, the server's certificate and host
+    # name are verified. Set it for any remote database; leave it unset locally.
+    db_ssl_ca: str | None = None
 
     # Comma-separated in .env, e.g. "http://localhost:5173,https://cofinpro.github.io"
     cors_origins: str = "http://localhost:5173,https://cofinpro.github.io"
@@ -38,6 +46,17 @@ class Settings(BaseSettings):
             port=self.db_port,
             database=database,
         )
+
+    @cached_property
+    def db_connect_args(self) -> dict:
+        """Extra PyMySQL connect() arguments: TLS when DB_SSL_CA is set."""
+        if not self.db_ssl_ca:
+            return {}
+        # PyMySQL wants a file path, and hosts give us the PEM as a secret string
+        ca_file = tempfile.NamedTemporaryFile("w", suffix=".pem", delete=False)
+        ca_file.write(self.db_ssl_ca.replace("\\n", "\n"))
+        ca_file.close()
+        return {"ssl": {"ca": ca_file.name}}
 
     @property
     def cors_origin_list(self) -> list[str]:

@@ -169,6 +169,16 @@ We're both experienced developers (one from **Vue**, one from **Java**), so skip
 - Use `127.0.0.1` rather than `localhost` in `DB_HOST`: some MySQL clients treat `localhost` as "use the Unix socket" instead of TCP, which doesn't reach a container.
 - `/docker-entrypoint-initdb.d/*.sql` scripts run once, on the first start with an empty volume. We inject ours as an **inline Compose `config`** (`configs: … content: |`) instead of bind-mounting a file: on macOS, Docker Desktop may not be allowed to read `~/Desktop` or `~/Documents`, and a bind mount from there fails with "operation not permitted".
 
+## Deploying (Docker, config, secrets)
+
+- **Containers vs a Spring Boot fat jar**: the jar bundles your code and libraries but still needs a JVM on the server. An image bundles everything down to the OS files (`python:3.12-slim`), so it runs the same on a laptop, in CI and on Render. `docker build` makes the image; `docker run` starts a container from it.
+- **Layer caching**: the Dockerfile copies `requirements.txt` and runs `pip install` *before* copying the code, so changing a `.py` file reuses the cached dependency layer and the rebuild takes seconds.
+- **`exec` in `start.sh`**: without it the shell stays as PID 1 and the server never receives the host's stop signal (SIGTERM), so a deploy has to kill it hard. With `exec` the server replaces the shell and shuts down cleanly.
+- **Environment-specific config**: the code is the same everywhere, only env vars differ (the 12-factor idea). Locally they come from `backend/.env`; in the container `pydantic-settings` reads real env vars and the image has no `.env` (`.dockerignore`). Same role as Spring profiles, but there's no profile switch: each environment just sets different values.
+- **Secrets never go in git or in the image**: anything baked into an image can be read by anyone who pulls it (`docker history`, or just `cat`). The host's secret store injects them as env vars at runtime. Rotating one means changing it there and restarting, no rebuild.
+- **Gotcha: PyMySQL 2.x uses TLS automatically** when the server offers it, but *without verifying* the certificate. It even connected to our self-signed rehearsal server. That's encrypted but open to an impostor server, so for a remote DB we pass the host's CA (`DB_SSL_CA`), which makes PyMySQL check the certificate chain **and** the host name. A wrong CA fails with `CERTIFICATE_VERIFY_FAILED`.
+- **Rehearse the deploy locally**: run the image against an empty, TLS-only MySQL with the same env vars as the host (we used Aiven's default names `avnadmin` / `defaultdb`). It caught the TLS behaviour above before any account existed.
+
 ## GitHub Actions
 
 - **Service containers** (`services:` in a job) start next to the job before the steps run, like Testcontainers but declared in YAML. With `ports: 3306:3306` the job reaches MySQL at `127.0.0.1:3306`. The `--health-cmd` options make Actions wait until MySQL is ready.

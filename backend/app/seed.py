@@ -15,7 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
-from app.models import Client, Level, Training, User
+from app.models import Client, Enrollment, EnrollmentStatus, Level, Training, User
 from app.security import hash_password
 
 SEED_PASSWORD = "password123"
@@ -63,6 +63,35 @@ SEED_TRAININGS: list[tuple[str, int, int, int, list[Level], str | None, str | No
     ("Docker for developers", -14, 3, 10, [L.JUNIOR, L.EXPERT, L.SENIOR], "tiago", None, False),
     ("Agile estimation", -30, 2, 20, ALL_LEVELS, None, "Scrum.org", False),
     ("Kubernetes 101", 12, 4, 10, [L.EXPERT, L.SENIOR], "bruno", None, True),
+]
+
+
+E = EnrollmentStatus
+
+# (training name, user's email local part, status, decision comment)
+# Deciders are filled in automatically: the user's team lead, or the admin.
+SEED_ENROLLMENTS: list[tuple[str, str, EnrollmentStatus, str | None]] = [
+    # "Git basics" has 2 seats: both approved, so it's full
+    ("Git basics", "joao", E.APPROVED, None),
+    ("Git basics", "carolina", E.APPROVED, None),
+    # One pending request for each team lead to decide...
+    ("Intro to FastAPI", "rita", E.PENDING, None),  # Sofia
+    ("React for Vue developers", "miguel", E.PENDING, None),  # Tiago
+    ("Intro to FastAPI", "hugo", E.PENDING, None),  # Inês
+    ("React for Vue developers", "beatriz", E.PENDING, None),  # Inês
+    # ...and one for the admin (Rafael has no team lead)
+    ("Intro to FastAPI", "rafael", E.PENDING, None),
+    # Other outcomes on upcoming trainings
+    ("SQLAlchemy in depth", "laura", E.APPROVED, None),
+    ("React for Vue developers", "pedro", E.REJECTED, "Please take Intro to FastAPI first"),
+    ("Intro to FastAPI", "marta", E.WITHDRAWN, None),
+    # Past trainings: approved = "Completed" on the Profile page
+    ("Docker for developers", "joao", E.APPROVED, None),
+    ("Docker for developers", "marta", E.APPROVED, None),
+    ("Docker for developers", "pedro", E.APPROVED, None),
+    ("Agile estimation", "sofia", E.APPROVED, None),
+    ("Agile estimation", "bruno", E.APPROVED, None),
+    ("Agile estimation", "laura", E.REJECTED, "Full team already attending"),
 ]
 
 
@@ -136,6 +165,38 @@ def seed_trainings(db: Session) -> list[Training]:
     return trainings
 
 
+def seed_enrollments(db: Session) -> list[Enrollment]:
+    """Creates or updates every seed enrollment (needs seed users and trainings), then commits."""
+    users = {
+        user.email: user
+        for user in db.scalars(select(User).where(User.email.like(f"%@{EMAIL_DOMAIN}")))
+    }
+    trainings = {
+        t.name: t for t in db.scalars(select(Training).where(Training.name.in_([t[0] for t in SEED_TRAININGS])))
+    }
+    admin = users[email_for("admin")]
+    existing = {
+        (e.training_id, e.user_id): e
+        for e in db.scalars(select(Enrollment).where(Enrollment.training_id.in_([t.id for t in trainings.values()])))
+    }
+
+    enrollments = []
+    for training_name, local_part, status, comment in SEED_ENROLLMENTS:
+        training, user = trainings[training_name], users[email_for(local_part)]
+        enrollment = existing.get((training.id, user.id)) or Enrollment(training=training, user=user)
+        enrollment.status = status
+        enrollment.requested_at = training.starts_at - timedelta(days=5)
+        decided = status in (E.APPROVED, E.REJECTED)
+        enrollment.decided_by = (user.team_lead or admin) if decided else None
+        enrollment.decided_at = enrollment.requested_at + timedelta(days=1) if decided else None
+        enrollment.decision_comment = comment
+        db.add(enrollment)
+        enrollments.append(enrollment)
+
+    db.commit()
+    return enrollments
+
+
 def main() -> None:
     with SessionLocal() as db:
         users = seed(db)
@@ -154,6 +215,10 @@ def main() -> None:
                 trainer = " – ".join(filter(None, ["External", t.external_trainer_name]))
             status = " (cancelled)" if t.cancelled else ""
             print(f"  {t.starts_at:%Y-%m-%d} {t.name:<26} {t.max_seats:>2} seats  {trainer}{status}")
+
+        enrollments = seed_enrollments(db)
+        counts = {status: sum(e.status == status for e in enrollments) for status in EnrollmentStatus}
+        print(f"Seeded {len(enrollments)} enrollments: " + ", ".join(f"{n} {s}" for s, n in counts.items()))
 
 
 if __name__ == "__main__":

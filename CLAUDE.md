@@ -94,12 +94,13 @@ What exists today:
     - `enums.py`: `Client` and `Level` (`StrEnum`), and `enum_column()` to store them as VARCHAR
     - `user.py`: `User`, with `team_lead` / `reports` (self-referencing) and the derived `is_team_lead`
     - `training.py`: `Training` and the `TrainingLevel` join table. `training.levels` reads/writes plain `Level`s through it.
+    - `enrollment.py`: `Enrollment` (UNIQUE `training_id` + `user_id`), with `EnrollmentStatus` in `enums.py`
     - `types.py`: `UtcDateTime`, the column type for every datetime the API exposes (stores UTC, returns aware UTC)
   - `app/schemas/`: Pydantic request/response models (the API contract)
-  - `app/routers/`: one `APIRouter` per area. `health.py` has `/api/` and `/api/health/db`, `auth.py` has `/api/auth/login` and `/api/auth/me`, `users.py` has `/api/users` (admin only), `trainings.py` has `/api/trainings` (list, detail, create, `PATCH`, `/cancel`).
+  - `app/routers/`: one `APIRouter` per area. `health.py` has `/api/` and `/api/health/db`, `auth.py` has `/api/auth/login` and `/api/auth/me`, `users.py` has `/api/users` (admin only), `trainings.py` has `/api/trainings` (list, detail, create, `PATCH`, `/cancel`), `enrollments.py` has `POST /api/trainings/{id}/enrollments`.
   - `app/dependencies.py`: shared dependencies. `CurrentUser` (requires a valid token, gives the `User`), `AdminUser` (also requires `is_admin`, else 403) and `DbSession`.
-  - `app/services/`: business rules, no HTTP concerns
-  - `app/errors.py`: `Conflict` (→ 409 with a `code`) and `ValidationFailed` (→ 422 in Pydantic's format), raised by services and turned into responses by handlers registered in `main.py`
+  - `app/services/`: business rules, no HTTP concerns. `enrollments.py` holds every enrollment rule (`request`, `count_approved`).
+  - `app/errors.py`: `NotFound` (→ 404), `Forbidden` (→ 403), `Conflict` (→ 409 with a `code`) and `ValidationFailed` (→ 422 in Pydantic's format), raised by services and turned into responses by handlers registered in `main.py`
   - `app/security.py`: password hashing (`pwdlib`, Argon2id) and JWT create/decode (`PyJWT`, HS256)
   - `app/seed.py`: local seed users (`python -m app.seed`)
   - `alembic/`: migrations (`alembic/versions/`). `env.py` reads the DB URL from `app.config`.
@@ -197,6 +198,12 @@ Re-running the seed resets these users to the values above (matched by email) an
 | Kubernetes 101 | +12 days, **cancelled** | 10 | expert, senior | Bruno |
 
 Trainings are matched by name, so re-running moves their dates relative to today again.
+
+**Seed enrollments:**
+- **Git basics is full**: João and Carolina approved (2 of 2 seats)
+- **Pending, one per decider**: Rita → Intro to FastAPI (Sofia decides), Miguel → React for Vue developers (Tiago), Hugo → Intro to FastAPI and Beatriz → React for Vue developers (Inês), Rafael → Intro to FastAPI (**admin**, he has no team lead)
+- **Other outcomes**: Laura approved for SQLAlchemy in depth, Pedro **rejected** for React for Vue developers (so he can't request it again), Marta **withdrawn** from Intro to FastAPI (so she can request it again)
+- **Completed** (approved, past): Docker for developers (João, Marta, Pedro), Agile estimation (Sofia, Bruno). Laura was rejected for Agile estimation.
 
 **Trying the API with a login:** open http://localhost:8000/docs, call `POST /api/auth/login` with a seed login, copy the `access_token`, click **Authorize** and paste it. Every request from `/docs` then sends `Authorization: Bearer <token>`.
 
@@ -296,6 +303,7 @@ Until a backend is deployed, the Pages build runs on the MSW mocks (`VITE_USE_MO
   - Every schema change needs an Alembic migration (no `create_all`)
   - Enums are stored as VARCHAR (`Enum(..., native_enum=False)`)
   - Datetime columns use `UtcDateTime` (`app/models/types.py`). API inputs use `AwareDatetime`, so a time without `Z` or an offset is a 422.
+  - Services raise `NotFound("...")` / `Forbidden("...")` for 404 / 403.
   - Business-rule failures in services: `raise Conflict("snake_case_code", "Message for people")` → 409 `{"detail": {"code", "message"}}`. Validation that needs the DB: `raise ValidationFailed(field, message, type)` → 422 in Pydantic's shape. Routers don't catch either.
   - `PATCH` bodies have every field optional and are applied with `model_dump(exclude_unset=True)`: a missing field is kept, `null` clears it (only for nullable fields)
   - Values derived per row (`seats_left`, `my_enrollment_status`) are computed in the SQL `SELECT`, never in a Python loop. Load related objects in the same query (`joinedload` / `selectin`), and guard list endpoints with a query-count test (see `tests/test_trainings_read.py`).

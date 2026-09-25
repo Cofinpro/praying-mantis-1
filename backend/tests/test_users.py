@@ -4,9 +4,17 @@ import pytest
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 
-from app.models import Client, Level, Training, TrainingLevel, User
+from app.models import Client, Enrollment, EnrollmentStatus, Level, Training, TrainingLevel, User
 from app.security import hash_password, verify_password
-from app.seed import SEED_PASSWORD, SEED_TRAININGS, SEED_USERS, seed, seed_trainings
+from app.seed import (
+    SEED_ENROLLMENTS,
+    SEED_PASSWORD,
+    SEED_TRAININGS,
+    SEED_USERS,
+    seed,
+    seed_enrollments,
+    seed_trainings,
+)
 
 
 def make_user(email: str, **overrides) -> User:
@@ -136,3 +144,39 @@ class TestSeedTrainings:
         assert db.scalar(select(text("COUNT(*)")).select_from(Training)) == 8
         level_rows = db.scalar(select(text("COUNT(*)")).select_from(TrainingLevel))
         assert level_rows == sum(len(t[4]) for t in SEED_TRAININGS)
+
+
+class TestSeedEnrollments:
+    @pytest.fixture
+    def seeded(self, db):
+        seed(db)
+        seed_trainings(db)
+        return seed_enrollments(db)
+
+    def test_git_basics_is_full(self, db, seeded):
+        git = db.scalar(select(Training).where(Training.name == "Git basics"))
+        approved = [e for e in seeded if e.training_id == git.id and e.status == EnrollmentStatus.APPROVED]
+
+        assert len(approved) == git.max_seats
+
+    def test_every_team_lead_and_the_admin_has_a_pending_request(self, db, seeded):
+        deciders = {
+            (e.user.team_lead.email if e.user.team_lead else "admin")
+            for e in seeded
+            if e.status == EnrollmentStatus.PENDING
+        }
+
+        assert deciders == {"sofia@preyingmantis.test", "tiago@preyingmantis.test", "ines@preyingmantis.test", "admin"}
+
+    def test_past_trainings_have_approved_enrollments(self, seeded):
+        now = datetime.now(UTC)
+
+        assert any(e.status == EnrollmentStatus.APPROVED and e.training.ends_at < now for e in seeded)
+
+    def test_seed_follows_the_level_rule(self, seeded):
+        assert all(e.user.level in e.training.levels for e in seeded)
+
+    def test_running_twice_creates_no_duplicates(self, db, seeded):
+        seed_enrollments(db)
+
+        assert db.scalar(select(text("COUNT(*)")).select_from(Enrollment)) == len(SEED_ENROLLMENTS)

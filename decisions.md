@@ -14,6 +14,25 @@ Template:
 
 ---
 
+## 2026-09-25 — Requesting a seat: rules and error codes
+**Status:** Accepted
+**Context:** BE-3.1 implements `POST /api/trainings/{id}/enrollments` per the F3 contract, with Q7 and Q8 answered by the defaults.
+**Decision:**
+- Rules, checked in this order in `services/enrollments.request`:
+  1. unknown training → 404
+  2. not for your level → **403** (per the contract, unlike `GET /api/trainings/{id}`'s 404)
+  3. cancelled → 409 `training_cancelled`
+  4. already started → 409 `training_started`
+  5. pending or approved → 409 `already_requested`
+  6. rejected → 409 `request_rejected` (Q8)
+  7. full → 409 `training_full`
+- **Full** = approved enrollments ≥ `max_seats`. Pending requests don't take a seat (Q7), so more people can ask than there are seats. Approval re-checks capacity (BE-3.2).
+- **Withdrawn users may request again**: the same row goes back to `pending`, and its decision fields are cleared, because UNIQUE (`training_id`, `user_id`) allows one row per person and training.
+- The level rule applies to admins too. They see every training, but they only *join* their own level's.
+- Two identical requests at the same moment: the UNIQUE constraint makes one fail, and it becomes `already_requested`.
+- `seats_left` and `my_enrollment_status` are now correlated subqueries in the list/detail query, still one query.
+**Consequences:** FE maps the five 409 codes to messages. Notifying the team lead is a `TODO(BE-4.1)` in `request`.
+
 ## 2026-09-25 — Editing and cancelling trainings
 **Status:** Accepted
 **Context:** BE-2.3 implements `PATCH /api/trainings/{id}` and `POST /api/trainings/{id}/cancel` per the F2 contract. Several details were open.

@@ -23,6 +23,15 @@ class Level(enum.StrEnum):
     SENIOR_ARCHITECT = "senior_architect"
 
 
+class EnrollmentStatus(enum.StrEnum):
+    """pending -> approved | rejected; pending | approved -> withdrawn."""
+
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    WITHDRAWN = "withdrawn"
+
+
 def enum_column(enum_class: type[enum.Enum]) -> Enum:
     """A VARCHAR column that stores the enum's *values* ("junior"), not its names ("JUNIOR").
 

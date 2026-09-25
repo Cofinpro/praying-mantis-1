@@ -14,6 +14,17 @@ Template:
 
 ---
 
+## 2026-09-25 — Role-aware navigation: permission functions and a "Not allowed" page
+**Status:** Accepted
+**Context:** FE-1.2 hides navigation that doesn't apply to the user and blocks pages they can't use.
+**Decision:**
+- The rules are small functions in `src/auth/permissions.ts`: `isAdmin`, and `canApprove` (team lead **or** admin, from Q6). Nav links, buttons and route guards all use the same functions.
+- Nav links take an optional `visibleTo` permission (`config/navigation.ts`), and TopBar filters by it.
+- `<RequirePermission allow={...}>` shows `NotAllowedPage` in place of the page and keeps the URL, rather than redirecting away. `/approvals` uses `canApprove`, and every route under `/admin` uses `isAdmin` through one guard around an `<Outlet />`.
+- "+ New training" is a `ButtonLink` in the `PageHeader`'s new `actions` slot, as in Figma's `02c Trainings – admin`.
+
+**Consequences:** These checks only decide what the UI shows. The backend still returns 403 for anything a user isn't allowed to do.
+
 ## 2026-09-25 — Login on the frontend: AuthContext, a 401 listener, and a logout button
 **Status:** Accepted
 **Context:** FE-1.1 adds login, logout and protected pages on top of the JWT contract (see "Authentication").

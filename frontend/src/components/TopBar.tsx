@@ -25,9 +25,11 @@ export function TopBar() {
           <Logo />
         </Link>
         <nav id="main-nav" aria-label="Main" className={`${styles.nav} ${menuOpen ? styles.navOpen : ''}`}>
-          {internalNavLinks.map((link) => (
-            <NavItem key={link.to} label={link.label} to={link.to} />
-          ))}
+          {internalNavLinks
+            .filter((link) => !link.visibleTo || (user && link.visibleTo(user)))
+            .map((link) => (
+              <NavItem key={link.to} label={link.label} to={link.to} />
+            ))}
           {externalNavLinks.map((link) => (
             <ExternalNavItem key={link.label} label={link.label} href={link.href} />
           ))}

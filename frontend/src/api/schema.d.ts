@@ -647,6 +647,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/trainings/{training_id}/materials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Materials
+         * @description The training's files, oldest first. Everyone who can see the training can see them.
+         */
+        get: operations["list_materials_api_trainings__training_id__materials_get"];
+        put?: never;
+        /**
+         * Upload Material
+         * @description Add a file (multipart/form-data, field `file`). Everyone enrolled gets a notification.
+         */
+        post: operations["upload_material_api_trainings__training_id__materials_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/trainings/{training_id}/materials/{material_id}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Material
+         * @description The file itself, always as a download (never shown inline), so an uploaded HTML or SVG can't run here.
+         */
+        get: operations["download_material_api_trainings__training_id__materials__material_id__file_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/trainings/{training_id}/materials/{material_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Material */
+        delete: operations["delete_material_api_trainings__training_id__materials__material_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -665,6 +726,14 @@ export interface components {
             /**
              * File
              * @description JPEG, PNG or WebP, max 512 KB
+             */
+            file: string;
+        };
+        /** Body_upload_material_api_trainings__training_id__materials_post */
+        Body_upload_material_api_trainings__training_id__materials_post: {
+            /**
+             * File
+             * @description PDF, PPTX, DOCX, XLSX, ZIP, PNG, JPEG, TXT or MD, max 10 MB
              */
             file: string;
         };
@@ -818,6 +887,33 @@ export interface components {
             password: string;
         };
         /**
+         * MaterialRead
+         * @description A file of a training, without its bytes (GET …/materials/{id}/file downloads it).
+         */
+        MaterialRead: {
+            /** Id */
+            id: number;
+            /** Filename */
+            filename: string;
+            /** Content Type */
+            content_type: string;
+            /** Size */
+            size: number;
+            uploaded_by: components["schemas"]["MaterialUploader"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** MaterialUploader */
+        MaterialUploader: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+        };
+        /**
          * MyEnrollments
          * @description GET /api/me/enrollments: the Profile page's three sections.
          */
@@ -861,7 +957,7 @@ export interface components {
          * @description What happened. FE can pick an icon per type; the message is ready to show.
          * @enum {string}
          */
-        NotificationType: "enrollment_requested" | "enrollment_approved" | "enrollment_rejected" | "enrollment_withdrawn" | "training_cancelled" | "training_changed" | "waitlist_promoted" | "training_reminder" | "seat_reminder";
+        NotificationType: "enrollment_requested" | "enrollment_approved" | "enrollment_rejected" | "enrollment_withdrawn" | "training_cancelled" | "training_changed" | "waitlist_promoted" | "training_reminder" | "seat_reminder" | "material_added";
         /** Occupant */
         Occupant: {
             /** Id */
@@ -2960,6 +3056,209 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    list_materials_api_trainings__training_id__materials_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                training_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaterialRead"][];
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Training (or file) not found, or not for your level */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_material_api_trainings__training_id__materials_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                training_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_material_api_trainings__training_id__materials_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaterialRead"];
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Only admins and the trainer */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Training (or file) not found, or not for your level */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description training_cancelled | too_many_materials */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description material_name | material_type | material_empty | material_too_large | material_mismatch */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    download_material_api_trainings__training_id__materials__material_id__file_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                training_id: number;
+                material_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": unknown;
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Training (or file) not found, or not for your level */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_material_api_trainings__training_id__materials__material_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                training_id: number;
+                material_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Only admins and the trainer */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Training (or file) not found, or not for your level */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };

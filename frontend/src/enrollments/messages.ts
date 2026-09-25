@@ -14,6 +14,7 @@ const MESSAGES: Record<string, string> = {
   not_withdrawable: 'This request can no longer be withdrawn.',
   seat_taken: 'Sorry, this seat was just taken.',
   not_completed: 'You can rate a training once you have completed it.',
+  too_many_materials: 'This training already has 20 files. Delete one first.',
   already_reserved: 'You already have a seat that day.',
   reservation_in_past: "Past reservations can't be cancelled.",
 }

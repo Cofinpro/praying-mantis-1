@@ -14,6 +14,28 @@ Template:
 
 ---
 
+## 2026-09-25 — Training materials in the database, downloaded with the login token
+**Status:** Accepted
+**Context:** Trainers want to share slides and exercises. Render's disk is wiped on every deploy, and we have no object storage.
+**Decision:**
+- **Storage:** a `training_materials` table with the bytes in a deferred `MEDIUMBLOB`, like avatars. The limits are 10 MB per file and 20 files per training.
+- **Accepted files:** PDF, PPTX, DOCX, XLSX, ZIP, PNG, JPEG, TXT, MD.
+  - The **extension** picks the stored Content-Type; the browser's claim is ignored.
+  - The file's **first bytes** must match it (`%PDF-`, `PK`, the PNG/JPEG signatures, valid UTF-8 for text).
+  - HTML, SVG and anything else are refused.
+  - Filenames lose any folders and control characters.
+- **Who does what:**
+  - **See and download:** anyone who can see the training (its levels), its trainer, and admins.
+  - **Upload and delete:** admins and the training's trainer.
+  - A cancelled training takes no new files.
+  - Everyone enrolled gets a `material_added` notification.
+- **Downloads** come from `GET …/materials/{id}/file`, with the Bearer token like every call. It's always an `attachment` (never shown inline), with `nosniff`, `Cache-Control: private, no-store`, and the UTF-8 name in `filename*`. The frontend fetches the Blob through `api.blob()` and saves it with `lib/download.ts`, because a plain link can't send the token.
+- **Trainers** can now open their own training's detail page even when it isn't for their level; before, that was a 404. They get "You're the trainer" instead of "Request to join".
+
+**Consequences:**
+- The database grows with the files; Aiven's free plan has a few GB.
+- If storage becomes a problem, only `services/materials.py` needs to change, to object storage with signed URLs.
+
 ## 2026-09-25 — Admin reports: one query per table, CSV built in the browser
 **Status:** Accepted
 **Context:** Admins want to see how trainings are used (requests, approvals, ratings) and who completed what, and to take that into Excel.

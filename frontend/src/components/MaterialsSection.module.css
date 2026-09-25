@@ -1,0 +1,89 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--color-border-default);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.title {
+  font: var(--font-h3);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+}
+
+.row + .row {
+  border-top: 1px solid var(--color-border-default);
+}
+
+/* "PDF", "PPTX"…: the word says the type, so colour isn't the only signal */
+.type {
+  flex: none;
+  width: 48px;
+  padding: var(--space-2) 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-brand-subtle);
+  font: var(--font-caption);
+  color: var(--color-text-brand);
+  text-align: center;
+}
+
+.file {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.name {
+  overflow: hidden;
+  font: var(--font-label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions {
+  display: flex;
+  flex: none;
+  gap: var(--space-2);
+}
+
+.muted {
+  font: var(--font-body-sm);
+  color: var(--color-text-secondary);
+}
+
+.error {
+  font: var(--font-body-sm);
+  color: var(--color-text-danger);
+}
+
+/* Phones: the buttons go under the file name */
+@media (max-width: 600px) {
+  .row {
+    flex-wrap: wrap;
+  }
+
+  .actions {
+    width: 100%;
+    padding-left: calc(48px + var(--space-3));
+  }
+}

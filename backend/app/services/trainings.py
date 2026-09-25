@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from sqlalchemy import ColumnElement, Select, func, select
+from sqlalchemy import ColumnElement, Select, func, or_, select
 from sqlalchemy.orm import Session, aliased, joinedload
 
 from app.errors import Conflict, ValidationFailed
@@ -348,10 +348,11 @@ def get_training(db: Session, training_id: int, viewer: User) -> TrainingRow | N
     """One training, or None if it doesn't exist or isn't for the viewer's level.
 
     Past and cancelled trainings of the viewer's level are still found (the Profile
-    page links to them). Admins see every training.
+    page links to them). Admins see every training, and trainers the ones they give
+    (whatever its levels: they manage its materials there).
     """
     query = _training_rows(viewer).where(Training.id == training_id)
     if not viewer.is_admin:
-        query = query.where(_for_level(viewer.level))
+        query = query.where(or_(_for_level(viewer.level), Training.trainer_id == viewer.id))
     row = db.execute(query).first()
     return TrainingRow(*row) if row else None

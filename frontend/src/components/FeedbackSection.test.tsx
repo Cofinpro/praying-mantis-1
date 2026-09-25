@@ -54,7 +54,7 @@ describe('training feedback', () => {
     serveFeedback({ can_rate: false })
     const section = await openDetail()
 
-    expect(within(section).getByLabelText('Rated 4.5 out of 5 by 2 people')).toBeInTheDocument()
+    expect(within(section).getByText('Rated 4.5 out of 5 by 2 people')).toBeInTheDocument()
     expect(within(section).queryByRole('group', { name: 'How was it?' })).not.toBeInTheDocument()
   })
 
@@ -117,6 +117,6 @@ describe('training feedback', () => {
     renderRoute('/trainings')
 
     const card = (await screen.findByRole('heading', { name: 'React Basics' })).closest('article')!
-    expect(within(card).getByLabelText('Rated 4.5 out of 5 by 2 people')).toBeInTheDocument()
+    expect(within(card).getByText('Rated 4.5 out of 5 by 2 people')).toBeInTheDocument()
   })
 })

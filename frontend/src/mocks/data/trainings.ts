@@ -173,10 +173,10 @@ export function listMockTrainings(viewer: { id: number; level: Level; is_admin: 
     .map((t) => toSummary(t, viewer.id))
 }
 
-// GET /api/trainings/{id}: admins see any training; employees any for their level, even past or cancelled.
+// GET /api/trainings/{id}: admins see any training; trainers theirs; employees any for their level, even past or cancelled.
 export function getMockTraining(viewer: { id: number; level: Level; is_admin: boolean }, id: number): TrainingRead | null {
   const training = mockTrainings.find((t) => t.id === id)
-  if (!training || (!viewer.is_admin && !training.levels.includes(viewer.level))) {
+  if (!training || (!viewer.is_admin && !training.levels.includes(viewer.level) && training.trainer?.id !== viewer.id)) {
     return null
   }
   return { ...toSummary(training, viewer.id), description: training.description }

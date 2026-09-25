@@ -7,6 +7,7 @@ from app.database import Base
 from app.models.avatar import UserAvatar
 from app.models.enrollment import Enrollment
 from app.models.feedback import TrainingFeedback
+from app.models.material import TrainingMaterial
 from app.models.enums import Client, EnrollmentStatus, Level, NotificationType
 from app.models.notification import Notification
 from app.models.reservation import SeatReservation
@@ -27,6 +28,7 @@ __all__ = [
     "Training",
     "TrainingFeedback",
     "TrainingLevel",
+    "TrainingMaterial",
     "User",
     "UserAvatar",
 ]

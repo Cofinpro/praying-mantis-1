@@ -82,6 +82,18 @@ describe('join button', () => {
   })
 })
 
+describe('trainer', () => {
+  it('has nothing to join in their own training', async () => {
+    server.use(http.get('*/api/trainings/:id', () => HttpResponse.json(training))) // trained by Sofia (id 2)
+    await storeLoginToken('sofia@cofinpro.pt')
+    renderRoute('/trainings/12')
+    const panel = await screen.findByRole('complementary', { name: 'Your place' })
+
+    expect(within(panel).getByText('You’re the trainer of this training.')).toBeInTheDocument()
+    expect(within(panel).queryByRole('button', { name: 'Request to join' })).not.toBeInTheDocument()
+  })
+})
+
 describe('waitlist', () => {
   it('joins the waitlist of a full training, then shows the place in line', async () => {
     let current: TrainingRead = { ...training, seats_left: 0 }

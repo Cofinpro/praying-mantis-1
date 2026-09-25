@@ -14,6 +14,16 @@ Template:
 
 ---
 
+## 2026-09-25 — Listing trainings: who sees what
+**Status:** Accepted
+**Context:** BE-2.2 implements `GET /api/trainings` and `GET /api/trainings/{id}` per the F2 contract.
+**Decision:**
+- **Employees' list:** upcoming (`starts_at` in the future), not cancelled, and one of the training's levels is theirs. Sorted by `starts_at`. The `?level=` filter is admin only, and for employees it's **ignored** (not a 403), so the FE can build the URL the same way for everyone.
+- **Admins' list:** every training, including past and cancelled ones (they manage them), with an optional `?level=`.
+- **Detail:** employees can open any training for their level, **including past and cancelled ones**, because the Profile page (F5) links to completed trainings. Other levels get a 404, the same response as a missing id, so employees can't probe which trainings exist.
+- `seats_left` and `my_enrollment_status` are SQL columns of the list query. Until BE-3.1 adds enrollments they're placeholders (`max_seats` and `NULL`) in `services/trainings.py`, and BE-3.1 only replaces `seats_left_column()` and `my_enrollment_status_column()`.
+**Consequences:** FE shows past and cancelled trainings only to admins in the list. A training that's cancelled after an employee enrolled still opens for them.
+
 ## 2026-09-25 — Trainings: UTC column type, trainer rules, and a delete guard
 **Status:** Accepted
 **Context:** BE-2.1 implements `POST /api/trainings` per the F2 contract in `plan.md`. A few details weren't spelled out there.

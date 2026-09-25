@@ -139,17 +139,17 @@ Template:
 **Consequences:** FE's edit form can send the whole form or only changes; both work. Notifying enrolled people on cancel is a `TODO(BE-4.1)` in `cancel_training`.
 
 ## 2026-09-25 — Reserve a seat: a confirm dialog, and the ReservationRead shape
-**Status:** Accepted (FE side); **BE-6.3 to match the shape**
+**Status:** Accepted
 **Context:** FE-6.2 reserves through `POST /api/reservations {seat_id, date}` (F6 contract) before BE-6.3 exists. The contract names `ReservationRead` but doesn't list its fields.
 **Decision:**
-- **Proposed `ReservationRead`**: `{"id": int, "date": "YYYY-MM-DD", "seat": {"id": int, "label": str, "zone": Client}}`. That's enough for FE-6.3's "My reservations" list without an extra request. The type is hand-written in `api/seats.ts`.
+- **Proposed `ReservationRead`**: `{"id": int, "date": "YYYY-MM-DD", "seat": {"id": int, "label": str, "zone": Client}}`. That's enough for FE-6.3's "My reservations" list without an extra request. BE-6.3 implemented exactly this shape, and the type now comes from `schema.d.ts`.
 - Clicking a bookable seat opens `ConfirmDialog`, which now takes `confirmVariant` and `cancelLabel`:
   - "Reserve DKB-03 for Tue 14 Oct?"
   - or, when I already have a seat that day, "Move your reservation from DKB-01 to DKB-03?"
 - After the request, that day's map and `['reservations', 'me']` are invalidated. On a 409 `seat_taken` the dialog says "Sorry, this seat was just taken." and the map refetches.
 - Also in this change: BE-4.1 and BE-5.1 merged, so the notifications and "my enrollments" types now come from `schema.d.ts`.
 
-**Consequences:** If BE-6.3 picks a different response shape, only `ReservationRead` and FE-6.3's list need to change.
+**Consequences:** `GET /api/seats` (BE-6.2) is the last seats endpoint still missing on the real backend.
 
 ## 2026-09-25 — Seat map: per-zone grid positions, local days, built on mocks
 **Status:** Accepted

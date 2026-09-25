@@ -16,6 +16,15 @@ We're both experienced developers (one from **Vue**, one from **Java**), so skip
 - **`APIRouter` + `include_router`**: an `APIRouter` is a group of routes, like a Spring `@RestController` class. `app.include_router(health.router, prefix="/api")` mounts it, and the prefix works like a class-level `@RequestMapping("/api")`, except that it's decided where the router is **included**, not where it's declared. That's how every route gets `/api` from one line in `main.py`.
 - `tags=["health"]` on the router only groups the endpoints in the `/docs` page.
 - A route declared as `"/"` under the prefix `/api` becomes `/api/`. Calling `/api` (no slash) answers with a **307 redirect** to `/api/`; browsers follow it, but it's an extra round trip, so call the exact path.
+- **`app.dependency_overrides[get_db] = lambda: db`**: swaps a dependency for the whole app, without touching the routes. It's FastAPI's version of `@MockBean` / `@TestConfiguration` in Spring, but it's just a dict: set it in a fixture and **clear it afterwards**, or it leaks into the next test.
+
+## pytest
+
+- **Fixtures** replace JUnit's `@BeforeEach` / `@AfterEach` and Spring's test context. A fixture is a function that a test *asks for by parameter name* (`def test_x(client):`). Code before `yield` is setup, code after it is teardown.
+- **`scope`** controls how often a fixture runs: `"function"` (default, per test) or `"session"` (once per run, like `@BeforeAll` across all classes). Our `engine` fixture is session-scoped (create the DB once), `db` and `client` are per test.
+- Fixtures can depend on other fixtures (`client` → `db` → `engine`). pytest resolves the graph, like DI for tests.
+- `conftest.py` is picked up automatically; its fixtures are available to every test in that folder, with no import.
+- Plain `assert x == y` is enough: pytest rewrites asserts to show both values on failure, so there's no `assertEquals`/AssertJ.
 
 ## Pydantic vs SQLAlchemy models
 
@@ -29,6 +38,8 @@ We're both experienced developers (one from **Vue**, one from **Java**), so skip
 - **Connection URL**: `dialect+driver://user:password@host:port/database`, e.g. `mysql+pymysql://app:app@127.0.0.1:3306/praying_mantis`. The `+pymysql` part picks the Python driver, a bit like choosing the JDBC driver in a JDBC URL.
 - **`create_engine`** doesn't connect yet. It builds a connection **pool** (like HikariCP in Spring) and opens connections lazily on first use. One engine per app; sessions borrow connections from it.
 - **`pool_pre_ping=True`**: before handing out a pooled connection, SQLAlchemy runs a cheap ping and silently replaces the connection if it's dead. Without it, the first request after MySQL restarts (or after MySQL's `wait_timeout` closes idle connections) fails with "MySQL server has gone away". Similar to Hikari's connection test / `keepaliveTime`.
+- **Rollback-per-test** (`tests/conftest.py`): open a connection, `BEGIN`, bind a `Session` to it with `join_transaction_mode="create_savepoint"`, and roll back after the test. Like Spring's `@Transactional` on a test class, except here you wire it up yourself. The savepoint mode matters: without it, a `db.commit()` in the code under test would really commit.
+- **Gotcha: `URL.set(database=None)` does not remove the database.** `None` means "leave unchanged" in `URL.set()`. To connect to the server without a database, build the URL with `database=None` from scratch (`settings.url_for(None)`). We only noticed because CI's `app` user has no rights on `praying_mantis`, while the local one does.
 
 ## Alembic (migrations)
 
@@ -38,7 +49,8 @@ We're both experienced developers (one from **Vue**, one from **Java**), so skip
   - can't detect a **rename** (it emits drop column + add column, losing data)
   - misses some changes (e.g. server defaults, some constraint/enum changes, CHECK constraints)
   - only sees models that are **imported**: that's why `app/models/__init__.py` must import every model, and `env.py` imports `app.models`
-- `alembic check` exits with an error if the models have changes with no migration. Useful in CI (BE-0.3).
+- `alembic check` exits with an error if the models have changes with no migration. CI runs it after pytest.
+- To run migrations on a connection you already have (like the test DB in `conftest.py`), pass it via `alembic_cfg.attributes["connection"]` and let `env.py` use it. That's the pattern from the Alembic cookbook.
 - MySQL DDL is **not transactional** (Alembic logs "Will assume non-transactional DDL"): if a migration fails halfway, the earlier statements stay applied. Keep migrations small.
 
 ## MySQL / Docker
@@ -46,3 +58,10 @@ We're both experienced developers (one from **Vue**, one from **Java**), so skip
 - **Named volume** (`mysql-data:` in `docker-compose.yml`) keeps the data outside the container, so `docker compose down` + `up` keeps it. Only `docker compose down -v` deletes it.
 - The `MYSQL_DATABASE` / `MYSQL_USER` / `MYSQL_PASSWORD` variables only take effect on the **first** start, when the volume is empty. Changing them later does nothing until you reset with `down -v`.
 - Use `127.0.0.1` rather than `localhost` in `DB_HOST`: some MySQL clients treat `localhost` as "use the Unix socket" instead of TCP, which doesn't reach a container.
+- `/docker-entrypoint-initdb.d/*.sql` scripts run once, on the first start with an empty volume. We inject ours as an **inline Compose `config`** (`configs: … content: |`) instead of bind-mounting a file: on macOS, Docker Desktop may not be allowed to read `~/Desktop` or `~/Documents`, and a bind mount from there fails with "operation not permitted".
+
+## GitHub Actions
+
+- **Service containers** (`services:` in a job) start next to the job before the steps run, like Testcontainers but declared in YAML. With `ports: 3306:3306` the job reaches MySQL at `127.0.0.1:3306`. The `--health-cmd` options make Actions wait until MySQL is ready.
+- The `MYSQL_DATABASE` of the service is the DB the `app` user gets rights on. That's why CI's service uses `praying_mantis_test`: pytest needs to drop and recreate it.
+- `paths:` filters mean the backend workflow only runs when `backend/**` or the workflow file changes, so FE-only PRs don't wait for it.

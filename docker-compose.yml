@@ -13,6 +13,10 @@ services:
       - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
+    configs:
+      # Scripts in /docker-entrypoint-initdb.d run only on the first start of an empty volume
+      - source: create-test-database
+        target: /docker-entrypoint-initdb.d/01-test-database.sql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
       interval: 5s
@@ -22,3 +26,11 @@ services:
 
 volumes:
   mysql-data:
+
+configs:
+  # Inline (not a bind-mounted file), so it works even where Docker can't read the repo folder
+  create-test-database:
+    content: |
+      -- pytest drops and recreates this database, so the app user needs full rights on it
+      CREATE DATABASE IF NOT EXISTS praying_mantis_test;
+      GRANT ALL PRIVILEGES ON praying_mantis_test.* TO 'app'@'%';

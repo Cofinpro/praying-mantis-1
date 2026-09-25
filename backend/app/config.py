@@ -18,6 +18,10 @@ class Settings(BaseSettings):
 
     @property
     def database_url(self) -> URL:
+        return self.url_for(self.db_name)
+
+    def url_for(self, database: str | None) -> URL:
+        """The DB URL for another database on the same server (None = no database selected)."""
         # URL.create escapes special characters in the password
         return URL.create(
             "mysql+pymysql",
@@ -25,7 +29,7 @@ class Settings(BaseSettings):
             password=self.db_password,
             host=self.db_host,
             port=self.db_port,
-            database=self.db_name,
+            database=database,
         )
 
     @property

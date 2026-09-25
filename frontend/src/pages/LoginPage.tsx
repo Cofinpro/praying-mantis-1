@@ -19,7 +19,7 @@ export function LoginPage() {
   // where Vue would use v-model.
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<{ title: string; hint: string } | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
   if (user) {
@@ -35,7 +35,7 @@ export function LoginPage() {
       await login(email, password)
       navigate('/trainings', { replace: true })
     } catch (err) {
-      setError(err instanceof ApiError && typeof err.detail === 'string' ? err.detail : 'Something went wrong')
+      setError(loginErrorMessage(err))
       setSubmitting(false)
     }
   }
@@ -48,7 +48,7 @@ export function LoginPage() {
           <h1 className={styles.title}>Log in</h1>
           <p className={styles.subtitle}>Book trainings and reserve your seat in the office.</p>
         </div>
-        {error && <Alert title={error}>Check your details and try again.</Alert>}
+        {error && <Alert title={error.title}>{error.hint}</Alert>}
         <form className={styles.form} onSubmit={handleSubmit}>
           <TextField
             label="Email"
@@ -77,4 +77,13 @@ export function LoginPage() {
       </div>
     </main>
   )
+}
+
+function loginErrorMessage(err: unknown) {
+  if (err instanceof ApiError) {
+    const title = typeof err.detail === 'string' ? err.detail : `The server answered with an error (${err.status})`
+    return { title, hint: 'Check your details and try again.' }
+  }
+  // fetch() itself failed: offline, blocked by the browser, or the server is down or still waking up
+  return { title: "Can't reach the server", hint: 'Check your connection and try again in a moment.' }
 }

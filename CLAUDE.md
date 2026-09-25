@@ -111,7 +111,7 @@ What exists today:
   - `src/components/`: `Layout` (TopBar + `<Outlet />`), `TopBar` (with the logout button), `NavItem`, `Logo`, `Avatar`, `NotificationBell`, `PageHeader`, and the form pieces `TextField` / `TextArea`, `CheckboxGroup`, `TrainerPicker` (searchable combobox, with "External"), `Button` / `ButtonLink` (`primary` or `ghost`), `Alert` (error), `BackLink`, `SelectField`, `TrainingCard`, `LevelTag` and `StatusBadge`. `PageHeader` takes `actions` for page buttons on the right. Each has a `.module.css`
   - `src/auth/`: `AuthProvider` (the user from `/me`, `login()`, `logout()`), `useAuth()`, and `<RequireAuth>`, which wraps every route except `/login`
     - `permissions.ts`: `isAdmin`, `canApprove` (team lead or admin). Used by nav links (`visibleTo`), buttons and `<RequirePermission allow={...}>`, which shows `NotAllowedPage` in place of the page. Everything under `/admin` is guarded by `isAdmin`
-  - `src/pages/`: one component per route (placeholders until their stories)
+  - `src/pages/`: one component per route (placeholders until their stories). `TrainingsPage` (cards + admin level filter) and `TrainingDetailPage` (details + the "Your place" action panel F3 fills in) read data with `useQuery`
   - `src/config/navigation.ts`: the nav links and the external Timesheets/Vacations links
   - `src/styles/tokens.css`: the Figma variables as CSS custom properties
   - `public/404.html` + the inline script in `index.html`: deep links on GitHub Pages (see `decisions.md`)

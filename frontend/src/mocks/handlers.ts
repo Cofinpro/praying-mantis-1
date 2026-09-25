@@ -3,7 +3,7 @@ import type { CurrentUser, LoginRequest, TokenResponse } from '../api/auth'
 import type { DbHealthResponse, HelloResponse } from '../api/health'
 import type { TrainingCreate, TrainingRead, TrainingSummary } from '../api/trainings'
 import { isLevel } from '../trainings/levels'
-import { listMockTrainings, mockTrainings, toSummary } from './data/trainings'
+import { getMockTraining, listMockTrainings, mockTrainings, toSummary } from './data/trainings'
 import type { UserSummary } from '../api/users'
 import { findSeedUserByEmail, findSeedUserById, searchSeedUsers, SEED_PASSWORD, toCurrentUser } from './data/users'
 
@@ -57,6 +57,15 @@ export const handlers = [
     if (!user) return notAuthenticated()
     const level = new URL(request.url).searchParams.get('level')
     return HttpResponse.json<TrainingSummary[]>(listMockTrainings(user, isLevel(level) ? level : null))
+  }),
+
+  http.get('*/api/trainings/:id', ({ request, params }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    const training = getMockTraining(user, Number(params.id))
+    return training
+      ? HttpResponse.json<TrainingRead>(training)
+      : HttpResponse.json({ detail: 'Training not found' }, { status: 404 })
   }),
 
   // Trusts the body: the form validates it first. The real backend checks every rule again (422).

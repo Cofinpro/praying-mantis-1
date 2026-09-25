@@ -1,6 +1,6 @@
-import { Link, useParams } from 'react-router'
+import { useParams } from 'react-router'
+import { BackLink } from '../components/BackLink'
 import { PageHeader } from '../components/PageHeader'
-import styles from './TrainingDetailPage.module.css'
 
 export function TrainingDetailPage() {
   // Like `useRoute().params` in Vue. Params are always strings (or undefined), never numbers.
@@ -8,7 +8,7 @@ export function TrainingDetailPage() {
 
   return (
     <>
-      <Link to="/trainings" className={styles.back}>← All trainings</Link>
+      <BackLink to="/trainings">All trainings</BackLink>
       <PageHeader title={`Training ${id}`} />
       <p>The training detail comes in FE-2.3.</p>
     </>

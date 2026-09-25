@@ -6,19 +6,30 @@
   padding: var(--space-3) var(--space-6);
   border: none;
   border-radius: var(--radius-pill);
-  background: var(--color-action-primary);
   font: var(--font-label);
-  color: var(--color-text-on-brand);
   text-decoration: none;
   cursor: pointer;
 }
 
-.button:hover {
+.button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.primary {
+  background: var(--color-action-primary);
+  color: var(--color-text-on-brand);
+}
+
+.primary:hover:not(:disabled) {
   background: var(--color-action-primary-hover);
 }
 
-.button:disabled {
-  background: var(--color-action-primary);
-  opacity: 0.6;
-  cursor: not-allowed;
+.ghost {
+  background: transparent;
+  color: var(--color-text-brand);
+}
+
+.ghost:hover:not(:disabled) {
+  background: var(--color-bg-subtle);
 }

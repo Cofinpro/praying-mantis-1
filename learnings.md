@@ -25,6 +25,22 @@ We're both experienced developers (one from **Vue**, one from **Java**), so skip
 - **State that resets itself on navigation**: instead of a `useEffect` that closes the phone menu when the URL changes (a watcher in Vue terms), `TopBar` stores *the path the menu was opened on* and derives `menuOpen = openedAt === pathname`. When the path changes, the menu is closed on the same render, with no extra render and no effect. The React docs call this "you might not need an effect": derive values instead of syncing state.
 - **Whitespace in JSX flex items**: `<span> ↗</span>` next to text inside a `display: flex` element loses its leading space, because every child becomes a flex item and the whitespace at the edges of each item is dropped. Use `gap` instead of spaces.
 - **StrictMode runs effects twice in dev** (mount → cleanup → mount), to surface effects that don't clean up. For a fetch in `useEffect`, return a cleanup that sets an `ignore` flag, so a response arriving after the cleanup doesn't set state. Production runs them once. TanStack Query (FE-2.2) handles this for us.
+- **Context = provide/inject**: `createContext()` makes the key, `<AuthContext value={...}>` provides it (React 19; before that it was `<AuthContext.Provider>`), and `useContext(AuthContext)` injects it anywhere below. Unlike Vue's `inject()` the value isn't reactive by itself: consumers re-render because the provider re-renders with a **new value object**. So wrap the value in `useMemo` and the functions in `useCallback`, or every consumer re-renders whenever the provider does.
+- **Custom hooks = composables**: `useAuth()` is just a function whose name starts with `use` and that calls other hooks. The `use` prefix is how the rules-of-hooks lint knows to check it. Throwing when the context is `null` turns "forgot the provider" into a clear error instead of `undefined` somewhere later.
+- **Controlled inputs instead of `v-model`**: `value={email}` plus `onChange={(e) => setEmail(e.target.value)}`. It's two props per field, and React's state is the only source of truth. React's `onChange` fires on every keystroke, like the DOM's `input` event (not the DOM's `change`).
+- **Form submit**: `<form onSubmit>` with `event.preventDefault()` is `@submit.prevent`. Let the form handle submit (a `type="submit"` button, Enter in a field) instead of an `onClick` on the button, so the keyboard works for free.
+- **Route guards are components**: there's no `beforeEach`. `<RequireAuth>` wraps the layout route and renders `<Navigate to="/login" replace />` when there's no user. `replace` keeps the protected URL out of the history, so Back doesn't bounce you between it and the login page.
+- **Lazy initial state**: `useState(() => localStorage.getItem(...))` runs the function once, on the first render. `useState(localStorage.getItem(...))` would read localStorage on every render and throw the result away.
+- **What felt clumsy with plain `fetch` + `useEffect` / `useState`** (FE-1.1):
+  - Every request needs its own `loading`/`error` state and an `ignore` flag for StrictMode, all written by hand.
+  - `AuthProvider` needs an extra `status: 'checking'` state, just so a refresh doesn't flash the login page while `/me` is loading.
+  - The API client can't call React code, so a 401 reaches the UI through a hand-rolled listener (`onUnauthorized`).
+  - Nothing is cached: the user lives in a Context so other components don't fetch `/me` again.
+  - TanStack Query (FE-2.2) handles most of this for us.
+- **Where to keep the token**:
+  - **localStorage** (our choice): survives refreshes and tabs, but any injected script can read it (XSS).
+  - **Memory only**: safer, but you're logged out on every refresh.
+  - **httpOnly cookie**: JavaScript can't read it, but it needs CSRF protection and a backend on the same site, or CORS with credentials.
 
 ## Vite
 
@@ -38,6 +54,7 @@ We're both experienced developers (one from **Vue**, one from **Java**), so skip
 - **MSW** registers a **service worker** (`public/mockServiceWorker.js`) that sits between the page and the network, so `fetch` really runs and shows up in DevTools as a normal request, answered by the worker. The app code is identical with and without mocks, which isn't true of the Vue-world habit of swapping an axios adapter or importing fake JSON.
 - A service worker only controls pages **under its own path**, so on GitHub Pages it must be registered from `/<repo>/mockServiceWorker.js` (we use `BASE_URL`). It also needs HTTPS or `localhost`.
 - The first page load waits for `worker.start()` before rendering. Otherwise the first requests could go out before the worker is ready and hit the real network.
+- **Mock state lives in the handlers**: the login mock returns `mock-token-<user id>`, and the `/me` mock reads the user back from the `Authorization` header. The app treats the token as opaque either way, so it can't tell it isn't a JWT. `src/mocks/data/users.ts` mirrors `backend/app/seed.py`, so the same logins work with and without the backend.
 - **`openapi-typescript`** turns `/openapi.json` into plain TypeScript types (`paths`, `components['schemas']`), with no runtime code. It's the TS counterpart of generating a Java client from an OpenAPI spec, except nothing checks the response at runtime: `api.get<T>()` just **trusts** that the JSON matches `T`. A FastAPI route without a `response_model` generates `unknown`, so ask BE for response models.
 
 ## Vitest and Testing Library

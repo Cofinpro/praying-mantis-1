@@ -1,0 +1,28 @@
+.alert {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-danger-subtle);
+}
+
+.icon {
+  flex: none;
+  color: var(--color-text-danger);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.title {
+  font: var(--font-label);
+  color: var(--color-text-danger);
+}
+
+.message {
+  font: var(--font-body-sm);
+  color: var(--color-text-primary);
+}

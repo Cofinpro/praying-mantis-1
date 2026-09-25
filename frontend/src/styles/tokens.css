@@ -56,6 +56,7 @@
   --color-bg-subtle: var(--primitive-neutral-100);
   --color-bg-brand-subtle: var(--primitive-orange-50);
   --color-bg-inverse: var(--primitive-neutral-900);
+  --color-bg-danger-subtle: var(--primitive-red-50);
 
   /* Text */
   --color-text-primary: var(--primitive-neutral-900);
@@ -64,11 +65,13 @@
   --color-text-brand: var(--primitive-orange-700);
   --color-text-on-brand: var(--primitive-neutral-0);
   --color-text-inverse: var(--primitive-neutral-0);
+  --color-text-danger: var(--primitive-red-700);
 
   /* Borders */
   --color-border-default: var(--primitive-neutral-200);
   --color-border-strong: var(--primitive-neutral-300);
   --color-border-focus: var(--primitive-orange-500);
+  --color-border-danger: var(--primitive-red-700);
 
   /* Actions */
   --color-action-primary: var(--primitive-orange-700);

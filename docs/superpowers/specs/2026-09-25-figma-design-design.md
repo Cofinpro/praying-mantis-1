@@ -52,6 +52,9 @@ Plus `neutral/0` = #FFFFFF.
 | `color/action/primary` | orange/700 | primary button fill |
 | `color/action/primary-hover` | orange/800 | primary button hover |
 | `color/action/danger` | red/500 | destructive button fill |
+| `color/text/danger` | red/700 | error text, alert titles (added in FE-1.1) |
+| `color/border/danger` | red/700 | input border in the error state (added in FE-1.1) |
+| `color/bg/danger-subtle` | red/50 | error alert background (added in FE-1.1) |
 | `color/brand/accent` | orange/500 | logo, decorative fills, large text only |
 | `color/bg/inverse` | neutral/900 | tooltip background |
 | `color/text/inverse` | neutral/0 | tooltip text |

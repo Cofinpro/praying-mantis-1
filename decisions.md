@@ -14,6 +14,19 @@ Template:
 
 ---
 
+## 2026-09-25 — Login on the frontend: AuthContext, a 401 listener, and a logout button
+**Status:** Accepted
+**Context:** FE-1.1 adds login, logout and protected pages on top of the JWT contract (see "Authentication").
+**Decision:**
+- `src/api/client.ts` owns the token (`authToken`, in localStorage) and adds `Authorization: Bearer` to every request. On a 401 it clears the token and calls the listener that `AuthProvider` registers with `onUnauthorized()`, which logs the user out. Calls made with `{ anonymous: true }` (only login) send no token, and a 401 there is just an error for the form.
+- `AuthProvider` (`src/auth/`) holds the user from `GET /api/auth/me`. On startup it checks a stored token against `/me` before any protected page renders. `useAuth()` reads it. `<RequireAuth>` wraps the layout route and redirects to `/login`.
+- After login the app always goes to `/trainings` (the acceptance criterion), not back to the page that sent you to `/login`.
+- **Logout** is an icon button next to the user block in the TopBar. Figma has no logout control, and this keeps the bar's layout unchanged.
+- Added three semantic tokens for the error states in Figma (`01b Login – error`, TextField `error`, Alert `error`): `--color-text-danger`, `--color-border-danger` (red/700) and `--color-bg-danger-subtle` (red/50). The Figma REST token can't read variable names, so these names are ours. Rename them if Figma calls them something else.
+- The MSW handlers accept the seed logins from `src/mocks/data/users.ts` (a copy of `backend/app/seed.py`), so the live site on mocks can be logged into too.
+
+**Consequences:** The token is still readable by any script on the page (see "Authentication"). When the seed users change, `src/mocks/data/users.ts` must be updated too.
+
 ## 2026-09-25 — Listing trainings: who sees what
 **Status:** Accepted
 **Context:** BE-2.2 implements `GET /api/trainings` and `GET /api/trainings/{id}` per the F2 contract.

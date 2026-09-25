@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router'
+import { RequireAuth } from './auth/RequireAuth'
 import { Layout } from './components/Layout'
 import { ApprovalsPage } from './pages/ApprovalsPage'
 import { LoginPage } from './pages/LoginPage'
@@ -14,7 +15,12 @@ import { TrainingsPage } from './pages/TrainingsPage'
 export const routes: RouteObject[] = [
   { path: '/login', element: <LoginPage /> },
   {
-    element: <Layout />,
+    // Every page except /login needs a logged-in user.
+    element: (
+      <RequireAuth>
+        <Layout />
+      </RequireAuth>
+    ),
     children: [
       { index: true, element: <Navigate to="/trainings" replace /> },
       { path: 'trainings', element: <TrainingsPage /> },

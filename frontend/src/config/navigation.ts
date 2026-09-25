@@ -13,6 +13,3 @@ export const externalNavLinks: ExternalNavLink[] = [
   { label: 'Timesheets', href: null },
   { label: 'Vacations', href: null },
 ]
-
-// Placeholder until login exists (FE-1.1).
-export const placeholderUser = { name: 'Bernardo Santos' }

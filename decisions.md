@@ -14,6 +14,21 @@ Template:
 
 ---
 
+## 2026-09-25 — App shell: GitHub Pages deep links via 404.html, React Router data mode
+**Status:** Accepted
+**Context:** FE-0.1 needs client-side routes that survive a refresh on GitHub Pages. Pages is static hosting, so a refresh on `/praying-mantis-1/trainings` asks for a file that doesn't exist and gets a 404.
+**Decision:**
+- **Deep links:** clean URLs (`BrowserRouter` style), not `HashRouter`. `public/404.html` catches the unknown path, keeps the first segment (the repo name), moves the rest into the query string (`/praying-mantis-1/?/trainings/5`) and redirects. An inline script in `index.html` turns it back into the real URL with `history.replaceState` before React starts. `&` in the original query is escaped as `~and~` on the way.
+- **Router:** React Router v8 in data mode: `createBrowserRouter` with a route array (closest to vue-router's `routes`), `RouterProvider` from `react-router/dom`, and `basename: import.meta.env.BASE_URL`, so the same code works under `/` locally and under `/<repo>/` on Pages.
+- **Routes:** `/login` has no TopBar, so it sits outside the `Layout` route. `/` redirects to `/trainings`, and unknown paths show a NotFound page inside the Layout.
+- **Profile:** not a nav item. The avatar and name in the TopBar link to `/profile`, as in Figma. This replaces the "Profile" nav link in FE-0.1's acceptance criteria.
+- **External links:** Timesheets ↗ and Vacations ↗ are in the nav as in Figma, with `href: null` (rendered disabled, "coming soon") until the other teams give us URLs.
+- **Tokens and font:** `src/styles/tokens.css` copies every Figma variable as a CSS custom property. Text styles are `font` shorthands (`--font-h1`). Inter is self-hosted through `@fontsource-variable/inter`.
+- **Phone width:** below 1024px the nav moves into a panel opened by a menu button. Below 600px the user name is hidden visually (not from screen readers).
+**Consequences:** Real 404s on Pages briefly load the app and then show our NotFound page, and search engines see a 404 status first, which doesn't matter for an internal tool. The first render of a deep link costs one extra redirect. `vite preview` doesn't use `404.html`, so testing the trick locally needs a server that serves `404.html` for unknown paths.
+
+---
+
 ## 2026-09-25 — Visual design: PreyingMantis with Cofinpro theming and shared design tokens
 **Status:** Accepted
 **Context:** Nothing visual existed yet (the frontend used `system-ui`), and FE-0.1 needs a look and feel. We also want design and code to share one vocabulary.

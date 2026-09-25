@@ -1,0 +1,11 @@
+.content {
+  max-width: calc(1200px + 2 * var(--space-6));
+  margin: 0 auto;
+  padding: var(--space-10) var(--space-6);
+}
+
+@media (max-width: 600px) {
+  .content {
+    padding: var(--space-6) var(--space-4);
+  }
+}

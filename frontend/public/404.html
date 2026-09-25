@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>PreyingMantis</title>
+    <script>
+      // GitHub Pages serves this file for any path it doesn't know, e.g. /praying-mantis-1/trainings/5.
+      // Keep the first segment (the repo name), move the rest of the path into the query string,
+      // and redirect to the app: /praying-mantis-1/?/trainings/5
+      // index.html turns it back into the real URL before React starts. See decisions.md.
+      const segmentsToKeep = 1
+      const l = window.location
+      const kept = l.pathname.split('/').slice(0, 1 + segmentsToKeep).join('/')
+      const route = l.pathname.slice(1).split('/').slice(segmentsToKeep).join('/').replace(/&/g, '~and~')
+      const query = l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : ''
+      l.replace(`${l.protocol}//${l.host}${kept}/?/${route}${query}${l.hash}`)
+    </script>
+  </head>
+  <body></body>
+</html>

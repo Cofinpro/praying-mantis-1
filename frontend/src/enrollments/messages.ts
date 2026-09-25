@@ -1,6 +1,6 @@
 import { ApiError } from '../api/client'
 
-// One friendly sentence per business-rule code (409 {detail: {code, message}}), agreed in plan.md → F3.
+// One friendly sentence per business-rule code (409 {detail: {code, message}}), agreed in plan.md → F3 and F6.
 // The code is stable; the backend's message is only the fallback for a code we don't know yet.
 const MESSAGES: Record<string, string> = {
   already_requested: "You've already asked to join this training.",
@@ -11,6 +11,8 @@ const MESSAGES: Record<string, string> = {
   not_pending: 'This request was already decided.',
   not_withdrawable: 'This request can no longer be withdrawn.',
   seat_taken: 'Sorry, this seat was just taken.',
+  already_reserved: 'You already have a seat that day.',
+  reservation_in_past: "Past reservations can't be cancelled.",
 }
 
 export function enrollmentErrorMessage(error: unknown): string {

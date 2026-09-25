@@ -20,7 +20,7 @@ import {
 } from './data/trainings'
 import type { UserSummary } from '../api/users'
 import { listMockNotifications, markMockRead } from './data/notifications'
-import { listMockSeats, reserveMockSeat } from './data/seats'
+import { cancelMockReservation, listMockMyReservations, listMockSeats, reserveMockSeat } from './data/seats'
 import { findSeedUserByEmail, findSeedUserById, searchSeedUsers, SEED_PASSWORD, toCurrentUser } from './data/users'
 
 // The mock token is just the user id. The real one is a signed JWT, but the app treats both as opaque.
@@ -224,6 +224,21 @@ export const handlers = [
     const result = reserveMockSeat(user, seat_id, date)
     return result.status === 201
       ? HttpResponse.json<ReservationRead>(result.reservation, { status: 201 })
+      : HttpResponse.json({ detail: result.detail }, { status: result.status })
+  }),
+
+  http.get('*/api/reservations/me', ({ request }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    return HttpResponse.json<ReservationRead[]>(listMockMyReservations(user.id))
+  }),
+
+  http.delete('*/api/reservations/:id', ({ request, params }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    const result = cancelMockReservation(user.id, Number(params.id))
+    return result.status === 204
+      ? new HttpResponse(null, { status: 204 })
       : HttpResponse.json({ detail: result.detail }, { status: result.status })
   }),
 ]

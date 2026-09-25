@@ -1,5 +1,5 @@
 import type { Client, Seat } from '../../api/seats'
-import { fromDayString, twoWeeks } from '../../lib/days'
+import { fromDayString, toDayString, twoWeeks } from '../../lib/days'
 import { findSeedUserById } from './users'
 
 // One zone per client, 10 seats each in 2 rows of 5: DKB-01 … UNION-10 (BE-6.1 seeds the same shape).
@@ -46,6 +46,8 @@ export function listMockSeats(viewer: { id: number; client: Client }, day: strin
 }
 
 let nextReservationId = 1
+// reservation id → [day, seatId], so GET /me and DELETE can find reservations made through the mocks
+const reservationIds: Record<number, [string, number]> = {}
 
 // POST /api/reservations, with BE-6.3's rules: my client's zone only, a valid day, one seat per person per
 // day (an existing one is moved), and 409 seat_taken when someone else has it.
@@ -64,9 +66,31 @@ export function reserveMockSeat(viewer: { id: number; client: Client }, seatId: 
     if (userId === viewer.id) delete taken[Number(id)]
   }
   taken[seatId] = viewer.id
-  return {
-    status: 201 as const,
-    reservation: { id: nextReservationId++, date: day, seat: { id: seat.id, label: seat.label, zone: seat.zone } },
-  }
+  const id = nextReservationId++
+  reservationIds[id] = [day, seatId]
+  return { status: 201 as const, reservation: { id, date: day, seat: { id: seat.id, label: seat.label, zone: seat.zone } } }
+}
+
+// GET /api/reservations/me: the viewer's reservations from today on, soonest first.
+export function listMockMyReservations(viewerId: number) {
+  const today = toDayString(new Date())
+  return Object.entries(reservationIds)
+    .filter(([, [day, seatId]]) => day >= today && reservationsFor(day)[seatId] === viewerId)
+    .map(([id, [day, seatId]]) => {
+      const seat = layout.find((s) => s.id === seatId)!
+      return { id: Number(id), date: day, seat: { id: seat.id, label: seat.label, zone: seat.zone } }
+    })
+    .sort((a, b) => a.date.localeCompare(b.date))
+}
+
+// DELETE /api/reservations/{id}
+export function cancelMockReservation(viewerId: number, id: number) {
+  const found = reservationIds[id]
+  if (!found) return { status: 404 as const, detail: 'Reservation not found' }
+  const [day, seatId] = found
+  if (reservationsFor(day)[seatId] !== viewerId) return { status: 403 as const, detail: 'Not yours' }
+  delete reservationsFor(day)[seatId]
+  delete reservationIds[id]
+  return { status: 204 as const }
 }
 

@@ -84,6 +84,7 @@ We're both experienced developers (one from **Vue**, one from **Java**), so skip
 - **Query keys as a hierarchy** (FE-5.1): the profile's `['trainings', 'mine']` sits under `['trainings']`, so every mutation that already invalidates trainings (join, withdraw, approve, cancel) refreshes the profile too, with no extra code. Choosing where a key lives is choosing what refreshes it.
 - **Mutations with variables** (FE-6.2): `mutate({ seatId, day })` passes the inputs to `mutationFn(vars)`, and `onSettled(data, error, vars)` gets them back. So one `useMutation` serves every seat click, and the invalidation targets exactly the day that changed (`['seats', vars.day]`).
 - **Races are normal, not errors**: two people can click the same free seat. The backend's unique constraint decides, and the loser gets a 409 `seat_taken`. The UI says "Sorry, this seat was just taken" and refetches that day's map, so the seat turns red behind the dialog. Nothing is "fixed", the screen just catches up.
+- **One change, two views** (FE-6.3): cancelling a reservation changes both the "My reservations" list and that day's map. The mutation invalidates `['reservations', 'me']` *and* `['seats', reservation.date]`, reading the date from its variables. Getting related queries right is most of the work with a server cache.
 - **`useSearchParams`** keeps UI state in the URL (`/trainings?level=senior`), like `route.query` in vue-router. It survives a refresh and can be shared, and it goes straight into the query key.
 
 ## Dates and time zones (JavaScript)

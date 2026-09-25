@@ -22,6 +22,7 @@ from app.models import (
     Level,
     Notification,
     NotificationType,
+    Seat,
     Training,
     User,
 )
@@ -104,6 +105,23 @@ SEED_ENROLLMENTS: list[tuple[str, str, EnrollmentStatus, str | None]] = [
 ]
 
 
+# The office: one zone per client, each a 5 x 2 grid of desks (Q11: a fake layout).
+# Labels are "<ZONE>-<nn>", numbered left to right, top row first:
+#   row 0:  -01 -02 -03 -04 -05
+#   row 1:  -06 -07 -08 -09 -10
+SEAT_COLUMNS = 5
+SEATS_PER_ZONE = 10
+
+
+def seat_layout() -> list[tuple[str, Client, int, int]]:
+    """(label, zone, pos_x, pos_y) for every seat."""
+    return [
+        (f"{zone.value.upper()}-{n + 1:02d}", zone, n % SEAT_COLUMNS, n // SEAT_COLUMNS)
+        for zone in Client
+        for n in range(SEATS_PER_ZONE)
+    ]
+
+
 def email_for(local_part: str) -> str:
     return f"{local_part}@{EMAIL_DOMAIN}"
 
@@ -139,6 +157,19 @@ def seed(db: Session) -> list[User]:
 
     db.commit()
     return list(users.values())
+
+
+def seed_seats(db: Session) -> list[Seat]:
+    """Creates or updates every seat (matched by label), then commits."""
+    existing = {seat.label: seat for seat in db.scalars(select(Seat))}
+    seats = []
+    for label, zone, pos_x, pos_y in seat_layout():
+        seat = existing.get(label) or Seat(label=label)
+        seat.zone, seat.pos_x, seat.pos_y = zone, pos_x, pos_y
+        db.add(seat)
+        seats.append(seat)
+    db.commit()
+    return seats
 
 
 def seed_trainings(db: Session) -> list[Training]:
@@ -260,6 +291,9 @@ def main() -> None:
             lead = user.team_lead.name if user.team_lead else "-"
             admin = " (admin)" if user.is_admin else ""
             print(f"  {user.email:<32} {user.client:<6} {user.level:<17} lead: {lead}{admin}")
+
+        seats = seed_seats(db)
+        print(f"Seeded {len(seats)} seats: {SEATS_PER_ZONE} per zone ({', '.join(z.value for z in Client)}).")
 
         trainings = seed_trainings(db)
         print(f"Seeded {len(trainings)} trainings.")

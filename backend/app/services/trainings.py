@@ -176,6 +176,14 @@ def list_trainings(db: Session, viewer: User, level: Level | None = None) -> lis
     return [TrainingRow(*row) for row in db.execute(query)]
 
 
+def rows_by_id(db: Session, training_ids: list[int], viewer: User) -> dict[int, TrainingRow]:
+    """Several trainings in one query, by id, with no level filter (the caller decided access)."""
+    if not training_ids:
+        return {}
+    query = _training_rows(viewer).where(Training.id.in_(training_ids))
+    return {row.training.id: row for row in (TrainingRow(*r) for r in db.execute(query))}
+
+
 def get_training(db: Session, training_id: int, viewer: User) -> TrainingRow | None:
     """One training, or None if it doesn't exist or isn't for the viewer's level.
 

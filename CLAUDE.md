@@ -91,9 +91,13 @@ What exists today:
   - `app/config.py`: `Settings` (pydantic-settings), read from env vars / `backend/.env`
   - `app/database.py`: engine, `SessionLocal`, `Base`, and the `get_db` dependency
   - `app/models/`: SQLAlchemy models. Import each one in `models/__init__.py`, or Alembic won't see it.
+    - `enums.py`: `Client` and `Level` (`StrEnum`), and `enum_column()` to store them as VARCHAR
+    - `user.py`: `User`, with `team_lead` / `reports` (self-referencing) and the derived `is_team_lead`
   - `app/schemas/`: Pydantic request/response models (the API contract)
   - `app/routers/`: one `APIRouter` per area. `health.py` has `/api/` and `/api/health/db`.
   - `app/services/`: business rules, no HTTP concerns
+  - `app/security.py`: password hashing (`pwdlib`, Argon2id)
+  - `app/seed.py`: local seed users (`python -m app.seed`)
   - `alembic/`: migrations (`alembic/versions/`). `env.py` reads the DB URL from `app.config`.
   - `tests/`: pytest. `conftest.py` provides the `db` and `client` fixtures (see Testing below).
   - `.env.example`: DB settings and `CORS_ORIGINS`. Copy it to `backend/.env` (git-ignored).
@@ -127,8 +131,31 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements-dev.txt   # app + test dependencies
 cp .env.example .env   # already matches docker-compose.yml
 alembic upgrade head      # apply all migrations to the database
+python -m app.seed        # add the seed users (safe to run again)
 fastapi dev app/main.py   # http://localhost:8000, API docs at /docs
 ```
+
+**Seed logins (local only):** every password is `password123`. Emails are `<first name>@preyingmantis.test`.
+
+| Email | Client | Level | Role / team lead |
+|---|---|---|---|
+| `admin@preyingmantis.test` | DBIS | senior_architect | **Admin**, no team lead |
+| `sofia@preyingmantis.test` | DKB | architect | **Team lead** of João, Marta, Pedro, Rita |
+| `tiago@preyingmantis.test` | Deka | senior_architect | **Team lead** of Inês, Miguel, Carolina, Bruno |
+| `ines@preyingmantis.test` | UNION | senior | **Team lead** of Beatriz, Hugo, Laura. Reports to Tiago |
+| `joao@preyingmantis.test` | DKB | junior | Sofia |
+| `marta@preyingmantis.test` | DKB | expert | Sofia |
+| `pedro@preyingmantis.test` | VV | senior | Sofia |
+| `rita@preyingmantis.test` | DBIS | junior | Sofia |
+| `miguel@preyingmantis.test` | Deka | expert | Tiago |
+| `carolina@preyingmantis.test` | Deka | junior | Tiago |
+| `bruno@preyingmantis.test` | VV | architect | Tiago |
+| `beatriz@preyingmantis.test` | UNION | expert | Inês |
+| `hugo@preyingmantis.test` | UNION | junior | Inês |
+| `laura@preyingmantis.test` | DBIS | senior | Inês |
+| `rafael@preyingmantis.test` | VV | expert | **No team lead** (an admin approves his requests) |
+
+Re-running the seed resets these users to the values above (matched by email) and never duplicates them.
 
 Check the database connection at http://localhost:8000/api/health/db (expects `{"database": "ok"}`).
 

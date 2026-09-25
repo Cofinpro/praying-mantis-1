@@ -2,13 +2,14 @@ import { http, HttpResponse } from 'msw'
 import type { CurrentUser, LoginRequest, TokenResponse } from '../api/auth'
 import type { DbHealthResponse, HelloResponse } from '../api/health'
 import type { NotificationList } from '../api/notifications'
-import type { ApprovalItem, EnrollmentRead } from '../api/enrollments'
+import type { ApprovalItem, EnrollmentRead, MyEnrollments } from '../api/enrollments'
 import type { TrainingCreate, TrainingRead, TrainingSummary, TrainingUpdate } from '../api/trainings'
 import { isLevel } from '../trainings/levels'
 import {
   decideMockEnrollment,
   getMockTraining,
   listMockApprovals,
+  listMockMyEnrollments,
   listMockTrainings,
   mockTrainings,
   requestMockEnrollment,
@@ -197,5 +198,11 @@ export const handlers = [
     if (!user) return notAuthenticated()
     markMockRead(user.id, Number(params.id))
     return new HttpResponse(null, { status: 204 })
+  }),
+
+  http.get('*/api/me/enrollments', ({ request }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    return HttpResponse.json<MyEnrollments>(listMockMyEnrollments(user.id))
   }),
 ]

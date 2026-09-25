@@ -90,6 +90,17 @@ Template:
 - Services raise `Conflict` / `ValidationFailed` (`app/errors.py`); handlers in `main.py` turn them into 409 / 422.
 **Consequences:** FE's edit form can send the whole form or only changes; both work. Notifying enrolled people on cancel is a `TODO(BE-4.1)` in `cancel_training`.
 
+## 2026-09-25 — Profile page: /me for the header, /api/me/enrollments for the sections
+**Status:** Accepted
+**Context:** FE-5.1 builds `/profile` before BE-5.1, from the F5 contract (`GET /api/me/enrollments → {upcoming, pending, completed}`).
+**Decision:**
+- The header (name, email, client, level, team lead) comes from the `/me` already in `AuthProvider`. With no team lead it says "None (an admin approves your requests)".
+- Three sections reuse `TrainingCard`. Completed cards say "Completed" instead of the seats (the card's new `footerNote` prop), as in Figma. Each section has its own empty state.
+- The query key is `['trainings', 'mine']`, so it refreshes with every training invalidation.
+- The types are hand-written in `api/enrollments.ts` (`MyEnrollments`) until BE-5.1. The mocks use Q10's definition of completed (approved + ended + not cancelled).
+
+**Consequences:** Against today's backend the sections show the error state until BE-5.1 lands; the header works.
+
 ## 2026-09-25 — Notification bell: polling, a disclosure panel, built on mocks
 **Status:** Accepted
 **Context:** FE-4.1 builds the bell before BE-4.1, following the F4 contract (`GET /api/notifications?limit=20`, `POST …/{id}/read`, `POST …/read-all`).

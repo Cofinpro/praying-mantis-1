@@ -8,7 +8,13 @@ import styles from './TrainingCard.module.css'
 
 // Figma "TrainingCard". The whole card is clickable, but only the name is a link: a screen reader hears
 // one link per card instead of the whole card's text (the "stretched link" trick, see the CSS).
-export function TrainingCard({ training }: { training: TrainingSummary }) {
+type TrainingCardProps = {
+  training: TrainingSummary
+  // Replaces "N of M seats left", e.g. "Completed" on the profile, where seats no longer matter
+  footerNote?: string
+}
+
+export function TrainingCard({ training, footerNote }: TrainingCardProps) {
   const status = training.cancelled ? 'cancelled' : training.my_enrollment_status
 
   return (
@@ -28,7 +34,7 @@ export function TrainingCard({ training }: { training: TrainingSummary }) {
         ))}
       </ul>
       <div className={styles.footer}>
-        <span className={styles.seats}>{seatsLabel(training)}</span>
+        <span className={styles.seats}>{footerNote ?? seatsLabel(training)}</span>
         {isBadgeStatus(status) && <StatusBadge status={status} />}
       </div>
     </article>

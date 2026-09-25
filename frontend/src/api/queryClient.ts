@@ -20,6 +20,9 @@ export const queryKeys = {
   trainings: ['trainings'] as const,
   trainingList: (level: string | null) => ['trainings', 'list', { level }] as const,
   trainingDetail: (id: number) => ['trainings', 'detail', id] as const,
+  // Under 'trainings' on purpose: joining, withdrawing or a decision invalidates ['trainings'], and the
+  // profile's sections change with them.
+  myEnrollments: ['trainings', 'mine'] as const,
   approvals: ['approvals'] as const,
   notifications: ['notifications'] as const,
 }

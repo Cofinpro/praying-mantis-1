@@ -1,10 +1,12 @@
+from datetime import UTC, datetime
+
 import pytest
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 
-from app.models import Client, Level, User
+from app.models import Client, Level, Training, TrainingLevel, User
 from app.security import hash_password, verify_password
-from app.seed import SEED_PASSWORD, SEED_USERS, seed
+from app.seed import SEED_PASSWORD, SEED_TRAININGS, SEED_USERS, seed, seed_trainings
 
 
 def make_user(email: str, **overrides) -> User:
@@ -108,3 +110,29 @@ class TestSeed:
 
         assert ines.name == "Inês Rocha"
         assert verify_password(SEED_PASSWORD, ines.password_hash)
+
+
+class TestSeedTrainings:
+    def test_covers_past_future_cancelled_external_and_full(self, db):
+        seed(db)
+        seed_trainings(db)
+        trainings = db.scalars(select(Training)).all()
+        now = datetime.now(UTC)
+
+        assert len(trainings) == len(SEED_TRAININGS) == 8
+        assert any(t.ends_at < now for t in trainings), "a past training"
+        assert any(t.starts_at > now and not t.cancelled for t in trainings), "an upcoming training"
+        assert any(t.cancelled for t in trainings), "a cancelled training"
+        assert any(t.trainer is None and t.external_trainer_name for t in trainings), "External – name"
+        assert any(t.trainer is None and not t.external_trainer_name for t in trainings), "External"
+        assert any(t.max_seats <= 2 for t in trainings), "one that BE-3.1 can fill up"
+        assert {level for t in trainings for level in t.levels} == set(Level)
+
+    def test_running_twice_creates_no_duplicates(self, db):
+        seed(db)
+        seed_trainings(db)
+        seed_trainings(db)
+
+        assert db.scalar(select(text("COUNT(*)")).select_from(Training)) == 8
+        level_rows = db.scalar(select(text("COUNT(*)")).select_from(TrainingLevel))
+        assert level_rows == sum(len(t[4]) for t in SEED_TRAININGS)

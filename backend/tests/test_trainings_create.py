@@ -87,6 +87,7 @@ def test_creates_a_training_and_returns_the_contract_shape(client, db, admin, tr
         "average_rating": None,
         "rating_count": 0,
         "my_rating": None,
+        "my_waitlist_position": None,
     }
     training = db.get(Training, body["id"])
     assert training.created_by_id == admin.id

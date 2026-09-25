@@ -36,14 +36,16 @@ def deciders_for(db: Session, requester: User) -> list[User]:
 
 
 def enrolled_people(db: Session, training: Training) -> list[User]:
-    """Everyone with a pending or approved enrollment in the training."""
+    """Everyone waitlisted, pending or approved in the training."""
     return list(
         db.scalars(
             select(User)
             .join(Enrollment, Enrollment.user_id == User.id)
             .where(
                 Enrollment.training_id == training.id,
-                Enrollment.status.in_([EnrollmentStatus.PENDING, EnrollmentStatus.APPROVED]),
+                Enrollment.status.in_(
+                    [EnrollmentStatus.WAITLISTED, EnrollmentStatus.PENDING, EnrollmentStatus.APPROVED]
+                ),
             )
         )
     )

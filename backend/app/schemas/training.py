@@ -137,6 +137,8 @@ class TrainingSummary(BaseModel):
     average_rating: float | None = None
     rating_count: int = 0
     my_rating: int | None = None
+    # 1 = next in line when a place opens up; null unless my_enrollment_status is "waitlisted"
+    my_waitlist_position: int | None = None
 
     @field_validator("levels")
     @classmethod

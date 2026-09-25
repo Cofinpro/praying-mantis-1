@@ -49,6 +49,7 @@ def training_fields(row: service.TrainingRow) -> dict:
         "average_rating": round(float(row.average_rating), 1) if row.average_rating is not None else None,
         "rating_count": row.rating_count,
         "my_rating": row.my_rating,
+        "my_waitlist_position": row.my_waitlist_position,
     }
 
 

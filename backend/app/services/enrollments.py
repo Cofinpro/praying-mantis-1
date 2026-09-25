@@ -14,12 +14,15 @@ from app.services import notifications
 # --- the status state machine ---
 #
 #   (none) ──request──▶ pending ──approve──▶ approved
-#                         │  └────reject───▶ rejected
-#                         └──withdraw──▶ withdrawn ◀──withdraw── approved
+#     │                   ▲ │  └────reject───▶ rejected
+#     │    a place opens  │ └──withdraw──▶ withdrawn ◀──withdraw── approved
+#     └─join_waitlist─▶ waitlisted ──withdraw──▶ withdrawn
+#       (only when full)
 #
 # (A withdrawn request can be requested again: see request().)
 
 ALLOWED_MOVES: dict[EnrollmentStatus, set[EnrollmentStatus]] = {
+    EnrollmentStatus.WAITLISTED: {EnrollmentStatus.PENDING, EnrollmentStatus.WITHDRAWN},
     EnrollmentStatus.PENDING: {
         EnrollmentStatus.APPROVED,
         EnrollmentStatus.REJECTED,
@@ -63,8 +66,22 @@ def count_approved(db: Session, training_id: int, locking: bool = False) -> int:
     return db.scalar(query)
 
 
-def request(db: Session, user: User, training_id: int) -> Enrollment:
-    """The user asks for a seat. Returns the pending enrollment, or raises why not."""
+def count_open(db: Session, training_id: int) -> int:
+    """How many pending or approved enrollments compete for the seats (waitlisted ones don't).
+    Always a locking read: see count_approved()."""
+    return db.scalar(
+        select(func.count())
+        .select_from(Enrollment)
+        .where(
+            Enrollment.training_id == training_id,
+            Enrollment.status.in_([EnrollmentStatus.PENDING, EnrollmentStatus.APPROVED]),
+        )
+        .with_for_update(read=True)
+    )
+
+
+def _check_can_join(db: Session, user: User, training_id: int) -> tuple[Training, Enrollment | None]:
+    """The checks shared by request() and join_waitlist(). Returns the training and any earlier row."""
     training = db.get(Training, training_id)
     if training is None:
         raise NotFound("Training not found")
@@ -79,18 +96,19 @@ def request(db: Session, user: User, training_id: int) -> Enrollment:
         select(Enrollment).where(Enrollment.training_id == training.id, Enrollment.user_id == user.id)
     )
     if existing is not None:
+        if existing.status == EnrollmentStatus.WAITLISTED:
+            raise Conflict("already_waitlisted", "You're already on the waitlist for this training")
         if existing.status in (EnrollmentStatus.PENDING, EnrollmentStatus.APPROVED):
             raise Conflict("already_requested", "You've already requested this training")
         if existing.status == EnrollmentStatus.REJECTED:
             raise Conflict("request_rejected", "Your request for this training was rejected")
+    return training, existing
 
-    # Pending requests are allowed up to the last free seat; approval checks again (BE-3.2)
-    if count_approved(db, training.id) >= training.max_seats:
-        raise Conflict("training_full", "This training is full")
 
+def _new_or_restarted(db: Session, user: User, training: Training, existing: Enrollment | None,
+                      status: EnrollmentStatus) -> Enrollment:
     if existing is not None:  # withdrawn earlier: the same row starts over
         enrollment = existing
-        enrollment.status = EnrollmentStatus.PENDING
         enrollment.requested_at = datetime.now(UTC)
         enrollment.decision_comment = None
         enrollment.decided_by_id = None
@@ -98,14 +116,11 @@ def request(db: Session, user: User, training_id: int) -> Enrollment:
     else:
         enrollment = Enrollment(training_id=training.id, user_id=user.id)
         db.add(enrollment)
+    enrollment.status = status
+    return enrollment
 
-    notifications.notify(
-        db,
-        notifications.deciders_for(db, user),
-        NotificationType.ENROLLMENT_REQUESTED,
-        f"{user.name} requested a seat in {training.name}",
-        link="/approvals",
-    )
+
+def _commit_new(db: Session, enrollment: Enrollment) -> Enrollment:
     try:
         db.commit()  # the enrollment and its notification together
     except IntegrityError:
@@ -114,6 +129,85 @@ def request(db: Session, user: User, training_id: int) -> Enrollment:
         raise Conflict("already_requested", "You've already requested this training") from None
     db.refresh(enrollment)
     return enrollment
+
+
+def request(db: Session, user: User, training_id: int) -> Enrollment:
+    """The user asks for a seat. Returns the pending enrollment, or raises why not."""
+    training, existing = _check_can_join(db, user, training_id)
+
+    # Pending requests are allowed up to the last free seat; approval checks again (BE-3.2).
+    # A full training has a waitlist instead: join_waitlist().
+    if count_approved(db, training.id) >= training.max_seats:
+        raise Conflict("training_full", "This training is full")
+
+    enrollment = _new_or_restarted(db, user, training, existing, EnrollmentStatus.PENDING)
+    notifications.notify(
+        db,
+        notifications.deciders_for(db, user),
+        NotificationType.ENROLLMENT_REQUESTED,
+        f"{user.name} requested a seat in {training.name}",
+        link="/approvals",
+    )
+    return _commit_new(db, enrollment)
+
+
+# --- the waitlist ---
+
+
+def join_waitlist(db: Session, user: User, training_id: int) -> Enrollment:
+    """Only for a full training: waits in line, first come first served. Nobody is notified yet."""
+    training, existing = _check_can_join(db, user, training_id)
+    # Lock the training, like withdraw() does: a seat freed at this very moment either happens
+    # first (and we say "not full") or waits for us (and then promotes us)
+    db.get(Training, training.id, with_for_update=True, populate_existing=True)
+    if count_approved(db, training.id, locking=True) < training.max_seats:
+        raise Conflict("training_not_full", "This training still has seats: request one instead")
+    enrollment = _new_or_restarted(db, user, training, existing, EnrollmentStatus.WAITLISTED)
+    return _commit_new(db, enrollment)
+
+
+def promote_waitlist(db: Session, training: Training) -> list[Enrollment]:
+    """Moves the oldest waitlisted people to pending while there are places nobody is asking for.
+
+    A place is free when max_seats > pending + approved: so a promoted person never competes
+    with an earlier pending request for the same seat. Called, inside the caller's transaction
+    (with the training row locked), after anything that frees a place: a withdrawal, a
+    rejection, or more max_seats. Doesn't commit.
+    """
+    if training.cancelled or training.starts_at <= datetime.now(UTC):
+        return []
+    db.flush()  # SessionLocal has autoflush=False: send the caller's status change before we count
+    free = training.max_seats - count_open(db, training.id)
+    if free <= 0:
+        return []
+    promoted = list(
+        db.scalars(
+            select(Enrollment)
+            .where(Enrollment.training_id == training.id, Enrollment.status == EnrollmentStatus.WAITLISTED)
+            .order_by(Enrollment.requested_at, Enrollment.id)
+            .limit(free)
+            .with_for_update()
+        )
+    )
+    for enrollment in promoted:
+        check_move(enrollment.status, EnrollmentStatus.PENDING)
+        # requested_at stays: it's still the moment they asked, and the approvals list is oldest first
+        enrollment.status = EnrollmentStatus.PENDING
+        notifications.notify(
+            db,
+            [enrollment.user],
+            NotificationType.WAITLIST_PROMOTED,
+            f"A place opened up in {training.name}: your request now waits for approval",
+            link=notifications.training_link(training),
+        )
+        notifications.notify(
+            db,
+            notifications.deciders_for(db, enrollment.user),
+            NotificationType.ENROLLMENT_REQUESTED,
+            f"{enrollment.user.name} moved up from the waitlist for {training.name}",
+            link="/approvals",
+        )
+    return promoted
 
 
 # --- deciding: approvals list, approve, reject ---
@@ -236,6 +330,7 @@ def reject(db: Session, decider: User, enrollment_id: int, comment: str | None =
         f"{decider.name} rejected your request for {training.name}{reason}",
         link=notifications.training_link(training),
     )
+    promote_waitlist(db, training)  # the rejected request no longer holds a place
     db.commit()  # the decision and its notification together
     db.refresh(enrollment)
     return enrollment
@@ -245,9 +340,10 @@ def reject(db: Session, decider: User, enrollment_id: int, comment: str | None =
 
 
 def withdraw(db: Session, user: User, enrollment_id: int) -> Enrollment:
-    """The owner withdraws a pending or approved enrollment before the training starts.
+    """The owner withdraws a waitlisted, pending or approved enrollment before the training starts.
 
-    Withdrawing an approved enrollment frees its seat (seats_left goes up).
+    Withdrawing an approved enrollment frees its seat (seats_left goes up), and a pending one
+    frees its place: either way the next person on the waitlist moves up.
     The decision fields stay, as a record of who had approved it.
     """
     enrollment = _get_enrollment(db, enrollment_id)
@@ -269,6 +365,7 @@ def withdraw(db: Session, user: User, enrollment_id: int) -> Enrollment:
             f"{user.name} withdrew from {training.name}, so a seat is free again",
             link=notifications.training_link(training),
         )
+    promote_waitlist(db, training)
     db.commit()
     db.refresh(enrollment)
     return enrollment

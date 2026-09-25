@@ -20,8 +20,8 @@ router = APIRouter(tags=["enrollments"])
         403: {"description": "Not for your level"},
         404: {"description": "Training not found"},
         409: {
-            "description": "already_requested | request_rejected | training_full | "
-            "training_started | training_cancelled"
+            "description": "already_requested | already_waitlisted | request_rejected | "
+            "training_full (join the waitlist instead) | training_started | training_cancelled"
         },
     },
 )
@@ -34,6 +34,25 @@ def request_to_join(
     for email in notifications.request_emails(db, enrollment):
         background.add_task(send_email, email)
     return EnrollmentRead.model_validate(enrollment)
+
+
+@router.post(
+    "/trainings/{training_id}/waitlist",
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        401: {"description": "Missing, invalid or expired token"},
+        403: {"description": "Not for your level"},
+        404: {"description": "Training not found"},
+        409: {
+            "description": "training_not_full (request a seat instead) | already_waitlisted | "
+            "already_requested | request_rejected | training_started | training_cancelled"
+        },
+    },
+)
+def join_waitlist(training_id: int, db: DbSession, user: CurrentUser) -> EnrollmentRead:
+    """Join the waitlist of a full training. When a place opens up, the first in line becomes a
+    pending request (they and their team lead are notified), then it's approved as usual."""
+    return EnrollmentRead.model_validate(service.join_waitlist(db, user, training_id))
 
 
 DECISION_RESPONSES = {
@@ -88,5 +107,5 @@ def reject(
     },
 )
 def withdraw(enrollment_id: int, db: DbSession, user: CurrentUser) -> EnrollmentRead:
-    """Withdraw my own pending or approved enrollment, before the training starts."""
+    """Withdraw my own waitlisted, pending or approved enrollment, before the training starts."""
     return EnrollmentRead.model_validate(service.withdraw(db, user, enrollment_id))

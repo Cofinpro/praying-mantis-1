@@ -85,6 +85,8 @@
   /* Enrollment status badges */
   --color-status-pending-bg: var(--primitive-purple-50);
   --color-status-pending-fg: var(--primitive-purple-700);
+  --color-status-waitlisted-bg: var(--primitive-blue-50);
+  --color-status-waitlisted-fg: var(--primitive-blue-700);
   --color-status-approved-bg: var(--primitive-green-50);
   --color-status-approved-fg: var(--primitive-green-700);
   --color-status-rejected-bg: var(--primitive-red-50);

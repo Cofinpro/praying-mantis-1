@@ -23,7 +23,8 @@ export function WithdrawButton({ training }: { training: TrainingSummary }) {
     return null
   }
 
-  const approved = training.my_enrollment_status === 'approved'
+  const status = training.my_enrollment_status
+  const approved = status === 'approved'
 
   return (
     <>
@@ -32,7 +33,7 @@ export function WithdrawButton({ training }: { training: TrainingSummary }) {
       </Button>
       <ConfirmDialog
         open={confirming}
-        title={approved ? 'Give up your seat?' : 'Withdraw your request?'}
+        title={approved ? 'Give up your seat?' : status === 'waitlisted' ? 'Leave the waitlist?' : 'Withdraw your request?'}
         confirmLabel="Withdraw"
         busy={withdraw.isPending}
         error={withdraw.isError ? enrollmentErrorMessage(withdraw.error) : null}
@@ -43,8 +44,10 @@ export function WithdrawButton({ training }: { training: TrainingSummary }) {
         }}
       >
         {approved
-          ? `Your seat in “${training.name}” goes to someone else. You can ask again while seats are left.`
-          : `Your team lead won't need to decide on “${training.name}” any more.`}
+          ? `Your seat in “${training.name}” goes to the next person on the waitlist, if there is one.`
+          : status === 'waitlisted'
+            ? `You lose your place in line for “${training.name}”.`
+            : `Your team lead won't need to decide on “${training.name}” any more.`}
       </ConfirmDialog>
     </>
   )

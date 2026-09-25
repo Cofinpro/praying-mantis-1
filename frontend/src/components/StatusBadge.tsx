@@ -2,6 +2,7 @@ import type { BadgeStatus } from '../trainings/display'
 import styles from './StatusBadge.module.css'
 
 const LABELS: Record<BadgeStatus, string> = {
+  waitlisted: 'Waitlisted',
   pending: 'Pending',
   approved: 'Approved',
   rejected: 'Rejected',

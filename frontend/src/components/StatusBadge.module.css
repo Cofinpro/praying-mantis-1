@@ -12,6 +12,11 @@
   color: var(--color-status-pending-fg);
 }
 
+.waitlisted {
+  background: var(--color-status-waitlisted-bg);
+  color: var(--color-status-waitlisted-fg);
+}
+
 .approved {
   background: var(--color-status-approved-bg);
   color: var(--color-status-approved-fg);

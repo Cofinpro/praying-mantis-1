@@ -49,7 +49,7 @@ This is the target model, a refined version of our first sketch (see `plan.md` �
   - "Privileged account" = `is_admin`
 - **trainings**: name, description, starts_at and ends_at (**UTC**), max_seats, trainer_id → users (NULL = **External**), external_trainer_name (optional), created_by, cancelled_at (soft cancel)
 - **training_levels**: (training_id, level). A training can target several levels.
-- **enrollments**: training_id, user_id, status (`pending|approved|rejected|withdrawn`), decision_comment, requested_at, decided_by, decided_at
+- **enrollments**: training_id, user_id, status (`waitlisted|pending|approved|rejected|withdrawn`), decision_comment, requested_at, decided_by, decided_at
   - UNIQUE (training_id, user_id)
 - **notifications**: user_id, type, message, link, read_at, created_at
 - **training_feedback**: training_id, user_id, rating 1–5, comment, created/updated_at. UNIQUE (training_id, user_id); only people who completed the training
@@ -72,7 +72,9 @@ This is the target model, a refined version of our first sketch (see `plan.md` �
 4. The employee gets a notification with the result. They can withdraw while the enrollment is pending or approved, as long as the training hasn't started.
 5. The **Profile** tab shows upcoming, pending and completed trainings.
 
-Status flow: `pending → approved | rejected`; `pending | approved → withdrawn`.
+Status flow: `pending → approved | rejected`; `waitlisted | pending | approved → withdrawn`; `waitlisted → pending`.
+
+**Waitlist** (see `decisions.md`): a full training offers "Join the waitlist" (`POST /api/trainings/{id}/waitlist`). When a place frees up (`max_seats > pending + approved`, after a withdrawal, rejection or more seats), the first in line becomes `pending` and is notified, and so is their team lead.
 
 ### Reserving seats
 

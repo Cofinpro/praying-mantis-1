@@ -60,7 +60,10 @@ export const mockTrainings: MockTraining[] = [
     // Full: approving Bruno shows why it can't be done
     enrollments: { 11: 'pending' },
   }),
-  training(5, 'Effective Code Reviews', [35, 15, 16], ['junior', 'expert'], { id: 2 }, [0, 10]),
+  training(5, 'Effective Code Reviews', [35, 15, 16], ['junior', 'expert'], { id: 2 }, [0, 10], {
+    // Full, and Carolina is on its waitlist: João can join it as #2
+    enrollments: { 10: 'waitlisted' },
+  }),
   training(6, 'Kubernetes 101', [33, 13, 17], ['junior', 'architect'], { external: 'CloudSkills' }, [20, 20], {
     cancelled: true,
   }),
@@ -69,6 +72,20 @@ export const mockTrainings: MockTraining[] = [
     enrollments: { 5: 'approved', 7: 'approved', 12: 'approved' },
   }),
 ]
+
+// Waitlists in order (first = next in line): training id → user ids. Object keys can't keep an order.
+const waitlists = new Map<number, number[]>([[5, [10]]])
+const waitlistOf = (trainingId: number) => waitlists.get(trainingId) ?? []
+
+// Like promote_waitlist() in the backend: a place is free when nobody pending or approved holds it.
+function promoteMockWaitlist(training: MockTraining) {
+  if (training.cancelled || training.starts_at <= new Date().toISOString()) return
+  const pending = Object.values(training.enrollments).filter((s) => s === 'pending').length
+  const line = waitlistOf(training.id)
+  const moving = line.slice(0, Math.max(0, training.seats_left - pending))
+  for (const userId of moving) training.enrollments[userId] = 'pending'
+  waitlists.set(training.id, line.slice(moving.length))
+}
 
 // Ratings while the mocks run: training id → user id → feedback
 type MockFeedback = { rating: number; comment: string | null; created_at: string; updated_at: string }
@@ -90,6 +107,7 @@ export function toSummary({ enrollments, description: _description, ...training 
     average_rating: average,
     rating_count: count,
     my_rating: feedback.get(training.id)?.get(viewerId)?.rating ?? null,
+    my_waitlist_position: status === 'waitlisted' ? waitlistOf(training.id).indexOf(viewerId) + 1 : null,
   } satisfies TrainingSummary
 }
 
@@ -167,14 +185,17 @@ export function updateMockTraining(id: number, changes: Partial<MockTraining>) {
   const training = mockTrainings.find((t) => t.id === id)
   if (!training) return 'not_found' as const
   if (training.cancelled) return 'cancelled' as const
+  const moreSeats = changes.max_seats !== undefined ? changes.max_seats - training.max_seats : 0
   Object.assign(training, changes)
+  training.seats_left += moreSeats
+  if (moreSeats > 0) promoteMockWaitlist(training)
   return training
 }
 
 let nextEnrollmentId = 1000
 
-// POST /api/trainings/{id}/enrollments, with BE-3.1's rules and error codes.
-export function requestMockEnrollment(viewer: { id: number; level: Level }, trainingId: number) {
+// POST /api/trainings/{id}/enrollments (or …/waitlist), with BE-3.1's rules and error codes.
+export function requestMockEnrollment(viewer: { id: number; level: Level }, trainingId: number, waitlist = false) {
   const training = mockTrainings.find((t) => t.id === trainingId)
   if (!training) return { status: 404 as const, detail: 'Training not found' }
   if (!training.levels.includes(viewer.level)) return { status: 403 as const, detail: "This training isn't for your level" }
@@ -182,17 +203,21 @@ export function requestMockEnrollment(viewer: { id: number; level: Level }, trai
   if (training.cancelled) return refuse('training_cancelled', 'This training is cancelled')
   if (training.starts_at <= new Date().toISOString()) return refuse('training_started', 'This training has already started')
   const current = training.enrollments[viewer.id]
+  if (current === 'waitlisted') return refuse('already_waitlisted', "You're already on the waitlist for this training")
   if (current === 'pending' || current === 'approved') return refuse('already_requested', "You've already requested this training")
   if (current === 'rejected') return refuse('request_rejected', 'Your request for this training was rejected')
-  if (training.seats_left <= 0) return refuse('training_full', 'This training is full')
-  training.enrollments[viewer.id] = 'pending'
+  if (waitlist && training.seats_left > 0) return refuse('training_not_full', 'This training still has seats: request one instead')
+  if (!waitlist && training.seats_left <= 0) return refuse('training_full', 'This training is full')
+  const status = waitlist ? ('waitlisted' as const) : ('pending' as const)
+  training.enrollments[viewer.id] = status
+  if (waitlist) waitlists.set(trainingId, [...waitlistOf(trainingId), viewer.id])
   return {
     status: 201 as const,
     enrollment: {
       id: nextEnrollmentId++,
       training_id: trainingId,
       user_id: viewer.id,
-      status: 'pending' as const,
+      status,
       decision_comment: null,
       requested_at: new Date().toISOString(),
       decided_at: null,
@@ -252,6 +277,7 @@ export function decideMockEnrollment(
     training.seats_left -= 1
   }
   training.enrollments[userId] = decision
+  if (decision === 'rejected') promoteMockWaitlist(training)
   return { status: 200 as const, enrollment: mockEnrollment(training.id, userId, comment) }
 }
 
@@ -264,9 +290,13 @@ export function withdrawMockEnrollment(viewer: { id: number }, id: number) {
   const refuse = (code: string, message: string) => ({ status: 409 as const, detail: { code, message } })
   if (training.starts_at <= new Date().toISOString()) return refuse('training_started', 'This training has already started')
   const status = training.enrollments[userId]
-  if (status !== 'pending' && status !== 'approved') return refuse('not_withdrawable', 'Only pending or approved requests can be withdrawn')
+  if (status !== 'waitlisted' && status !== 'pending' && status !== 'approved') {
+    return refuse('not_withdrawable', 'Only waitlisted, pending or approved requests can be withdrawn')
+  }
   if (status === 'approved') training.seats_left += 1
   training.enrollments[userId] = 'withdrawn'
+  waitlists.set(training.id, waitlistOf(training.id).filter((id) => id !== userId))
+  promoteMockWaitlist(training)
   return { status: 200 as const, enrollment: mockEnrollment(training.id, userId) }
 }
 
@@ -279,7 +309,8 @@ export function listMockMyEnrollments(viewerId: number) {
   const status = (t: MockTraining) => t.enrollments[viewerId]
   return {
     upcoming: mine.filter((t) => status(t) === 'approved' && t.ends_at > now).map((t) => toSummary(t, viewerId)),
-    pending: mine.filter((t) => status(t) === 'pending' && !t.cancelled).map((t) => toSummary(t, viewerId)),
+    pending: mine
+      .filter((t) => (status(t) === 'pending' || status(t) === 'waitlisted') && t.starts_at > now && !t.cancelled).map((t) => toSummary(t, viewerId)),
     completed: mine
       .filter((t) => status(t) === 'approved' && t.ends_at <= now && !t.cancelled)
       .reverse()

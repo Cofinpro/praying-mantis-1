@@ -93,6 +93,8 @@ SEED_ENROLLMENTS: list[tuple[str, str, EnrollmentStatus, str | None]] = [
     # "Git basics" has 2 seats: both approved, so it's full
     ("Git basics", "joao", E.APPROVED, None),
     ("Git basics", "carolina", E.APPROVED, None),
+    # ...so Hugo waits on its waitlist (#1); Rita, also a junior, can join it as #2
+    ("Git basics", "hugo", E.WAITLISTED, None),
     # One pending request for each team lead to decide...
     ("Intro to FastAPI", "rita", E.PENDING, None),  # Sofia
     ("React for Vue developers", "miguel", E.PENDING, None),  # Tiago

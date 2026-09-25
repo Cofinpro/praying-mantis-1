@@ -169,6 +169,15 @@ export const handlers = [
       : HttpResponse.json({ detail: result.detail }, { status: result.status })
   }),
 
+  http.post('*/api/trainings/:id/waitlist', ({ request, params }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    const result = requestMockEnrollment(user, Number(params.id), true)
+    return result.status === 201
+      ? HttpResponse.json<EnrollmentRead>(result.enrollment, { status: 201 })
+      : HttpResponse.json({ detail: result.detail }, { status: result.status })
+  }),
+
   http.get('*/api/approvals', ({ request }) => {
     const user = userFromRequest(request)
     if (!user) return notAuthenticated()

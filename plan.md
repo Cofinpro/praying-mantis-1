@@ -65,7 +65,7 @@ The second goal matters just as much: **learn Python, FastAPI, MySQL (through SQ
 ### 3.2 Learning from the other side
 
 With a fixed split there's a risk that the BE dev never learns React and the FE dev never learns FastAPI. Three cheap ways to avoid that:
-- **Cross-review every PR.** FE reviews BE's PRs and BE reviews FE's PRs. Reading code in a language you don't write every day is a very efficient way to learn it. Ask "why?" in review comments; answering them teaches the author too.
+- ~~**Cross-review every PR.**~~ *Dropped: PRs are only a record, with no reviews (see `decisions.md`, "PRs without reviews").* FE reviews BE's PRs and BE reviews FE's PRs. Reading code in a language you don't write every day is a very efficient way to learn it. Ask "why?" in review comments; answering them teaches the author too.
 - **Explain your side in the demo.** Two minutes of "this is the interesting bit of my code" at every demo.
 - **Optional swap stories.** Some small stories are marked **🔁 swap candidate**. If you want to, the *other* developer builds that one, with the owner as the helper.
 
@@ -76,14 +76,14 @@ With a fixed split there's a risk that the BE dev never learns React and the FE 
 - [ ] Tests cover every business rule and error code
 - [ ] New tables and columns come with an Alembic migration
 - [ ] Seed data updated if the feature needs demo data
-- [ ] Reviewed by FE and merged to `main`
+- [ ] Merged to `main` (no review needed)
 
 **FE story:**
 - [ ] Works against the real API (not just mocks) once the matching BE story is merged
 - [ ] Loading, empty and error states are handled
 - [ ] Works with the keyboard and at phone width
 - [ ] `pnpm lint`, `pnpm build` and `pnpm test` pass
-- [ ] Reviewed by BE and merged to `main`
+- [ ] Merged to `main` (no review needed)
 
 **Both:** the decision is in `decisions.md` (if one was made), and there's at least one new `learnings.md` entry per feature.
 
@@ -223,7 +223,7 @@ These affect several stories, so decide them in the first session. Each has a re
 | **D9** | Forms | controlled components, or React Hook Form + Zod | **Controlled components first** (learn `useState`), then React Hook Form if the training form gets painful. | FE |
 | **D10** | Testing | BE: pytest + FastAPI `TestClient` against a test MySQL database. FE: Vitest + React Testing Library. | **As listed.** BE tests matter most (the business rules live there), and FE tests are for key interactions only. | each |
 | **D11** | API style | REST + JSON under an `/api` prefix | **REST**. FastAPI's automatic docs at `/docs` make exploring it easy. | both |
-| **D12** | Git workflow | direct pushes to `main`, or a branch + PR per story | **A branch + PR per story**, reviewed by the other developer (section 3.2). | both |
+| **D12** | Git workflow | direct pushes to `main`, or a branch + PR per story | **A branch + PR per story**, without reviews: the PR is a record of the story (see `decisions.md`). | both |
 | **D13** | How FE works before BE is ready | wait; hard-coded fake data in components; **MSW** (Mock Service Worker) | **MSW**. It intercepts `fetch` calls and answers with contract-shaped data, so FE code is identical with mocks or the real API. Bonus: the GitHub Pages site can run on mocks until the backend is deployed. | FE |
 | **D14** | Keeping TypeScript types in sync with the API | write TS types by hand, or generate them from FastAPI's `/openapi.json` with `openapi-typescript` | **Generate them.** BE's Pydantic schemas become the single source of truth, and when BE changes a field, FE's build breaks where the change matters. It's also a nice lesson in how OpenAPI connects both worlds. | FE (BE keeps the schemas accurate) |
 

@@ -14,6 +14,14 @@ Template:
 
 ---
 
+## 2026-09-25 — PRs without reviews
+**Status:** Accepted. Supersedes the review part of "Team split and a contract-first workflow" and D12 in `plan.md`.
+**Context:** With everything built in one day, waiting for the other developer to review each PR slows both lanes down.
+**Decision:** Every story still gets its own branch and PR, but only as a record of the change. Nobody is requested as a reviewer, and a PR doesn't need an approval to be merged.
+**Consequences:** We lose cross-review as the main way to learn the other half of the stack, so the PR descriptions, `learnings.md` and the demo-and-reflect step carry more of that. Mistakes are caught later, at integration.
+
+---
+
 ## 2026-09-25 — API client: a hand-written `fetch` wrapper, MSW in dev and on Pages
 **Status:** Accepted
 **Context:** FE-0.2 needs one place that talks to the API, mocks so the frontend doesn't wait for the backend, and types generated from `/openapi.json`.
@@ -146,7 +154,7 @@ Template:
 **Context:** Two developers. One does backend and database, the other frontend. Both want to learn.
 **Decision:**
 - **Contract first:** each feature starts with a joint session (Jira label `together`) to agree the screens and the API contract. Then BE (`backend`) and FE (`frontend`) stories run in parallel.
-- **Git:** one branch and PR per story, and the other developer reviews every PR.
+- **Git:** one branch and PR per story, and the other developer reviews every PR. *(Review part superseded: see "PRs without reviews".)*
 - **Swap stories:** a few small stories are marked 🔁 swap candidate, for building on the other side.
 **Consequences:** Cross-review is the main way each person learns the other half of the stack. Contract changes after the joint session must be agreed by both.
 

@@ -38,7 +38,7 @@ For every feature:
 3. **Integrate**: FE switches from the mocks to the real API.
 4. **Demo and reflect**: add entries to `learnings.md`.
 
-Each story gets its own branch and PR (e.g. `SCRUM-12-be-login`). The *other* developer reviews every PR.
+Each story gets its own branch and PR (e.g. `SCRUM-12-be-login`). PRs are a record of each story, not a gate: **no reviews and no requested reviewers**.
 
 ## Data model
 

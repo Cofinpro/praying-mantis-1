@@ -138,6 +138,16 @@ Template:
 - Services raise `Conflict` / `ValidationFailed` (`app/errors.py`); handlers in `main.py` turn them into 409 / 422.
 **Consequences:** FE's edit form can send the whole form or only changes; both work. Notifying enrolled people on cancel is a `TODO(BE-4.1)` in `cancel_training`.
 
+## 2026-09-25 — Accessibility and responsive pass (FE-7.2)
+**Status:** Accepted
+**Context:** FE-7.2 asks for keyboard-only use, Lighthouse accessibility ≥ 90 on the main pages, and layouts that work at 375 px.
+**Decision / results:**
+- **Lighthouse accessibility: 100** on Trainings, Training detail, Seats, Approvals and Profile (desktop, on mocks). SEO's misses (no meta description, `robots.txt`, `llms.txt`) are out of scope for an internal app.
+- **375 px**: every page overflowed by about 6 px because of the top bar's right-hand group. On phones its gaps and padding are now smaller. The Seats page overflowed by 140 px (day picker and zones). The day buttons are now three short lines with an explicit `aria-label`, and zones use `minmax(0, 1fr)` with 58 px seats (`--seat-width`). No page is wider than the viewport now.
+- **Keyboard**: everything is a native button, link or input. Dialogs use `<dialog>` (focus trap, Esc), the bell panel takes focus and closes on Esc, the trainer picker supports ↑/↓/Enter/Esc, and unbookable seats stay reachable (`aria-disabled`). Tests cover these paths.
+
+**Consequences:** New pages should reuse these components and be checked at 375 px.
+
 ## 2026-09-25 — My reservations: a list under the map, on BE-6.3's real endpoints
 **Status:** Accepted
 **Context:** FE-6.3 adds "My reservations" to `/seats` with `GET /api/reservations/me` and `DELETE /api/reservations/{id}` (BE-6.3, merged).

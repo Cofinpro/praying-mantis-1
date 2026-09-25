@@ -9,7 +9,7 @@
   align-items: center;
   justify-content: center;
   gap: 2px;
-  width: 68px;
+  width: var(--seat-width, 68px);
   height: 56px;
   padding: 0;
   border: 1.5px solid;
@@ -20,6 +20,12 @@
 
 .label {
   white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .seat {
+    font-size: 11px;
+  }
 }
 
 .free {

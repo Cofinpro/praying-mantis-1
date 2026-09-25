@@ -1,0 +1,33 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  font: var(--font-caption);
+  white-space: nowrap;
+}
+
+.pending {
+  background: var(--color-status-pending-bg);
+  color: var(--color-status-pending-fg);
+}
+
+.approved {
+  background: var(--color-status-approved-bg);
+  color: var(--color-status-approved-fg);
+}
+
+.rejected {
+  background: var(--color-status-rejected-bg);
+  color: var(--color-status-rejected-fg);
+}
+
+.withdrawn {
+  background: var(--color-status-withdrawn-bg);
+  color: var(--color-status-withdrawn-fg);
+}
+
+.cancelled {
+  background: var(--color-status-cancelled-bg);
+  color: var(--color-status-cancelled-fg);
+}

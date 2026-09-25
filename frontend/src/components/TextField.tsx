@@ -1,4 +1,4 @@
-import { useId, type InputHTMLAttributes, type TextareaHTMLAttributes } from 'react'
+import { useId, type InputHTMLAttributes, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react'
 import styles from './TextField.module.css'
 
 type TextFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'id'> & {
@@ -68,6 +68,27 @@ export function TextArea({ label, help, error, ...textareaProps }: TextAreaProps
           {hint}
         </p>
       )}
+    </div>
+  )
+}
+
+type SelectFieldProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, 'id'> & { label: string }
+
+// Figma component "Select": a native <select> in the TextField box, so the keyboard and mobile pickers
+// work for free. Pass <option>s as children.
+export function SelectField({ label, className, ...selectProps }: SelectFieldProps) {
+  const id = useId()
+  return (
+    <div className={`${styles.field} ${className ?? ''}`}>
+      <label htmlFor={id} className={styles.label}>
+        {label}
+      </label>
+      <div className={styles.selectWrapper}>
+        <select id={id} className={`${styles.input} ${styles.select}`} {...selectProps} />
+        <svg className={styles.chevron} width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
     </div>
   )
 }

@@ -19,14 +19,6 @@ export type TrainingForm = {
 export type FieldName = keyof TrainingForm
 export type FieldErrors = Partial<Record<FieldName, string>>
 
-export const LEVELS: { value: Level; label: string }[] = [
-  { value: 'junior', label: 'Junior' },
-  { value: 'expert', label: 'Expert' },
-  { value: 'senior', label: 'Senior' },
-  { value: 'architect', label: 'Architect' },
-  { value: 'senior_architect', label: 'Senior architect' },
-]
-
 export const emptyTrainingForm: TrainingForm = {
   name: '',
   description: '',

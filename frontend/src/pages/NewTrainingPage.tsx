@@ -1,6 +1,8 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
 import { ApiError } from '../api/client'
+import { queryKeys } from '../api/queryClient'
 import { createTraining } from '../api/trainings'
 import { Alert } from '../components/Alert'
 import { BackLink } from '../components/BackLink'
@@ -9,9 +11,9 @@ import { CheckboxGroup } from '../components/CheckboxGroup'
 import { PageHeader } from '../components/PageHeader'
 import { TextArea, TextField } from '../components/TextField'
 import { TrainerPicker } from '../components/TrainerPicker'
+import { LEVELS } from '../trainings/levels'
 import {
   emptyTrainingForm,
-  LEVELS,
   serverErrorsToFields,
   toTrainingCreate,
   validateTrainingForm,
@@ -22,6 +24,7 @@ import styles from './NewTrainingPage.module.css'
 
 export function NewTrainingPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   // One state object for the whole form, updated through `set`. With 8 fields this beats 8 useStates.
   const [form, setForm] = useState<TrainingForm>(emptyTrainingForm)
   const [errors, setErrors] = useState<FieldErrors>({})
@@ -46,6 +49,8 @@ export function NewTrainingPage() {
     setSubmitting(true)
     try {
       const training = await createTraining(toTrainingCreate(form))
+      // Every cached training list is now out of date: mark them stale so they refetch when shown.
+      await queryClient.invalidateQueries({ queryKey: queryKeys.trainings })
       navigate(`/trainings/${training.id}`)
     } catch (err) {
       setSubmitting(false)

@@ -27,6 +27,28 @@ Template:
 
 **Consequences:** The token is still readable by any script on the page (see "Authentication"). When the seed users change, `src/mocks/data/users.ts` must be updated too.
 
+## 2026-09-25 — Listing trainings: who sees what
+**Status:** Accepted
+**Context:** BE-2.2 implements `GET /api/trainings` and `GET /api/trainings/{id}` per the F2 contract.
+**Decision:**
+- **Employees' list:** upcoming (`starts_at` in the future), not cancelled, and one of the training's levels is theirs. Sorted by `starts_at`. The `?level=` filter is admin only, and for employees it's **ignored** (not a 403), so the FE can build the URL the same way for everyone.
+- **Admins' list:** every training, including past and cancelled ones (they manage them), with an optional `?level=`.
+- **Detail:** employees can open any training for their level, **including past and cancelled ones**, because the Profile page (F5) links to completed trainings. Other levels get a 404, the same response as a missing id, so employees can't probe which trainings exist.
+- `seats_left` and `my_enrollment_status` are SQL columns of the list query. Until BE-3.1 adds enrollments they're placeholders (`max_seats` and `NULL`) in `services/trainings.py`, and BE-3.1 only replaces `seats_left_column()` and `my_enrollment_status_column()`.
+**Consequences:** FE shows past and cancelled trainings only to admins in the list. A training that's cancelled after an employee enrolled still opens for them.
+
+## 2026-09-25 — Trainings: UTC column type, trainer rules, and a delete guard
+**Status:** Accepted
+**Context:** BE-2.1 implements `POST /api/trainings` per the F2 contract in `plan.md`. A few details weren't spelled out there.
+**Decision:**
+- **Time zones:** a `UtcDateTime` column type stores naive UTC in MySQL and always returns timezone-aware UTC, so responses end in `Z`. The API rejects datetimes without `Z` or an offset (`AwareDatetime`) instead of guessing their zone. An offset like `+01:00` is accepted and converted.
+- **"Trainer XOR external"** means *not both*: `trainer_id` set → no external name. `trainer_id` null → External, and the name is optional (Q1).
+- **Unknown `trainer_id`** → 422 in Pydantic's error format (`type: "trainer_not_found"`, `loc: ["body", "trainer_id"]`), so FE shows it next to the field like any other validation error.
+- **Deleting a user who is a trainer is blocked** (FK `RESTRICT`), instead of `SET NULL`, which would silently turn their trainings into "External".
+- Levels are de-duplicated and returned in level order (junior → senior architect).
+- `seats_left` = `max_seats` and `my_enrollment_status` = `null` until enrollments exist (BE-3.1).
+**Consequences:** FE must send UTC (`toISOString()` does). The DB also has CHECK constraints for `max_seats > 0` and `ends_at > starts_at`.
+
 ## 2026-09-25 — Frontend tests: Vitest in jsdom, reusing the MSW handlers
 **Status:** Accepted
 **Context:** FE-0.3 sets up component tests and CI for `frontend/`.

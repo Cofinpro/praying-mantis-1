@@ -92,6 +92,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/trainings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Trainings
+         * @description Employees: upcoming, not cancelled trainings for their own level, soonest first.
+         *     Admins: every training (past and cancelled too), optionally filtered by level.
+         */
+        get: operations["list_trainings_api_trainings_get"];
+        put?: never;
+        /**
+         * Create Training
+         * @description Admin only. Times must be sent in UTC (or with an offset); they come back in UTC.
+         */
+        post: operations["create_training_api_trainings_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/trainings/{training_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Training */
+        get: operations["get_training_api_trainings__training_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -156,6 +198,106 @@ export interface components {
              * @constant
              */
             token_type: "bearer";
+        };
+        /** TrainerRead */
+        TrainerRead: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+        };
+        /**
+         * TrainingCreate
+         * @description POST /api/trainings. Every agreed F2 validation rule lives here (FE mirrors them).
+         */
+        TrainingCreate: {
+            /** Name */
+            name: string;
+            /** Description */
+            description: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /** Max Seats */
+            max_seats: number;
+            /** Trainer Id */
+            trainer_id?: number | null;
+            /** External Trainer Name */
+            external_trainer_name?: string | null;
+            /** Levels */
+            levels: components["schemas"]["Level"][];
+        };
+        /** TrainingRead */
+        TrainingRead: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /** Levels */
+            levels: components["schemas"]["Level"][];
+            trainer: components["schemas"]["TrainerRead"] | null;
+            /** External Trainer Name */
+            external_trainer_name: string | null;
+            /** Max Seats */
+            max_seats: number;
+            /** Seats Left */
+            seats_left: number;
+            /** Cancelled */
+            cancelled: boolean;
+            /** My Enrollment Status */
+            my_enrollment_status?: string | null;
+            /** Description */
+            description: string;
+        };
+        /**
+         * TrainingSummary
+         * @description A training in a list. TrainingRead adds the description.
+         */
+        TrainingSummary: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /** Levels */
+            levels: components["schemas"]["Level"][];
+            trainer: components["schemas"]["TrainerRead"] | null;
+            /** External Trainer Name */
+            external_trainer_name: string | null;
+            /** Max Seats */
+            max_seats: number;
+            /** Seats Left */
+            seats_left: number;
+            /** Cancelled */
+            cancelled: boolean;
+            /** My Enrollment Status */
+            my_enrollment_status?: string | null;
         };
         /**
          * UserSummary
@@ -330,6 +472,137 @@ export interface operations {
             };
             /** @description Admins only */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_trainings_api_trainings_get: {
+        parameters: {
+            query?: {
+                /** @description Admins only; ignored for everyone else */
+                level?: components["schemas"]["Level"] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainingSummary"][];
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_training_api_trainings_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrainingCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainingRead"];
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_training_api_trainings__training_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                training_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainingRead"];
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not found, or not for your level */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

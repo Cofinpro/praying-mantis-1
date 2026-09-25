@@ -93,8 +93,10 @@ What exists today:
   - `app/models/`: SQLAlchemy models. Import each one in `models/__init__.py`, or Alembic won't see it.
     - `enums.py`: `Client` and `Level` (`StrEnum`), and `enum_column()` to store them as VARCHAR
     - `user.py`: `User`, with `team_lead` / `reports` (self-referencing) and the derived `is_team_lead`
+    - `training.py`: `Training` and the `TrainingLevel` join table. `training.levels` reads/writes plain `Level`s through it.
+    - `types.py`: `UtcDateTime`, the column type for every datetime the API exposes (stores UTC, returns aware UTC)
   - `app/schemas/`: Pydantic request/response models (the API contract)
-  - `app/routers/`: one `APIRouter` per area. `health.py` has `/api/` and `/api/health/db`, `auth.py` has `/api/auth/login` and `/api/auth/me`, `users.py` has `/api/users` (admin only).
+  - `app/routers/`: one `APIRouter` per area. `health.py` has `/api/` and `/api/health/db`, `auth.py` has `/api/auth/login` and `/api/auth/me`, `users.py` has `/api/users` (admin only), `trainings.py` has `/api/trainings` (list, detail, create).
   - `app/dependencies.py`: shared dependencies. `CurrentUser` (requires a valid token, gives the `User`), `AdminUser` (also requires `is_admin`, else 403) and `DbSession`.
   - `app/services/`: business rules, no HTTP concerns
   - `app/security.py`: password hashing (`pwdlib`, Argon2id) and JWT create/decode (`PyJWT`, HS256)
@@ -173,6 +175,21 @@ fastapi dev app/main.py   # http://localhost:8000, API docs at /docs
 
 Re-running the seed resets these users to the values above (matched by email) and never duplicates them.
 
+**Seed trainings** (created by the admin, dates relative to the day you run the seed, 09:00 UTC):
+
+| Training | When | Seats | Levels | Trainer |
+|---|---|---|---|---|
+| Intro to FastAPI | +7 days | 12 | junior, expert | Bruno |
+| SQLAlchemy in depth | +10 days | 8 | senior, architect | Sofia |
+| React for Vue developers | +14 days | 15 | junior, expert, senior | External – Jane Doe |
+| Clean Architecture | +21 days | 10 | architect, senior_architect | External |
+| Git basics | +3 days | **2** (to test "full") | junior | Pedro |
+| Docker for developers | −14 days (past) | 10 | junior, expert, senior | Tiago |
+| Agile estimation | −30 days (past) | 20 | all | External – Scrum.org |
+| Kubernetes 101 | +12 days, **cancelled** | 10 | expert, senior | Bruno |
+
+Trainings are matched by name, so re-running moves their dates relative to today again.
+
 **Trying the API with a login:** open http://localhost:8000/docs, call `POST /api/auth/login` with a seed login, copy the `access_token`, click **Authorize** and paste it. Every request from `/docs` then sends `Authorization: Bearer <token>`.
 
 Check the database connection at http://localhost:8000/api/health/db (expects `{"database": "ok"}`).
@@ -239,6 +256,10 @@ Until a backend is deployed, the Pages build runs on the MSW mocks (`VITE_USE_MO
   - Pydantic schemas (`schemas/`) are the API contract; SQLAlchemy models (`models/`) are the database shape
   - Every schema change needs an Alembic migration (no `create_all`)
   - Enums are stored as VARCHAR (`Enum(..., native_enum=False)`)
+  - Datetime columns use `UtcDateTime` (`app/models/types.py`). API inputs use `AwareDatetime`, so a time without `Z` or an offset is a 422.
+  - Validation errors that need the DB (e.g. "no user with this id") are raised as `RequestValidationError`, so they have the same 422 shape as Pydantic's own
+  - Values derived per row (`seats_left`, `my_enrollment_status`) are computed in the SQL `SELECT`, never in a Python loop. Load related objects in the same query (`joinedload` / `selectin`), and guard list endpoints with a query-count test (see `tests/test_trainings_read.py`).
+  - "Not found" and "not allowed to see it" return the same 404, so IDs don't reveal what exists
   - Tests use pytest against a real MySQL test database (never SQLite). Every PR needs green CI.
 - **Frontend:**
   - React Router (v8, data mode with `createBrowserRouter`) for pages, TanStack Query for server data, CSS Modules for styles

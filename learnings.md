@@ -68,6 +68,11 @@ We're both experienced developers (one from **Vue**, one from **Java**), so skip
 - **`useMutation` for writes** (FE-2.4): `useMutation({ mutationFn, onSuccess })` gives `mutate()`, `isPending`, `isError` and `error` for a POST/PATCH, like `useQuery` does for reads. In `onSuccess`, `setQueryData(key, response)` puts the server's answer straight into the cache (the page updates without a refetch), and `invalidateQueries` marks the related lists stale.
 - **`onSettled` + prefix invalidation** (FE-3.1): after "Request to join", `invalidateQueries({ queryKey: ['trainings'] })` refetches the detail **and** every cached list (keys match by prefix), so the badge updates everywhere. It runs in `onSettled` (success *or* error), because a 409 like `training_full` also means our copy is out of date.
 - **Map error codes, not messages**: the 409 body's `code` (`training_full`, `already_requested`…) is a stable contract. `enrollments/messages.ts` turns each code into our own sentence, and the backend's `message` is only a fallback. It's like mapping exception types in Java instead of parsing `getMessage()`.
+- **Optimistic update vs waiting for the server** (FE-3.2):
+  - *Optimistic*: remove the row in `onMutate`, and put it back in `onError`. The UI feels instant, but a "training full" 409 makes the row vanish and then reappear, with the error attached to a row you just saw leave.
+  - *Pessimistic* (what we chose): remove the row with `setQueryData` in `onSuccess`, only after the server said yes. It's a few hundred milliseconds slower, but an error shows on a row that never moved.
+  - *Refetch only*: `invalidateQueries(['approvals'])` after each decision. It's simplest, but costs an extra request, and the row lingers until it returns.
+- **Keys in lists matter for state, not just speed**: each `ApprovalRow` keeps its own comment in `useState`. With `key={index}`, deciding row 1 would shift row 2's React state (its typed comment) onto the person who moved up. `key={enrollment.id}` keeps state with the right person. It's the same rule as `:key` in `v-for`, with a sharper consequence.
 - **`useSearchParams`** keeps UI state in the URL (`/trainings?level=senior`), like `route.query` in vue-router. It survives a refresh and can be shared, and it goes straight into the query key.
 
 ## Dates and time zones (JavaScript)

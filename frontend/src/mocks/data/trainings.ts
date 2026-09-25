@@ -1,5 +1,6 @@
 import type { Level, TrainingRead, TrainingSummary } from '../../api/trainings'
-import { findSeedUserById } from './users'
+import type { ApprovalItem, EnrollmentRead } from '../../api/enrollments'
+import { canDecideFor, findSeedUserById } from './users'
 
 // Dates relative to today, so the mocks (and the live site on mocks) always have upcoming trainings.
 function daysFromNow(days: number, hour: number, minute = 0) {
@@ -49,8 +50,14 @@ export const mockTrainings: MockTraining[] = [
   training(2, 'FastAPI in Practice', [21, 14, 17], ['junior', 'senior'], { id: 3 }, [3, 10], {
     enrollments: { 5: 'pending', 7: 'approved' },
   }),
-  training(3, 'SQL Performance', [25, 10, 12], ['expert', 'senior'], { external: 'Acme Academy' }, [12, 15]),
-  training(4, 'Clean Architecture', [27, 9, 16], ['senior', 'architect'], { id: 4 }, [1, 8]),
+  training(3, 'SQL Performance', [25, 10, 12], ['expert', 'senior'], { external: 'Acme Academy' }, [12, 15], {
+    // Marta (Sofia's report), Pedro (Sofia's), Laura (Inês's), Rafael (no lead → admins)
+    enrollments: { 6: 'pending', 7: 'pending', 14: 'pending', 15: 'pending' },
+  }),
+  training(4, 'Clean Architecture', [27, 9, 16], ['senior', 'architect'], { id: 4 }, [0, 8], {
+    // Full: approving Bruno shows why it can't be done
+    enrollments: { 11: 'pending' },
+  }),
   training(5, 'Effective Code Reviews', [35, 15, 16], ['junior', 'expert'], { id: 2 }, [0, 10]),
   training(6, 'Kubernetes 101', [33, 13, 17], ['junior', 'architect'], { external: 'CloudSkills' }, [20, 20], {
     cancelled: true,
@@ -122,4 +129,55 @@ export function requestMockEnrollment(viewer: { id: number; level: Level }, trai
       decided_at: null,
     },
   }
+}
+
+// Mock enrollment ids are derived, so the map above stays the only store: training 2 + user 5 → 2005.
+const enrollmentId = (trainingId: number, userId: number) => trainingId * 1000 + userId
+const REQUESTED_AT = new Date(Date.now() - 26 * 3600 * 1000).toISOString()
+
+function mockEnrollment(trainingId: number, userId: number, comment: string | null = null): EnrollmentRead {
+  const training = mockTrainings.find((t) => t.id === trainingId)!
+  return {
+    id: enrollmentId(trainingId, userId),
+    training_id: trainingId,
+    user_id: userId,
+    status: (training.enrollments[userId] ?? 'pending') as EnrollmentRead['status'],
+    decision_comment: comment,
+    requested_at: REQUESTED_AT,
+    decided_at: training.enrollments[userId] === 'pending' ? null : new Date().toISOString(),
+  }
+}
+
+// GET /api/approvals
+export function listMockApprovals(viewer: { id: number; email: string; is_admin: boolean }): ApprovalItem[] {
+  return mockTrainings.flatMap((training) =>
+    Object.entries(training.enrollments)
+      .filter(([userId, status]) => status === 'pending' && canDecideFor(viewer, Number(userId)))
+      .map(([userId]) => ({
+        enrollment: mockEnrollment(training.id, Number(userId)),
+        user: { id: Number(userId), name: findSeedUserById(Number(userId))?.name ?? 'Unknown' },
+        training: toSummary(training, Number(userId)),
+      })),
+  )
+}
+
+// POST /api/enrollments/{id}/approve | reject, with BE-3.2's rules.
+export function decideMockEnrollment(
+  viewer: { id: number; email: string; is_admin: boolean },
+  id: number,
+  decision: 'approved' | 'rejected',
+  comment: string | null,
+) {
+  const training = mockTrainings.find((t) => t.id === Math.floor(id / 1000))
+  const userId = id % 1000
+  if (!training || !(userId in training.enrollments)) return { status: 404 as const, detail: 'Enrollment not found' }
+  if (!canDecideFor(viewer, userId)) return { status: 403 as const, detail: 'Not one of your reports' }
+  const refuse = (code: string, message: string) => ({ status: 409 as const, detail: { code, message } })
+  if (training.enrollments[userId] !== 'pending') return refuse('not_pending', 'This request was already decided')
+  if (decision === 'approved') {
+    if (training.seats_left <= 0) return refuse('training_full', 'This training is full')
+    training.seats_left -= 1
+  }
+  training.enrollments[userId] = decision
+  return { status: 200 as const, enrollment: mockEnrollment(training.id, userId, comment) }
 }

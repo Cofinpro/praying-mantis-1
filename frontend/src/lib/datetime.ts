@@ -29,3 +29,9 @@ export function formatTrainingTime(startsAt: string, endsAt: string): string {
   }
   return `${startDay} · ${timeFormat.format(start)} – ${endDay} · ${timeFormat.format(end)}`
 }
+
+// "Wed 24 Sept 2026 · 14:30", for a single moment like "requested at".
+export function formatDateTime(iso: string): string {
+  const date = new Date(iso)
+  return `${dayFormat.format(date).replace(',', '')} · ${timeFormat.format(date)}`
+}

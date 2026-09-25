@@ -586,6 +586,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/reminders/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run Reminders
+         * @description Send every due reminder now, instead of waiting for the next loop turn. Safe to repeat.
+         */
+        post: operations["run_reminders_api_admin_reminders_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -800,7 +820,7 @@ export interface components {
          * @description What happened. FE can pick an icon per type; the message is ready to show.
          * @enum {string}
          */
-        NotificationType: "enrollment_requested" | "enrollment_approved" | "enrollment_rejected" | "enrollment_withdrawn" | "training_cancelled" | "training_changed" | "waitlist_promoted";
+        NotificationType: "enrollment_requested" | "enrollment_approved" | "enrollment_rejected" | "enrollment_withdrawn" | "training_cancelled" | "training_changed" | "waitlist_promoted" | "training_reminder" | "seat_reminder";
         /** Occupant */
         Occupant: {
             /** Id */
@@ -827,6 +847,16 @@ export interface components {
         PasswordReset: {
             /** Password */
             password: string;
+        };
+        /**
+         * ReminderRunRead
+         * @description How many reminders this run sent (0 and 0 = nothing was due).
+         */
+        ReminderRunRead: {
+            /** Trainings */
+            trainings: number;
+            /** Seats */
+            seats: number;
         };
         /** Requester */
         Requester: {
@@ -2705,6 +2735,40 @@ export interface operations {
             };
             /** @description wrong_password | same_password */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    run_reminders_api_admin_reminders_run_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReminderRunRead"];
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Admins only */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

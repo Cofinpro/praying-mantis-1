@@ -111,6 +111,7 @@ What exists today:
     `seats.py`: `check_booking_date` (Q14 rules, in the office time zone), `seat_map` (one LEFT JOIN query), `reserve` (move included), `my_upcoming`, `cancel`.
     `notifications.py`: `notify(db, recipients, type, message, link)` adds rows **without committing**; the calling service commits once, so an action and its notifications are one transaction.
   - `app/errors.py`: `NotFound` (→ 404), `Forbidden` (→ 403), `Conflict` (→ 409 with a `code`) and `ValidationFailed` (→ 422 in Pydantic's format), raised by services and turned into responses by handlers registered in `main.py`
+  - `app/scheduler.py`: the reminder loop (`remind_forever`), started by the lifespan in `main.py` every `REMINDERS_EVERY_MINUTES`. `services/reminders.py` has the rules (`send_due`); `routers/admin_reminders.py` has `POST /api/admin/reminders/run`
   - `app/email.py`: `send_email(Email)` over SMTP, never raises. Called only through `BackgroundTasks`. Emails are off when `SMTP_HOST` is unset (tests, Render).
   - `app/security.py`: password hashing (`pwdlib`, Argon2id) and JWT create/decode (`PyJWT`, HS256)
   - `app/seed.py`: local seed users (`python -m app.seed`)
@@ -145,6 +146,7 @@ What exists today:
   - `.env.mock`: sets `VITE_USE_MOCKS=true` for `pnpm dev:mock` (`vite --mode mock`)
 - `.github/workflows/deploy-pages.yml`: builds `frontend/` and deploys it to GitHub Pages on every push to `main`
 - `.github/workflows/frontend-checks.yml`: runs `pnpm lint`, `pnpm build` and `pnpm test` on every PR that touches `frontend/`
+- `.github/workflows/wake-backend.yml`: wakes the sleeping Render backend at 07:00 and 16:00 UTC on working days, so due reminders go out
 - `.github/workflows/backend-tests.yml`: runs `pytest` and `alembic check` against a MySQL service container on every PR that touches `backend/`
 
 ## Commands
@@ -287,6 +289,7 @@ Settings come only from environment variables (the image has no `.env`). On a ho
 | `CORS_ORIGINS` | yes | the frontend's origin, e.g. `https://cofinpro.github.io` (no path) |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM`, `APP_URL` | no | email for approval requests. Unset `SMTP_HOST` = no email. `APP_URL` is the frontend's base URL, for links. |
 | `OFFICE_TIMEZONE`, `BOOKING_DAYS_AHEAD` | no | seat booking rules (defaults `Europe/Lisbon`, `14`) |
+| `REMINDERS_EVERY_MINUTES` | no | how often the reminder loop runs (default `15`, `0` = off) |
 | `SEED_ON_START` | no | `true` runs the demo seed on every start (demo only) |
 | `PORT` | no | set by the host; defaults to 8000 |
 

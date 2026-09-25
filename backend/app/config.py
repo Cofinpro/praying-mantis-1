@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     office_timezone: str = "Europe/Lisbon"
     booking_days_ahead: int = 14
 
+    # Reminders (services/reminders.py): how often the app looks for due ones. 0 = never
+    # (the tests set that); POST /api/admin/reminders/run still works.
+    reminders_every_minutes: int = 15
+
     # Signs the JWTs. Required, no default: a leaked default would let anyone forge tokens.
     # HS256 needs at least 32 bytes.
     jwt_secret: str = Field(min_length=32)

@@ -36,6 +36,8 @@ class Enrollment(Base):
         "decided_by", ForeignKey("users.id", ondelete="SET NULL")
     )
     decided_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
+    # When the "starts tomorrow" reminder went out (services/reminders.py); NULL = not yet
+    reminded_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
 
     training: Mapped[Training] = relationship()
     user: Mapped[User] = relationship(foreign_keys=[user_id])

@@ -1,11 +1,29 @@
+import asyncio
+import contextlib
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.errors import register_error_handlers
-from app.routers import admin_users, avatars, auth, enrollments, health, notifications, seats, trainings, users
+from app.scheduler import remind_forever
+from app.routers import admin_reminders, admin_users, avatars, auth, enrollments, health, notifications, seats, trainings, users
 
-app = FastAPI(title="Praying Mantis API")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup / shutdown. Like Spring's @PostConstruct / @PreDestroy, around `yield`."""
+    task = None
+    if settings.reminders_every_minutes > 0:
+        task = asyncio.create_task(remind_forever(settings.reminders_every_minutes))
+    yield
+    if task is not None:
+        task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await task
+
+
+app = FastAPI(title="Praying Mantis API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -27,3 +45,4 @@ app.include_router(seats.router, prefix="/api")
 app.include_router(avatars.router, prefix="/api")
 app.include_router(admin_users.router, prefix="/api")
 app.include_router(admin_users.me_router, prefix="/api")
+app.include_router(admin_reminders.router, prefix="/api")

@@ -23,3 +23,14 @@ class CurrentUserRead(BaseModel):
     is_admin: bool
     is_team_lead: bool
     team_lead: TeamLeadSummary | None
+
+
+class UserSummary(BaseModel):
+    """GET /api/users: just enough to pick someone, e.g. a trainer."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    email: str
+    level: Level

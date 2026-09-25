@@ -96,7 +96,7 @@ What exists today:
     - `training.py`: `Training` and the `TrainingLevel` join table. `training.levels` reads/writes plain `Level`s through it.
     - `types.py`: `UtcDateTime`, the column type for every datetime the API exposes (stores UTC, returns aware UTC)
   - `app/schemas/`: Pydantic request/response models (the API contract)
-  - `app/routers/`: one `APIRouter` per area. `health.py` has `/api/` and `/api/health/db`, `auth.py` has `/api/auth/login` and `/api/auth/me`, `users.py` has `/api/users` (admin only), `trainings.py` has `/api/trainings`.
+  - `app/routers/`: one `APIRouter` per area. `health.py` has `/api/` and `/api/health/db`, `auth.py` has `/api/auth/login` and `/api/auth/me`, `users.py` has `/api/users` (admin only), `trainings.py` has `/api/trainings` (list, detail, create).
   - `app/dependencies.py`: shared dependencies. `CurrentUser` (requires a valid token, gives the `User`), `AdminUser` (also requires `is_admin`, else 403) and `DbSession`.
   - `app/services/`: business rules, no HTTP concerns
   - `app/security.py`: password hashing (`pwdlib`, Argon2id) and JWT create/decode (`PyJWT`, HS256)
@@ -256,6 +256,8 @@ Until a backend is deployed, the Pages build runs on the MSW mocks (`VITE_USE_MO
   - Enums are stored as VARCHAR (`Enum(..., native_enum=False)`)
   - Datetime columns use `UtcDateTime` (`app/models/types.py`). API inputs use `AwareDatetime`, so a time without `Z` or an offset is a 422.
   - Validation errors that need the DB (e.g. "no user with this id") are raised as `RequestValidationError`, so they have the same 422 shape as Pydantic's own
+  - Values derived per row (`seats_left`, `my_enrollment_status`) are computed in the SQL `SELECT`, never in a Python loop. Load related objects in the same query (`joinedload` / `selectin`), and guard list endpoints with a query-count test (see `tests/test_trainings_read.py`).
+  - "Not found" and "not allowed to see it" return the same 404, so IDs don't reveal what exists
   - Tests use pytest against a real MySQL test database (never SQLite). Every PR needs green CI.
 - **Frontend:**
   - React Router (v8, data mode with `createBrowserRouter`) for pages, TanStack Query for server data, CSS Modules for styles

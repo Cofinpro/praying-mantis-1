@@ -1,7 +1,9 @@
 import { http, HttpResponse } from 'msw'
 import type { CurrentUser, LoginRequest, TokenResponse } from '../api/auth'
 import type { DbHealthResponse, HelloResponse } from '../api/health'
-import type { TrainingCreate, TrainingRead } from '../api/trainings'
+import type { TrainingCreate, TrainingRead, TrainingSummary } from '../api/trainings'
+import { isLevel } from '../trainings/levels'
+import { listMockTrainings, mockTrainings, toSummary } from './data/trainings'
 import type { UserSummary } from '../api/users'
 import { findSeedUserByEmail, findSeedUserById, searchSeedUsers, SEED_PASSWORD, toCurrentUser } from './data/users'
 
@@ -19,8 +21,6 @@ function userFromRequest(request: Request) {
 const notAuthenticated = () => HttpResponse.json({ detail: 'Not authenticated' }, { status: 401 })
 const adminsOnly = () => HttpResponse.json({ detail: 'Admins only' }, { status: 403 })
 
-// Trainings created while the mocks run. Lost on a page reload, like any in-memory mock.
-const createdTrainings: TrainingRead[] = []
 
 // One handler per endpoint, answering with contract-shaped data. The `*` matches any origin, so the handlers
 // don't need to know VITE_API_URL. The same handlers serve the tests (server.ts).
@@ -52,6 +52,13 @@ export const handlers = [
     return HttpResponse.json<UserSummary[]>(searchSeedUsers(search))
   }),
 
+  http.get('*/api/trainings', ({ request }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    const level = new URL(request.url).searchParams.get('level')
+    return HttpResponse.json<TrainingSummary[]>(listMockTrainings(user, isLevel(level) ? level : null))
+  }),
+
   // Trusts the body: the form validates it first. The real backend checks every rule again (422).
   http.post('*/api/trainings', async ({ request }) => {
     const user = userFromRequest(request)
@@ -59,8 +66,8 @@ export const handlers = [
     if (!user.is_admin) return adminsOnly()
     const body = (await request.json()) as TrainingCreate
     const trainer = body.trainer_id ? findSeedUserById(body.trainer_id) : undefined
-    const training: TrainingRead = {
-      id: 100 + createdTrainings.length,
+    const training = {
+      id: Math.max(...mockTrainings.map((t) => t.id)) + 1,
       name: body.name,
       description: body.description,
       starts_at: body.starts_at,
@@ -71,9 +78,13 @@ export const handlers = [
       max_seats: body.max_seats,
       seats_left: body.max_seats,
       cancelled: false,
-      my_enrollment_status: null,
+      enrollments: {},
     }
-    createdTrainings.push(training)
-    return HttpResponse.json<TrainingRead>(training, { status: 201 })
+    // Kept in memory until the page reloads, so the new training shows up in the list.
+    mockTrainings.push(training)
+    return HttpResponse.json<TrainingRead>(
+      { ...toSummary(training, user.id), description: training.description },
+      { status: 201 },
+    )
   }),
 ]

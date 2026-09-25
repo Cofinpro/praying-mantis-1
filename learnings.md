@@ -51,11 +51,23 @@ We're both experienced developers (one from **Vue**, one from **Java**), so skip
   - **Memory only**: safer, but you're logged out on every refresh.
   - **httpOnly cookie**: JavaScript can't read it, but it needs CSRF protection and a backend on the same site, or CORS with credentials.
 
+## TanStack Query (server data)
+
+- **What it replaces**: before FE-2.2, `AuthProvider` fetched `/me` with `useEffect` plus three `useState`s (user, status, and an `ignore` flag for StrictMode). Now it's one `useQuery({ queryKey: ['me'], queryFn: getMe, enabled: hasToken })`. Loading and error state, deduplication, the StrictMode double-mount and stale responses are all handled for you. It's closer to a Pinia store with built-in fetching than to anything in plain Vue.
+- **The query key is the cache key**: `['trainings', 'list', { level }]` caches each level's list separately, so switching the admin filter back is instant. Keys are compared by value, not reference. We keep them in one place (`api/queryClient.ts → queryKeys`) so readers and invalidators agree.
+- **Stale-while-revalidate**: by default, cached data is "stale" at once. When a component mounts it shows the cached list **immediately** and refetches in the background. `staleTime: Infinity` (used for `/me`) means "never refetch by itself".
+- **Invalidate after writes**: after creating a training, `queryClient.invalidateQueries({ queryKey: ['trainings'] })` marks every training list stale, whatever its level (keys match by prefix). The next page that shows one refetches.
+- **Log out = `queryClient.clear()`**: the cache holds the last user's data. Without clearing it, the next person to log in on the same browser would briefly see the previous user's trainings.
+- **`isPending` vs `isFetching`**: `isPending` means no data yet (show the loading state). `isFetching` means a request is in flight, maybe in the background while old data is shown.
+- **Retries**: by default a failed query is retried 3 times with backoff, which makes a 401 or 404 feel slow. Our `createQueryClient()` retries only network errors and 5xx, once. Tests that check the error state must wait for that retry (about 1 s).
+- **`useSearchParams`** keeps UI state in the URL (`/trainings?level=senior`), like `route.query` in vue-router. It survives a refresh and can be shared, and it goes straight into the query key.
+
 ## Dates and time zones (JavaScript)
 
 - **`<input type="datetime-local">`** gives `"2026-10-14T09:00"`, with no zone. `new Date(that)` reads it as **local** time, and `.toISOString()` gives UTC (`"2026-10-14T08:00:00.000Z"` in Lisbon summer time). That's the whole local → UTC conversion (`src/lib/datetime.ts`).
 - **The trap**: `new Date("2026-10-14")` (date only) is read as **UTC** midnight, not local. The same string with a time is local. Java's `LocalDateTime` vs `Instant` makes this explicit; JavaScript's `Date` doesn't.
 - **Chrome's year segment takes 6 digits** unless the input has a `max`. Typing `20102026` then `0900` fills the year with `202609`. `max="9999-12-31T23:59"` limits it to 4.
+- **Formatting for display**: `Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })` gives "Tue, 14 Oct 2026" in the browser's time zone. Create the formatter once, at module level: building one is slow. Output differs slightly between engines (Chrome says "Sept", Node says "Sep"), so tests should use months without that difference, or match loosely.
 - **Tests pin the zone**: `vite.config.ts` sets `process.env.TZ = 'Europe/Lisbon'` before Vitest starts its workers, so "09:00 → 08:00Z" gives the same result on every laptop and in CI.
 
 ## Vite

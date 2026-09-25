@@ -14,6 +14,19 @@ Template:
 
 ---
 
+## 2026-09-25 — Training list: TanStack Query, cards, and the admin filter in the URL
+**Status:** Accepted
+**Context:** FE-2.2 shows `/trainings` as cards and introduces TanStack Query (D7).
+**Decision:**
+- **One `QueryClient`** (`api/queryClient.ts`), which retries only network errors and 5xx, once. The query keys live there too (`queryKeys.me`, `queryKeys.trainingList(level)`).
+- **`/me` moved to `useQuery`** (`enabled` only with a token, `staleTime: Infinity`). `login()` loads it with `fetchQuery` before resolving. `logout()` (and any 401) clears the token and the **whole cache**.
+- **Creating a training** invalidates every `['trainings']` query.
+- **Cards** follow Figma `TrainingCard`. The name is the only link, stretched over the card with `::after`, so the whole card is clickable but a screen reader hears one link. Cancelled trainings (visible to admins only) get a strikethrough name and a "Cancelled" badge. Otherwise the badge shows `my_enrollment_status`.
+- **Admins** see a "Level" select, stored in the URL as `?level=`, and a subtitle saying the list includes past and cancelled trainings. **Employees** see their own level as a tag next to "Upcoming trainings for your level".
+- The MSW list uses mock trainings with dates relative to today (`mocks/data/trainings.ts`) and the same visibility rules as the backend.
+
+**Consequences:** Everything that reads server data from now on should use `useQuery` / `useMutation` with a key from `queryKeys`, not `useEffect`.
+
 ## 2026-09-25 — Create-training form: a Trainer combobox, validation in a plain module
 **Status:** Accepted
 **Context:** FE-2.1 builds `/admin/trainings/new` against `POST /api/trainings` (BE-2.1).

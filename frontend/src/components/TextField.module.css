@@ -26,6 +26,26 @@
   resize: vertical;
 }
 
+.selectWrapper {
+  position: relative;
+}
+
+.select {
+  width: 100%;
+  padding-right: var(--space-10);
+  appearance: none;
+  cursor: pointer;
+}
+
+/* The chevron from Figma's Select. The native arrow is hidden by appearance: none. */
+.chevron {
+  position: absolute;
+  top: 12px;
+  right: var(--space-3);
+  color: var(--color-text-secondary);
+  pointer-events: none;
+}
+
 .input:hover {
   border-color: var(--color-border-strong);
 }

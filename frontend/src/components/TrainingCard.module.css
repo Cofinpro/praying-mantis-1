@@ -1,0 +1,76 @@
+/* Figma: white card, 1px border, 16px corners, 20px padding, 12px between rows */
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+}
+
+.card:hover {
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+.name {
+  font: var(--font-h3);
+}
+
+.cancelledName {
+  text-decoration: line-through;
+}
+
+.link {
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+
+/* Stretched link: the link's ::after covers the card, so a click anywhere opens the training */
+.link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.link:focus-visible {
+  outline: none;
+}
+
+.link:focus-visible::after {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+.meta {
+  font: var(--font-body-sm);
+  color: var(--color-text-secondary);
+}
+
+.levels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 37px;
+  margin-top: auto;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-default);
+}
+
+.seats {
+  font: var(--font-caption);
+  color: var(--color-text-secondary);
+}

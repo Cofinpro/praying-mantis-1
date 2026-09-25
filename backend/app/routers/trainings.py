@@ -40,6 +40,7 @@ def training_fields(row: service.TrainingRow) -> dict:
         "seats_left": row.seats_left,
         "cancelled": training.cancelled,
         "my_enrollment_status": row.my_enrollment_status,
+        "my_enrollment_id": row.my_enrollment_id,
     }
 
 

@@ -18,6 +18,7 @@ class TrainingRow:
     training: Training
     seats_left: int
     my_enrollment_status: str | None
+    my_enrollment_id: int | None
 
 
 def _check_trainer_exists(db: Session, trainer_id: int | None) -> None:
@@ -178,11 +179,25 @@ def my_enrollment_status_column(viewer: User) -> ColumnElement[str | None]:
     )
 
 
+def my_enrollment_id_column(viewer: User) -> ColumnElement[int | None]:
+    # (SELECT id FROM enrollments WHERE training_id = trainings.id AND user_id = :viewer)
+    # FE needs it to withdraw (POST /api/enrollments/{id}/withdraw) after a page reload
+    return (
+        select(Enrollment.id)
+        .where(Enrollment.training_id == Training.id, Enrollment.user_id == viewer.id)
+        .correlate(Training)
+        .scalar_subquery()
+        .label("my_enrollment_id")
+    )
+
+
 def _training_rows(viewer: User) -> Select:
+    # Column order = TrainingRow's field order (rows are built with TrainingRow(*row))
     return select(
         Training,
         seats_left_column(),
         my_enrollment_status_column(viewer),
+        my_enrollment_id_column(viewer),
     ).options(
         # Trainer in the same query (LEFT OUTER JOIN), not one query per training
         joinedload(Training.trainer),

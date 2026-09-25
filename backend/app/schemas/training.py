@@ -130,8 +130,9 @@ class TrainingSummary(BaseModel):
     max_seats: int
     seats_left: int
     cancelled: bool
-    # Filled in once enrollments exist (BE-3.1); until then always null
+    # The viewer's own enrollment in this training, if they have one (any status)
     my_enrollment_status: str | None = None
+    my_enrollment_id: int | None = None
 
     @field_validator("levels")
     @classmethod

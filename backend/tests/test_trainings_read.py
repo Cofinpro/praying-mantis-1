@@ -120,6 +120,7 @@ def test_summary_shape_has_no_description(client, junior, catalogue):
         "seats_left": 10,
         "cancelled": False,
         "my_enrollment_status": None,
+        "my_enrollment_id": None,
     }
     assert soon["trainer"] is None
 

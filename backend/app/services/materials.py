@@ -5,13 +5,12 @@ Who may do what:
 - upload and delete: admins and the training's trainer
 """
 
-import re
-import unicodedata
 from collections.abc import Callable
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
+from app import files
 from app.errors import Conflict, Forbidden, NotFound, ValidationFailed
 from app.models import NotificationType, Training, TrainingMaterial, User
 from app.services import notifications
@@ -19,49 +18,20 @@ from app.services import notifications
 MAX_BYTES = 10 * 1024 * 1024
 MAX_FILES = 20  # per training
 
-_zip = lambda b: b.startswith(b"PK\x03\x04")  # noqa: E731  (.docx, .pptx and .xlsx are zip files too)
-
-
-def _utf8_text(data: bytes) -> bool:
-    try:
-        data.decode("utf-8")
-    except UnicodeDecodeError:
-        return False
-    return b"\x00" not in data
-
-
 # Extension → (the Content-Type we serve it with, a check of its first bytes). The extension decides,
 # not the Content-Type the browser sends (browsers guess it from the name anyway), and the bytes must agree.
 FILE_TYPES: dict[str, tuple[str, Callable[[bytes], bool]]] = {
-    ".pdf": ("application/pdf", lambda b: b.startswith(b"%PDF-")),
-    ".pptx": ("application/vnd.openxmlformats-officedocument.presentationml.presentation", _zip),
-    ".docx": ("application/vnd.openxmlformats-officedocument.wordprocessingml.document", _zip),
-    ".xlsx": ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", _zip),
-    ".zip": ("application/zip", _zip),
-    ".png": ("image/png", lambda b: b.startswith(b"\x89PNG\r\n\x1a\n")),
-    ".jpg": ("image/jpeg", lambda b: b.startswith(b"\xff\xd8\xff")),
-    ".jpeg": ("image/jpeg", lambda b: b.startswith(b"\xff\xd8\xff")),
-    ".txt": ("text/plain; charset=utf-8", _utf8_text),
-    ".md": ("text/markdown; charset=utf-8", _utf8_text),
+    ".pdf": ("application/pdf", files.is_pdf),
+    ".pptx": ("application/vnd.openxmlformats-officedocument.presentationml.presentation", files.is_zip),
+    ".docx": ("application/vnd.openxmlformats-officedocument.wordprocessingml.document", files.is_zip),
+    ".xlsx": ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", files.is_zip),
+    ".zip": ("application/zip", files.is_zip),
+    ".png": ("image/png", files.is_png),
+    ".jpg": ("image/jpeg", files.is_jpeg),
+    ".jpeg": ("image/jpeg", files.is_jpeg),
+    ".txt": ("text/plain; charset=utf-8", files.is_utf8_text),
+    ".md": ("text/markdown; charset=utf-8", files.is_utf8_text),
 }
-
-
-def clean_filename(raw: str | None) -> str:
-    """The name to store and to offer on download: no folders, no control characters, at most 255 chars.
-
-    Browsers send only the base name, but other clients may send "C:\\Users\\me\\slides.pdf" or "../x".
-    """
-    name = re.split(r"[\\/]", raw or "")[-1]
-    name = "".join(c for c in unicodedata.normalize("NFC", name) if unicodedata.category(c)[0] != "C")
-    name = re.sub(r"\s+", " ", name).strip(" .")
-    if len(name) > 255:  # keep the extension
-        stem, dot, ext = name.rpartition(".")
-        name = f"{stem[: 254 - len(ext)]}.{ext}" if dot and len(ext) < 20 else name[:255]
-    return name
-
-
-def _extension(filename: str) -> str:
-    return "." + filename.rpartition(".")[2].lower() if "." in filename else ""
 
 
 # --- access ---
@@ -115,10 +85,10 @@ def add(db: Session, user: User, training_id: int, raw_filename: str | None, dat
     if training.cancelled:
         raise Conflict("training_cancelled", "This training is cancelled")
 
-    filename = clean_filename(raw_filename)
+    filename = files.clean_filename(raw_filename)
     if not filename:
         raise ValidationFailed("file", "The file needs a name", "material_name", raw_filename)
-    file_type = FILE_TYPES.get(_extension(filename))
+    file_type = FILE_TYPES.get(files.extension(filename))
     if file_type is None:
         allowed = ", ".join(sorted(FILE_TYPES))
         raise ValidationFailed("file", f"Use one of these file types: {allowed}", "material_type", filename)
@@ -129,7 +99,7 @@ def add(db: Session, user: User, training_id: int, raw_filename: str | None, dat
     content_type, looks_right = file_type
     if not looks_right(data):
         raise ValidationFailed(
-            "file", f"The file doesn't look like a {_extension(filename)} file", "material_mismatch", filename
+            "file", f"The file doesn't look like a {files.extension(filename)} file", "material_mismatch", filename
         )
 
     # Lock the training row, so two uploads at once can't both be number 20

@@ -4,15 +4,31 @@ import pytest
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 
-from app.models import Client, Enrollment, EnrollmentStatus, Level, Notification, Seat, SeatReservation, Training, TrainingLevel, User
+from app.models import (
+    Client,
+    Enrollment,
+    EnrollmentStatus,
+    Expense,
+    ExpenseStatus,
+    Level,
+    Notification,
+    Seat,
+    SeatReservation,
+    Training,
+    TrainingLevel,
+    User,
+)
 from app.security import hash_password, verify_password
+from app.services import expenses
 from app.seed import (
     SEED_ENROLLMENTS,
     SEED_PASSWORD,
     SEED_TRAININGS,
+    SEED_EXPENSES,
     SEED_USERS,
     seed,
     seed_enrollments,
+    seed_expenses,
     seed_notifications,
     seed_reservations,
     seed_seats,
@@ -88,7 +104,7 @@ class TestSeed:
         seed(db)
         users = db.scalars(select(User)).all()
 
-        assert len(users) == len(SEED_USERS) == 17
+        assert len(users) == len(SEED_USERS) == 18
         assert {u.level for u in users} == set(Level)
         assert {u.client for u in users} == set(Client)
         # Alex Admin, Bernardo and Diogo
@@ -97,6 +113,7 @@ class TestSeed:
             "bernardo.santos@cofinpro.pt",
             "diogo.santos@cofinpro.pt",
         }
+        assert {u.email for u in users if u.is_hr} == {"helena@cofinpro.pt"}
         assert sum(u.is_team_lead for u in users) == 3
         assert any(u.team_lead is None and not u.is_admin and not u.is_team_lead for u in users)
 
@@ -104,7 +121,7 @@ class TestSeed:
         seed(db)
         seed(db)
 
-        assert db.scalar(select(text("COUNT(*)")).select_from(User)) == 17
+        assert db.scalar(select(text("COUNT(*)")).select_from(User)) == 18
 
     def test_rerun_restores_changed_seed_data(self, db):
         seed(db)
@@ -158,7 +175,7 @@ class TestSeed:
 
         assert db.scalar(select(User).where(User.email == "sofia@preyingmantis.test")) is None
         assert db.scalar(select(User).where(User.email == "sofia@cofinpro.pt")).id == old.id
-        assert db.scalar(select(text("COUNT(*)")).select_from(User)) == 17
+        assert db.scalar(select(text("COUNT(*)")).select_from(User)) == 18
 
 
 class TestSeedTrainings:
@@ -227,6 +244,20 @@ class TestSeedEnrollments:
         seed_enrollments(db)
 
         assert db.scalar(select(text("COUNT(*)")).select_from(Enrollment)) == len(SEED_ENROLLMENTS)
+
+
+class TestSeedExpenses:
+    def test_something_waits_at_each_step_and_reruns_dont_duplicate(self, db):
+        seed(db)
+        seed_expenses(db)
+        seed_expenses(db)
+
+        rows = db.scalars(select(Expense)).all()
+        assert len(rows) == len(SEED_EXPENSES)
+        assert {e.status for e in rows} == set(ExpenseStatus) - {ExpenseStatus.WITHDRAWN}
+        by_email = {u.email: u for u in db.scalars(select(User))}
+        assert [e.title for e in expenses.to_decide(db, by_email["sofia@cofinpro.pt"])] == ["Taxi to DKB's office"]
+        assert len(expenses.to_decide(db, by_email["helena@cofinpro.pt"])) == 2
 
 
 class TestSeedNotifications:

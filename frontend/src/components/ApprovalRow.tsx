@@ -42,9 +42,9 @@ export function ApprovalRow({ item }: { item: ApprovalItem }) {
       <div className={styles.who}>
         <Avatar name={user.name} src={user.avatar_url} />
         <div className={styles.whoText}>
-          <h2 id={headingId} className={styles.name}>
+          <h3 id={headingId} className={styles.name}>
             {user.name}
-          </h2>
+          </h3>
           <p className={styles.meta}>Requested {formatDateTime(enrollment.requested_at)}</p>
         </div>
       </div>

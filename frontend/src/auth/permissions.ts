@@ -5,5 +5,9 @@ export type Permission = (user: CurrentUser) => boolean
 
 export const isAdmin: Permission = (user) => user.is_admin
 
+// HR gives the second approval of expenses (admins can too)
+export const isHr: Permission = (user) => user.is_hr
+
 // Team leads approve their reports. Admins approve users without a team lead (Q6 in plan.md).
-export const canApprove: Permission = (user) => user.is_team_lead || user.is_admin
+// HR approves expenses, so it sees the Approvals page too.
+export const canApprove: Permission = (user) => user.is_team_lead || user.is_admin || user.is_hr

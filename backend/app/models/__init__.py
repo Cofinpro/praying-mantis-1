@@ -8,7 +8,8 @@ from app.models.avatar import UserAvatar
 from app.models.enrollment import Enrollment
 from app.models.feedback import TrainingFeedback
 from app.models.material import TrainingMaterial
-from app.models.enums import Client, EnrollmentStatus, Level, NotificationType
+from app.models.enums import Client, EnrollmentStatus, ExpenseCategory, ExpenseStatus, Level, NotificationType
+from app.models.expense import Expense, ExpenseReceipt
 from app.models.notification import Notification
 from app.models.reservation import SeatReservation
 from app.models.seat import Seat
@@ -20,6 +21,10 @@ __all__ = [
     "Client",
     "Enrollment",
     "EnrollmentStatus",
+    "Expense",
+    "ExpenseCategory",
+    "ExpenseReceipt",
+    "ExpenseStatus",
     "Level",
     "Notification",
     "NotificationType",

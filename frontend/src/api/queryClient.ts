@@ -33,6 +33,10 @@ export const queryKeys = {
   adminUsers: ['admin', 'users'] as const,
   adminUserList: (search: string) => ['admin', 'users', 'list', search] as const,
   adminUser: (id: number) => ['admin', 'users', 'detail', id] as const,
+  expenses: ['expenses'] as const,
+  myExpenses: ['expenses', 'mine'] as const,
+  expense: (id: number) => ['expenses', 'detail', id] as const,
+  expenseApprovals: ['expenses', 'approvals'] as const,
   trainingReport: (from: string, to: string) => ['admin', 'reports', 'trainings', from, to] as const,
   peopleReport: ['admin', 'reports', 'people'] as const,
 }

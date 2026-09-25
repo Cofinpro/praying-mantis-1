@@ -708,6 +708,167 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/expenses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit Expense
+         * @description Claim money back (multipart/form-data). Goes to my team lead first (or straight to HR when I have none),
+         *     who is notified in the app and by email.
+         */
+        post: operations["submit_expense_api_expenses_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/expenses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My Expenses
+         * @description Mine, newest first.
+         */
+        get: operations["my_expenses_api_me_expenses_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expense-approvals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Expenses To Decide
+         * @description What waits for me: my reports' expenses (as their team lead) and, for HR and admins, the HR step. Oldest first.
+         */
+        get: operations["expenses_to_decide_api_expense_approvals_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/{expense_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Expense
+         * @description For the submitter, their team lead, whoever decided it, HR and admins.
+         */
+        get: operations["get_expense_api_expenses__expense_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/{expense_id}/receipts/{receipt_id}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Receipt
+         * @description The receipt itself, as a download (see materials: attachment + nosniff).
+         */
+        get: operations["download_receipt_api_expenses__expense_id__receipts__receipt_id__file_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/{expense_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve Expense
+         * @description As team lead: sends it on to HR. As HR (or an admin): approves it for good.
+         */
+        post: operations["approve_expense_api_expenses__expense_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/{expense_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject Expense
+         * @description At either step, with a reason the submitter sees.
+         */
+        post: operations["reject_expense_api_expenses__expense_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/{expense_id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Withdraw Expense
+         * @description While it's still waiting for the team lead or HR.
+         */
+        post: operations["withdraw_expense_api_expenses__expense_id__withdraw_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -758,11 +919,24 @@ export interface components {
             level: components["schemas"]["Level"];
             /** Is Admin */
             is_admin: boolean;
+            /** Is Hr */
+            is_hr: boolean;
             /** Is Team Lead */
             is_team_lead: boolean;
             team_lead: components["schemas"]["TeamLeadSummary"] | null;
             /** Avatar Url */
             avatar_url: string | null;
+        };
+        /** Decision */
+        Decision: {
+            by: components["schemas"]["PersonRef"] | null;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Approved */
+            approved: boolean;
         };
         /**
          * DecisionRequest
@@ -798,6 +972,86 @@ export interface components {
          * @enum {string}
          */
         EnrollmentStatus: "waitlisted" | "pending" | "approved" | "rejected" | "withdrawn";
+        /**
+         * ExpenseCategory
+         * @enum {string}
+         */
+        ExpenseCategory: "travel" | "accommodation" | "meals" | "training" | "equipment" | "other";
+        /**
+         * ExpenseCreate
+         * @description POST /api/expenses, as multipart/form-data: these fields plus 1-5 files named `receipts`.
+         */
+        ExpenseCreate: {
+            /** Title */
+            title: string;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            category: components["schemas"]["ExpenseCategory"];
+            /** Amount */
+            amount: number | string;
+            /**
+             * Spent On
+             * Format: date
+             */
+            spent_on: string;
+            /**
+             * Receipts
+             * @description 1-5 files: PDF, PNG, JPEG or WebP, max 5 MB each
+             */
+            receipts: string[];
+        };
+        /** ExpenseRead */
+        ExpenseRead: {
+            /** Id */
+            id: number;
+            /** Title */
+            title: string;
+            /** Description */
+            description: string | null;
+            category: components["schemas"]["ExpenseCategory"];
+            /** Amount */
+            amount: string;
+            /** Currency */
+            currency: string;
+            /**
+             * Spent On
+             * Format: date
+             */
+            spent_on: string;
+            status: components["schemas"]["ExpenseStatus"];
+            /**
+             * Submitted At
+             * Format: date-time
+             */
+            submitted_at: string;
+            user: components["schemas"]["PersonRef"];
+            /** Waiting For */
+            waiting_for: string | null;
+            lead_decision: components["schemas"]["Decision"] | null;
+            hr_decision: components["schemas"]["Decision"] | null;
+            /** Rejection Reason */
+            rejection_reason: string | null;
+            /** Receipts */
+            receipts: components["schemas"]["ReceiptRead"][];
+        };
+        /**
+         * ExpenseReject
+         * @description Rejecting always says why: the submitter sees the reason.
+         */
+        ExpenseReject: {
+            /** Reason */
+            reason: string;
+        };
+        /**
+         * ExpenseStatus
+         * @description pending_lead -> pending_hr -> approved; either pending step -> rejected | withdrawn.
+         *     No team lead = starts at pending_hr.
+         * @enum {string}
+         */
+        ExpenseStatus: "pending_lead" | "pending_hr" | "approved" | "rejected" | "withdrawn";
         /** FeedbackAuthor */
         FeedbackAuthor: {
             /** Id */
@@ -957,7 +1211,7 @@ export interface components {
          * @description What happened. FE can pick an icon per type; the message is ready to show.
          * @enum {string}
          */
-        NotificationType: "enrollment_requested" | "enrollment_approved" | "enrollment_rejected" | "enrollment_withdrawn" | "training_cancelled" | "training_changed" | "waitlist_promoted" | "training_reminder" | "seat_reminder" | "material_added";
+        NotificationType: "enrollment_requested" | "enrollment_approved" | "enrollment_rejected" | "enrollment_withdrawn" | "training_cancelled" | "training_changed" | "waitlist_promoted" | "training_reminder" | "seat_reminder" | "material_added" | "expense_submitted" | "expense_lead_approved" | "expense_approved" | "expense_rejected";
         /** Occupant */
         Occupant: {
             /** Id */
@@ -985,6 +1239,15 @@ export interface components {
             /** Password */
             password: string;
         };
+        /** PersonRef */
+        PersonRef: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Avatar Url */
+            avatar_url: string | null;
+        };
         /**
          * PersonReportRow
          * @description One person: the trainings they completed (approved, ended, not cancelled) and have coming up.
@@ -1008,6 +1271,17 @@ export interface components {
             last_completed_at: string | null;
             /** Upcoming */
             upcoming: number;
+        };
+        /** ReceiptRead */
+        ReceiptRead: {
+            /** Id */
+            id: number;
+            /** Filename */
+            filename: string;
+            /** Content Type */
+            content_type: string;
+            /** Size */
+            size: number;
         };
         /**
          * ReminderRunRead
@@ -1308,6 +1582,8 @@ export interface components {
             level: components["schemas"]["Level"];
             /** Is Admin */
             is_admin: boolean;
+            /** Is Hr */
+            is_hr: boolean;
             /** Is Team Lead */
             is_team_lead: boolean;
             team_lead: components["schemas"]["TeamLeadSummary"] | null;
@@ -1333,6 +1609,11 @@ export interface components {
              * @default false
              */
             is_admin: boolean;
+            /**
+             * Is Hr
+             * @default false
+             */
+            is_hr: boolean;
             /** Team Lead Id */
             team_lead_id?: number | null;
             /** Password */
@@ -1364,6 +1645,8 @@ export interface components {
             level?: components["schemas"]["Level"] | null;
             /** Is Admin */
             is_admin?: boolean | null;
+            /** Is Hr */
+            is_hr?: boolean | null;
             /** Team Lead Id */
             team_lead_id?: number | null;
         };
@@ -3246,6 +3529,371 @@ export interface operations {
             };
             /** @description Training (or file) not found, or not for your level */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_expense_api_expenses_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["ExpenseCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseRead"];
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Field errors, plus spent_in_future | spent_too_long_ago | receipt_count | receipt_type | receipt_empty | receipt_too_large | receipt_mismatch */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    my_expenses_api_me_expenses_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseRead"][];
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    expenses_to_decide_api_expense_approvals_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseRead"][];
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_expense_api_expenses__expense_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                expense_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseRead"];
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Expense not found, or not yours to see */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_receipt_api_expenses__expense_id__receipts__receipt_id__file_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                expense_id: number;
+                receipt_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": unknown;
+                    "image/*": unknown;
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Expense not found, or not yours to see */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_expense_api_expenses__expense_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                expense_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseRead"];
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not your step to decide (or your own expense) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Expense not found, or not yours to see */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description not_pending | second_approver_needed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_expense_api_expenses__expense_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                expense_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpenseReject"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseRead"];
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not your step to decide (or your own expense) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Expense not found, or not yours to see */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description not_pending | second_approver_needed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    withdraw_expense_api_expenses__expense_id__withdraw_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                expense_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseRead"];
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not yours */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Expense not found, or not yours to see */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description not_withdrawable */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

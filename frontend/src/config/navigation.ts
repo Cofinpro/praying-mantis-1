@@ -8,6 +8,7 @@ export type ExternalNavLink = { label: string; href: string | null }
 export const internalNavLinks: InternalNavLink[] = [
   { label: 'Trainings', to: '/trainings' },
   { label: 'Seats', to: '/seats' },
+  { label: 'Expenses', to: '/expenses' },
   { label: 'Approvals', to: '/approvals', visibleTo: canApprove },
   { label: 'Users', to: '/admin/users', visibleTo: isAdmin },
   { label: 'Reports', to: '/admin/reports', visibleTo: isAdmin },

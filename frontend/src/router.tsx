@@ -4,6 +4,9 @@ import { RequireAuth } from './auth/RequireAuth'
 import { RequirePermission } from './auth/RequirePermission'
 import { Layout } from './components/Layout'
 import { AdminReportsPage } from './pages/AdminReportsPage'
+import { ExpenseDetailPage } from './pages/ExpenseDetailPage'
+import { ExpensesPage } from './pages/ExpensesPage'
+import { NewExpensePage } from './pages/NewExpensePage'
 import { AdminUsersPage } from './pages/AdminUsersPage'
 import { EditTrainingPage } from './pages/EditTrainingPage'
 import { EditUserPage } from './pages/EditUserPage'
@@ -33,6 +36,9 @@ export const routes: RouteObject[] = [
       { path: 'trainings', element: <TrainingsPage /> },
       { path: 'trainings/:id', element: <TrainingDetailPage /> },
       { path: 'seats', element: <SeatsPage /> },
+      { path: 'expenses', element: <ExpensesPage /> },
+      { path: 'expenses/new', element: <NewExpensePage /> },
+      { path: 'expenses/:id', element: <ExpenseDetailPage /> },
       { path: 'profile', element: <ProfilePage /> },
       {
         path: 'approvals',

@@ -85,6 +85,7 @@ def create_user(db: Session, data: UserCreate) -> User:
         client=data.client,
         level=data.level,
         is_admin=data.is_admin,
+        is_hr=data.is_hr,
         team_lead_id=data.team_lead_id,
         password_hash=hash_password(data.password),
     )
@@ -97,7 +98,7 @@ def create_user(db: Session, data: UserCreate) -> User:
 def update_user(db: Session, user_id: int, data: UserUpdate, acting_admin: User) -> User:
     user = get_user(db, user_id)
     changes = data.model_dump(exclude_unset=True)
-    for field in ("name", "email", "client", "level", "is_admin"):
+    for field in ("name", "email", "client", "level", "is_admin", "is_hr"):
         if field in changes and changes[field] is None:
             raise ValidationFailed(field, "This field can't be empty", "missing", None)
     if "email" in changes:

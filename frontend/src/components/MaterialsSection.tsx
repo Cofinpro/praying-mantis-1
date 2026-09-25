@@ -7,6 +7,7 @@ import type { TrainingSummary } from '../api/trainings'
 import { isAdmin } from '../auth/permissions'
 import { useAuth } from '../auth/useAuth'
 import { enrollmentErrorMessage } from '../enrollments/messages'
+import { formatBytes } from '../lib/bytes'
 import { formatDateTime } from '../lib/datetime'
 import { saveFile } from '../lib/download'
 import { Button } from './Button'
@@ -16,12 +17,6 @@ import styles from './MaterialsSection.module.css'
 // The same list as FILE_TYPES in backend/app/services/materials.py. `accept` only filters the file picker:
 // the backend checks the extension and the file's first bytes again.
 const ACCEPT = '.pdf,.pptx,.docx,.xlsx,.zip,.png,.jpg,.jpeg,.txt,.md'
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
 
 const fileType = (filename: string) => filename.split('.').pop()?.toUpperCase() ?? ''
 

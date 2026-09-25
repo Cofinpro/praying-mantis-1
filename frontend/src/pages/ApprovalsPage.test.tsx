@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import type { ApprovalItem } from '../api/enrollments'
 import type { TrainingSummary } from '../api/trainings'
 import { server } from '../mocks/server'
@@ -60,6 +60,9 @@ async function openApprovals() {
 const row = (name: string) => screen.getByRole('article', { name })
 
 describe('approvals', () => {
+  // These tests are about training requests: no expenses waiting (Expenses.test.tsx covers those)
+  beforeEach(() => server.use(http.get('*/api/expense-approvals', () => HttpResponse.json([]))))
+
   it('lists each request with employee, training, requested at, comment and Approve / Reject', async () => {
     serveApprovals([request(5, 'João Silva'), request(6, 'Marta Lopes')])
     await openApprovals()

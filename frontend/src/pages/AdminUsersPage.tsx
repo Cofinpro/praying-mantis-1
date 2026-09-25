@@ -60,6 +60,7 @@ export function AdminUsersPage() {
               </div>
               <div className={styles.roles}>
                 {user.is_admin && <span className={styles.role}>Admin</span>}
+                {user.is_hr && <span className={styles.role}>HR</span>}
                 {user.is_team_lead && <span className={styles.role}>Team lead</span>}
               </div>
             </li>

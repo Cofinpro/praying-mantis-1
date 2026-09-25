@@ -1,0 +1,117 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.title {
+  font: var(--font-h1);
+}
+
+.money {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.amount {
+  font: var(--font-h2);
+  font-variant-numeric: tabular-nums;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-8);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+}
+
+.sectionTitle {
+  margin-bottom: var(--space-3);
+  font: var(--font-h3);
+}
+
+.description {
+  white-space: pre-line;
+}
+
+.steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  position: relative;
+  display: flex;
+  gap: var(--space-3);
+  padding-bottom: var(--space-4);
+}
+
+/* The line between two dots */
+.step:not(:last-child)::before {
+  position: absolute;
+  top: 18px;
+  bottom: 0;
+  left: 6px;
+  width: 2px;
+  background: var(--color-border-default);
+  content: '';
+}
+
+.dot {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-top: 3px;
+  border: 2px solid var(--color-border-strong);
+  border-radius: 50%;
+  background: var(--color-bg-surface);
+}
+
+.done .dot {
+  border-color: var(--color-status-approved-fg);
+  background: var(--color-status-approved-fg);
+}
+
+.rejected .dot {
+  border-color: var(--color-status-rejected-fg);
+  background: var(--color-status-rejected-fg);
+}
+
+.current .dot {
+  border-color: var(--color-status-pending-fg);
+}
+
+.stepLabel {
+  font: var(--font-label);
+}
+
+.muted {
+  font: var(--font-body-sm);
+  color: var(--color-text-secondary);
+}
+
+@media (max-width: 600px) {
+  .card {
+    padding: var(--space-5);
+  }
+
+  .money {
+    align-items: flex-start;
+  }
+}

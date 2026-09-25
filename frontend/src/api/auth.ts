@@ -19,3 +19,7 @@ export function uploadAvatar(image: Blob) {
 }
 
 export const deleteAvatar = () => api.delete('/api/me/avatar')
+
+// 422 current_password (wrong_password) or new_password (too short, same_password)
+export const changePassword = (currentPassword: string, newPassword: string) =>
+  api.post<void>('/api/me/password', { current_password: currentPassword, new_password: newPassword })

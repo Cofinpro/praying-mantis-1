@@ -1,4 +1,5 @@
 import { http, HttpResponse } from 'msw'
+import type { UserAdmin } from '../api/adminUsers'
 import type { CurrentUser, LoginRequest, TokenResponse } from '../api/auth'
 import type { DbHealthResponse, HelloResponse } from '../api/health'
 import type { NotificationList } from '../api/notifications'
@@ -22,7 +23,17 @@ import type { UserSummary } from '../api/users'
 import { getMockAvatar, removeMockAvatar, setMockAvatar } from './data/avatars'
 import { listMockNotifications, markMockRead } from './data/notifications'
 import { cancelMockReservation, listMockMyReservations, listMockSeats, reserveMockSeat } from './data/seats'
-import { findSeedUserByEmail, findSeedUserById, searchSeedUsers, SEED_PASSWORD, toCurrentUser } from './data/users'
+import {
+  createMockUser,
+  findSeedUserByEmail,
+  findSeedUserById,
+  listMockUsers,
+  mockPasswordMatches,
+  searchSeedUsers,
+  setMockPassword,
+  toCurrentUser,
+  updateMockUser,
+} from './data/users'
 
 // The mock token is just the user id. The real one is a signed JWT, but the app treats both as opaque.
 const MOCK_TOKEN_PREFIX = 'mock-token-'
@@ -52,7 +63,7 @@ export const handlers = [
   http.post('*/api/auth/login', async ({ request }) => {
     const { email, password } = (await request.json()) as LoginRequest
     const user = findSeedUserByEmail(email)
-    if (!user || password !== SEED_PASSWORD) {
+    if (!user || !mockPasswordMatches(user, password)) {
       return HttpResponse.json({ detail: 'Invalid email or password' }, { status: 401 })
     }
     return HttpResponse.json<TokenResponse>({ access_token: `${MOCK_TOKEN_PREFIX}${user.id}`, token_type: 'bearer' })
@@ -268,5 +279,64 @@ export const handlers = [
   http.get('*/api/users/:id/avatar', ({ params }) => {
     const blob = getMockAvatar(Number(params.id))
     return blob ? new HttpResponse(blob, { headers: { 'Content-Type': blob.type } }) : new HttpResponse(null, { status: 404 })
+  }),
+
+  http.get('*/api/admin/users', ({ request }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    if (!user.is_admin) return adminsOnly()
+    return HttpResponse.json<UserAdmin[]>(listMockUsers(new URL(request.url).searchParams.get('search') ?? ''))
+  }),
+
+  http.get('*/api/admin/users/:id', ({ request, params }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    if (!user.is_admin) return adminsOnly()
+    const found = findSeedUserById(Number(params.id))
+    return found ? HttpResponse.json<UserAdmin>(toCurrentUser(found)) : HttpResponse.json({ detail: 'User not found' }, { status: 404 })
+  }),
+
+  http.post('*/api/admin/users', async ({ request }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    if (!user.is_admin) return adminsOnly()
+    const result = createMockUser((await request.json()) as Parameters<typeof createMockUser>[0])
+    return result.status === 201
+      ? HttpResponse.json<UserAdmin>(result.user, { status: 201 })
+      : conflict('email_taken', 'A user with this email already exists')
+  }),
+
+  http.patch('*/api/admin/users/:id', async ({ request, params }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    if (!user.is_admin) return adminsOnly()
+    const result = updateMockUser(Number(params.id), (await request.json()) as Parameters<typeof updateMockUser>[1], user.id)
+    if (result.status === 404) return HttpResponse.json({ detail: 'User not found' }, { status: 404 })
+    if (result.status === 409) {
+      return conflict(result.code, result.code === 'email_taken' ? 'A user with this email already exists' : "You can't remove your own admin rights")
+    }
+    return HttpResponse.json<UserAdmin>(result.user)
+  }),
+
+  http.post('*/api/admin/users/:id/password', async ({ request, params }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    if (!user.is_admin) return adminsOnly()
+    setMockPassword(Number(params.id), ((await request.json()) as { password: string }).password)
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  http.post('*/api/me/password', async ({ request }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    const body = (await request.json()) as { current_password: string; new_password: string }
+    if (!mockPasswordMatches(user, body.current_password)) {
+      return HttpResponse.json(
+        { detail: [{ type: 'wrong_password', loc: ['body', 'current_password'], msg: "That isn't your current password" }] },
+        { status: 422 },
+      )
+    }
+    setMockPassword(user.id, body.new_password)
+    return new HttpResponse(null, { status: 204 })
   }),
 ]

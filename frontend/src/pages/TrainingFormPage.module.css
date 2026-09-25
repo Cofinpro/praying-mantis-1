@@ -16,3 +16,31 @@
   font: var(--font-body-sm);
   color: var(--color-text-secondary);
 }
+
+.sectionTitle {
+  margin-bottom: var(--space-3);
+  font: var(--font-h3);
+}
+
+/* A field with its button to the right (the button lines up with the input, not the label) */
+.inlineForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.inlineForm > :first-child {
+  flex: 1;
+  min-width: 220px;
+}
+
+.inlineForm > button {
+  margin-top: 28px;
+}
+
+.success {
+  margin-top: var(--space-2);
+  font: var(--font-body-sm);
+  color: var(--color-status-approved-fg);
+}

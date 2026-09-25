@@ -6,6 +6,7 @@ import { useAuth } from '../auth/useAuth'
 import { Alert } from '../components/Alert'
 import { AvatarEditor } from '../components/AvatarEditor'
 import { Button } from '../components/Button'
+import { ChangePassword } from '../components/ChangePassword'
 import { TrainingCard } from '../components/TrainingCard'
 import { levelLabel } from '../trainings/levels'
 import styles from './ProfilePage.module.css'
@@ -65,6 +66,8 @@ export function ProfilePage() {
           />
         </>
       )}
+
+      <ChangePassword />
     </div>
   )
 }

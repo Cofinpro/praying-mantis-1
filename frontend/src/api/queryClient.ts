@@ -28,4 +28,7 @@ export const queryKeys = {
   // One cache entry per day: switching back to a date you've seen is instant
   seats: (date: string) => ['seats', date] as const,
   myReservations: ['reservations', 'me'] as const,
+  adminUsers: ['admin', 'users'] as const,
+  adminUserList: (search: string) => ['admin', 'users', 'list', search] as const,
+  adminUser: (id: number) => ['admin', 'users', 'detail', id] as const,
 }

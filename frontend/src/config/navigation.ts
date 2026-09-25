@@ -1,4 +1,4 @@
-import { canApprove, type Permission } from '../auth/permissions'
+import { canApprove, isAdmin, type Permission } from '../auth/permissions'
 
 // `visibleTo` hides a link from users who can't use the page. Without it, everyone sees the link.
 export type InternalNavLink = { label: string; to: string; visibleTo?: Permission }
@@ -9,6 +9,7 @@ export const internalNavLinks: InternalNavLink[] = [
   { label: 'Trainings', to: '/trainings' },
   { label: 'Seats', to: '/seats' },
   { label: 'Approvals', to: '/approvals', visibleTo: canApprove },
+  { label: 'Users', to: '/admin/users', visibleTo: isAdmin },
 ]
 
 // Owned by other teams. `href: null` until we know their URLs, which renders a disabled item.

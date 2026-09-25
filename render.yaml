@@ -8,9 +8,9 @@ services:
     region: frankfurt
     # Only changes under backend/ trigger a deploy (FE-only pushes don't)
     rootDir: backend
-    # Docker paths are relative to the repo root, not to rootDir
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
+    # Relative to rootDir: Render resolved "./backend/Dockerfile" as backend/backend/
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     # A deploy only goes live once this returns 200, so a wrong DB setting
     # keeps the previous version running instead of breaking the site
     healthCheckPath: /api/health/db

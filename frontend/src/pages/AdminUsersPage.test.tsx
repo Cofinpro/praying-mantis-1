@@ -69,6 +69,7 @@ describe('admin users', () => {
         client: 'VV',
         level: 'expert',
         is_admin: false,
+        is_hr: false,
         team_lead_id: 2,
         password: 'a-long-password',
       },

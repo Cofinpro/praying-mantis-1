@@ -20,6 +20,10 @@ from app.models import (
     Client,
     Enrollment,
     EnrollmentStatus,
+    Expense,
+    ExpenseCategory,
+    ExpenseReceipt,
+    ExpenseStatus,
     Level,
     Notification,
     NotificationType,
@@ -63,7 +67,12 @@ SEED_USERS: list[tuple[str, str, Client, Level, bool, str | None]] = [
     # The two of us, as admins. Last, so everyone else keeps their id on a fresh database.
     ("Bernardo Santos", "bernardo.santos", Client.DBIS, Level.SENIOR_ARCHITECT, True, None),
     ("Diogo Santos", "diogo.santos", Client.DBIS, Level.SENIOR_ARCHITECT, True, None),
+    # HR: gives the second approval of expenses. Added after us, for the same reason.
+    ("Helena Ribeiro", "helena", Client.DBIS, Level.SENIOR, False, None),
 ]
+
+# Who has the HR role (the tuples above stay the same shape)
+HR_USERS = {"helena"}
 
 
 L = Level
@@ -209,6 +218,7 @@ def seed(db: Session, keep_existing: bool = False) -> list[User]:
         user.client = client
         user.level = level
         user.is_admin = is_admin
+        user.is_hr = local_part in HR_USERS
         db.add(user)
         users[local_part] = user
 
@@ -410,6 +420,59 @@ def seed_feedback(db: Session) -> list[TrainingFeedback]:
     return added
 
 
+# (submitter, title, category, amount, days ago, status, lead who decided, HR who decided, rejection reason)
+X = ExpenseStatus
+SEED_EXPENSES: list[tuple[str, str, ExpenseCategory, str, int, ExpenseStatus, str | None, str | None, str | None]] = [
+    # Waiting for Sofia (João's team lead)
+    ("joao", "Taxi to DKB's office", ExpenseCategory.TRAVEL, "18.40", 1, X.PENDING_LEAD, None, None, None),
+    # Approved by Sofia, waiting for HR (Helena)
+    ("marta", "Hotel in Frankfurt", ExpenseCategory.ACCOMMODATION, "245.00", 3, X.PENDING_HR, "sofia", None, None),
+    # Rafael has no team lead: straight to HR
+    ("rafael", "Conference ticket", ExpenseCategory.TRAINING, "399.00", 2, X.PENDING_HR, None, None, None),
+    # Finished: one approved, one rejected by HR
+    ("joao", "Lunch with the client", ExpenseCategory.MEALS, "36.50", 12, X.APPROVED, "sofia", "helena", None),
+    ("miguel", "USB-C dock", ExpenseCategory.EQUIPMENT, "89.99", 20, X.REJECTED, "tiago", "helena", "Please order equipment through IT."),
+]
+
+# A tiny valid PDF, so the receipt downloads open
+SEED_RECEIPT = b"%PDF-1.4\n1 0 obj <</Type /Catalog /Pages 2 0 R>> endobj\n2 0 obj <</Type /Pages /Kids [] /Count 0>> endobj\ntrailer <</Root 1 0 R>>\n%%EOF\n"
+
+
+def seed_expenses(db: Session) -> list[Expense]:
+    """Adds the demo expenses that don't exist yet (matched by submitter + title), then commits.
+    Existing ones are left alone: people may have approved or withdrawn them in the app."""
+    users = {u.email: u for u in db.scalars(select(User).where(User.email.like(f"%@{EMAIL_DOMAIN}")))}
+    existing = {(e.user_id, e.title) for e in db.scalars(select(Expense))}
+    now = datetime.now(UTC)
+    added = []
+    for who, title, category, amount, ago, status, lead, hr, reason in SEED_EXPENSES:
+        user = users[email_for(who)]
+        if (user.id, title) in existing:
+            continue
+        submitted = now - timedelta(days=ago)
+        expense = Expense(
+            user=user,
+            title=title,
+            category=category,
+            amount=amount,
+            spent_on=(submitted - timedelta(days=1)).date(),
+            status=status,
+            submitted_at=submitted,
+            lead_decided_by=users[email_for(lead)] if lead else None,
+            lead_decided_at=submitted + timedelta(hours=5) if lead else None,
+            hr_decided_by=users[email_for(hr)] if hr else None,
+            hr_decided_at=submitted + timedelta(days=1) if hr else None,
+            rejection_reason=reason,
+            receipts=[
+                ExpenseReceipt(filename="receipt.pdf", content_type="application/pdf", size=len(SEED_RECEIPT), data=SEED_RECEIPT)
+            ],
+        )
+        db.add(expense)
+        added.append(expense)
+    db.commit()
+    return added
+
+
 def main() -> None:
     # --keep-existing: don't overwrite users who already exist (their password, level, lead…)
     keep_existing = "--keep-existing" in sys.argv
@@ -418,7 +481,7 @@ def main() -> None:
         print(f"Seeded {len(users)} users. Every password is '{SEED_PASSWORD}'.")
         for user in users:
             lead = user.team_lead.name if user.team_lead else "-"
-            admin = " (admin)" if user.is_admin else ""
+            admin = " (admin)" if user.is_admin else " (HR)" if user.is_hr else ""
             print(f"  {user.email:<32} {user.client:<6} {user.level:<17} lead: {lead}{admin}")
 
         seats = seed_seats(db)
@@ -447,6 +510,9 @@ def main() -> None:
         notifications = seed_notifications(db)
         unread = sum(n.read_at is None for n in notifications)
         print(f"Seeded {len(notifications)} notifications ({unread} unread).")
+
+        expenses = seed_expenses(db)
+        print(f"Seeded {len(expenses)} new expenses.")
 
 
 if __name__ == "__main__":

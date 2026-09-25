@@ -26,6 +26,14 @@ import { getMockAvatar, removeMockAvatar, setMockAvatar } from './data/avatars'
 import { listMockNotifications, markMockRead } from './data/notifications'
 import { mockPeopleReport, mockTrainingReport } from './data/reports'
 import { addMockMaterial, deleteMockMaterial, getMockMaterial, listMockMaterials } from './data/materials'
+import {
+  decideMockExpense,
+  getMockExpense,
+  listMockExpenseApprovals,
+  listMockMyExpenses,
+  mockExpenseRead,
+  submitMockExpense,
+} from './data/expenses'
 import { cancelMockReservation, listMockMyReservations, listMockSeats, reserveMockSeat } from './data/seats'
 import {
   createMockUser,
@@ -294,6 +302,70 @@ export const handlers = [
     const blob = getMockAvatar(Number(params.id))
     return blob ? new HttpResponse(blob, { headers: { 'Content-Type': blob.type } }) : new HttpResponse(null, { status: 404 })
   }),
+
+  // Expenses: team lead first, then HR (see mocks/data/expenses.ts)
+  http.post('*/api/expenses', async ({ request }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    const form = await request.formData()
+    const text = (name: string) => String(form.get(name) ?? '')
+    const uploads = await Promise.all(
+      form.getAll('receipts').filter((f): f is File => f instanceof File).map(async (file) => ({
+        filename: file.name,
+        data: new Uint8Array(await file.arrayBuffer()),
+      })),
+    )
+    const fields = {
+      title: text('title'),
+      description: text('description'),
+      category: text('category') as Parameters<typeof submitMockExpense>[1]['category'],
+      amount: text('amount'),
+      spent_on: text('spent_on'),
+    }
+    const result = submitMockExpense(user.id, fields, uploads)
+    return result.status === 201
+      ? HttpResponse.json(result.expense, { status: 201 })
+      : HttpResponse.json({ detail: result.detail }, { status: result.status })
+  }),
+
+  http.get('*/api/me/expenses', ({ request }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    return HttpResponse.json(listMockMyExpenses(user.id))
+  }),
+
+  http.get('*/api/expense-approvals', ({ request }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    return HttpResponse.json(listMockExpenseApprovals(user))
+  }),
+
+  http.get('*/api/expenses/:id', ({ request, params }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    const found = getMockExpense(user, Number(params.id))
+    return found ? HttpResponse.json(mockExpenseRead(found)) : HttpResponse.json({ detail: 'Expense not found' }, { status: 404 })
+  }),
+
+  http.get('*/api/expenses/:id/receipts/:receiptId/file', ({ request, params }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    const receipt = getMockExpense(user, Number(params.id))?.receipts.find((r) => r.id === Number(params.receiptId))
+    if (!receipt) return HttpResponse.json({ detail: 'Receipt not found' }, { status: 404 })
+    return new HttpResponse(receipt.data, { headers: { 'Content-Type': receipt.content_type } })
+  }),
+
+  ...(['approve', 'reject', 'withdraw'] as const).map((action) =>
+    http.post(`*/api/expenses/:id/${action}`, async ({ request, params }) => {
+      const user = userFromRequest(request)
+      if (!user) return notAuthenticated()
+      const body = action === 'reject' ? (((await request.json().catch(() => ({}))) ?? {}) as { reason?: string }) : {}
+      const result = decideMockExpense(user, Number(params.id), action, body.reason)
+      return result.status === 200
+        ? HttpResponse.json(result.expense)
+        : HttpResponse.json({ detail: result.detail }, { status: result.status })
+    }),
+  ),
 
   // Materials: anyone who can see the training (getMockTraining) sees them; admins and the trainer manage them
   http.get('*/api/trainings/:id/materials', ({ request, params }) => {

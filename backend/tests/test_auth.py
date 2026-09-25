@@ -94,6 +94,7 @@ def test_me_returns_the_contract_shape(client, employee):
         "client": "DKB",
         "level": "junior",
         "is_admin": False,
+        "is_hr": False,
         "is_team_lead": False,
         "team_lead": {"id": employee.team_lead.id, "name": "Sofia Martins"},
         "avatar_url": None,

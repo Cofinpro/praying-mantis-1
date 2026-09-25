@@ -14,6 +14,31 @@ Template:
 
 ---
 
+## 2026-09-25 — Expense claims: team lead, then HR, with a new HR role
+**Status:** Accepted
+**Context:** People pay for taxis, hotels and courses and want the money back. The claim needs two approvals: the team lead, then HR (or the admins).
+**Decision:**
+- **HR role:** a new `users.is_hr` flag, which admins set on the user form. The seed has one HR user, Helena.
+  - The HR step is decided by HR users **and** admins (the privileged accounts).
+  - Notifications go to the HR users, or to the admins while nobody has the HR role.
+- **Statuses:** `pending_lead → pending_hr → approved`; either pending step `→ rejected` (a reason is required) or `→ withdrawn` (by the submitter). There's no team lead step for people without a lead.
+- **Two different people:**
+  - Nobody decides their own expense.
+  - The HR approver must be someone other than the lead who approved it (409 `second_approver_needed`).
+  - A lead who is also HR doesn't see their own lead-approved expenses in their HR queue.
+- **Money:** `DECIMAL(10, 2)` in the database and `Decimal` in Python. It's sent as a **string** (`"12.50"`) in JSON, so JavaScript never turns it into a float. Euros only, more than 0 and at most 10,000. The frontend accepts "12,5" and sends "12.50", building the string without any float arithmetic.
+- **Dates:** `spent_on` can't be in the future (the office's today) or more than 90 days ago.
+- **Receipts:** 1–5 per expense; PDF, PNG, JPEG or WebP; 5 MB each. They're stored like training materials: a deferred MEDIUMBLOB, extension + first bytes checked, downloads as `attachment` + `nosniff`.
+- **Multipart:** `POST /api/expenses` takes a Pydantic **form model** (`Annotated[ExpenseCreate, Form()]`) that includes `receipts: list[UploadFile]`, so field errors keep Pydantic's usual 422 shape.
+- **Who can open an expense:** the submitter, their team lead, whoever decided it, HR and admins. Anyone else gets a 404.
+- **Emails:** decider emails go out on submit and after the lead approves (when SMTP is on).
+- **Approvals page:** "Training requests" (team leads and admins) and "Expenses" are separate sections. HR alone sees only expenses.
+
+**Consequences:**
+- No "paid" status or payroll export yet; approved is the last step.
+- One currency.
+- Old seed expenses are never reset: people act on them in the app.
+
 ## 2026-09-25 — Training materials in the database, downloaded with the login token
 **Status:** Accepted
 **Context:** Trainers want to share slides and exercises. Render's disk is wiped on every deploy, and we have no object storage.

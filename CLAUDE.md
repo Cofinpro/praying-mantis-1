@@ -14,7 +14,7 @@ We are building an internal company platform that brings existing systems togeth
 | Reserve seats in the office | us | ✅ |
 | Timesheets | another group, another tech stack | ❌ (a nav link at most) |
 | Vacations | another group | ❌ (a nav link at most) |
-| Expense sheets | nobody yet | ❌ |
+| Expense claims | us | ✅ (added after the build day: team lead, then HR approves) |
 
 **Tech stack:**
 - **Backend:** Python, FastAPI, SQLAlchemy (sync), MySQL
@@ -44,7 +44,7 @@ Each story gets its own branch and PR (e.g. `SCRUM-12-be-login`). PRs are a reco
 
 This is the target model, a refined version of our first sketch (see `plan.md` §4 for the reasons). Tables are snake_case and plural; SQLAlchemy models are singular.
 
-- **users**: name, email (unique), password_hash, client (`DKB|Deka|VV|DBIS|UNION`), level (`junior|expert|senior|architect|senior_architect`), is_admin, team_lead_id → users (nullable)
+- **users**: name, email (unique), password_hash, client (`DKB|Deka|VV|DBIS|UNION`), level (`junior|expert|senior|architect|senior_architect`), is_admin, is_hr (gives the second approval of expenses), team_lead_id → users (nullable)
   - "Is team lead" is **derived** (someone has you as `team_lead_id`), not stored
   - "Privileged account" = `is_admin`
 - **trainings**: name, description, starts_at and ends_at (**UTC**), max_seats, trainer_id → users (NULL = **External**), external_trainer_name (optional), created_by, cancelled_at (soft cancel)
@@ -55,6 +55,8 @@ This is the target model, a refined version of our first sketch (see `plan.md` �
 - **training_feedback**: training_id, user_id, rating 1–5, comment, created/updated_at. UNIQUE (training_id, user_id); only people who completed the training
 - **training_materials**: training_id, filename, content_type, size, data (MEDIUMBLOB, deferred), uploaded_by_id, created_at. Max 10 MB per file, 20 per training
 - **user_avatars**: user_id (PK), content_type, data (MEDIUMBLOB, deferred), updated_at
+- **expenses**: user_id, title, description, category (`travel|accommodation|meals|training|equipment|other`), amount (DECIMAL(10,2), euros), currency, spent_on, status (`pending_lead|pending_hr|approved|rejected|withdrawn`), submitted_at, lead_decided_by/at, hr_decided_by/at, rejection_reason
+- **expense_receipts**: expense_id, filename, content_type, size, data (MEDIUMBLOB, deferred). 1–5 per expense
 - **seats**: label (unique, e.g. `DKB-03`), zone (same `Client` enum as users), pos_x and pos_y (grid position on the map)
 - **seat_reservations**: seat_id, user_id, date
   - UNIQUE (seat_id, date) and UNIQUE (user_id, date): one person per seat and one seat per person per day
@@ -76,6 +78,16 @@ This is the target model, a refined version of our first sketch (see `plan.md` �
 Status flow: `pending → approved | rejected`; `waitlisted | pending | approved → withdrawn`; `waitlisted → pending`.
 
 **Waitlist** (see `decisions.md`): a full training offers "Join the waitlist" (`POST /api/trainings/{id}/waitlist`). When a place frees up (`max_seats > pending + approved`, after a withdrawal, rejection or more seats), the first in line becomes `pending` and is notified, and so is their team lead.
+
+### Claiming expenses
+
+1. On the **Expenses** tab an employee adds an expense: what it was for, category, amount (€, max 10,000), the day on the receipt (not in the future, at most 90 days ago), and 1–5 receipts (PDF, PNG, JPEG or WebP, 5 MB each).
+2. Their **team lead** is notified (and emailed) and approves or rejects it on the **Approvals** page. Rejecting needs a reason.
+3. After the lead approves, **HR** (users with `is_hr`, plus admins) is notified and gives the second approval. Nobody decides their own expense, and the HR approver must be someone other than the lead who approved.
+4. Without a team lead, it goes straight to HR. If nobody has the HR role, the admins are notified.
+5. The submitter is notified at each step and can withdraw while it's pending.
+
+Status flow: `pending_lead → pending_hr → approved`; either pending step `→ rejected | withdrawn`.
 
 ### Reserving seats
 
@@ -112,6 +124,7 @@ What exists today:
     `seats.py`: `check_booking_date` (Q14 rules, in the office time zone), `seat_map` (one LEFT JOIN query), `reserve` (move included), `my_upcoming`, `cancel`.
     `notifications.py`: `notify(db, recipients, type, message, link)` adds rows **without committing**; the calling service commits once, so an action and its notifications are one transaction.
   - `app/errors.py`: `NotFound` (→ 404), `Forbidden` (→ 403), `Conflict` (→ 409 with a `code`) and `ValidationFailed` (→ 422 in Pydantic's format), raised by services and turned into responses by handlers registered in `main.py`
+  - `routers/expenses.py` + `services/expenses.py`: `POST /api/expenses` (multipart: a Pydantic form model with the `receipts` files), `GET /api/me/expenses`, `GET /api/expenses/{id}` (+ `/receipts/{id}/file`), `GET /api/expense-approvals`, `POST …/approve | reject | withdraw`. `app/files.py` has the filename cleaning and file signature checks shared with materials
   - `routers/materials.py` + `services/materials.py`: `GET/POST /api/trainings/{id}/materials`, `GET …/{material_id}/file`, `DELETE …/{material_id}` (admins and the trainer manage, everyone who can see the training downloads)
   - `routers/admin_reports.py` + `services/reports.py`: `GET /api/admin/reports/trainings` and `/people` (admin Reports page)
   - `app/scheduler.py`: the reminder loop (`remind_forever`), started by the lifespan in `main.py` every `REMINDERS_EVERY_MINUTES`. `services/reminders.py` has the rules (`send_due`); `routers/admin_reminders.py` has `POST /api/admin/reminders/run`
@@ -138,6 +151,7 @@ What exists today:
   - `src/trainings/levels.ts` (`LEVELS`, `levelLabel`, `isLevel`) and `display.ts` (trainer, seats and status labels)
   - `src/enrollments/`: `joinState.ts` (the join button's state, derived from the training) and `messages.ts` (409/403 `code` → message)
   - `src/trainings/trainingForm.ts`: the create-training form's state type, validation (mirrors the backend's `TrainingCreate`), request building (local → UTC) and 422 → field mapping
+  - Expenses: `pages/ExpensesPage` (`/expenses`), `NewExpensePage` (`/expenses/new`), `ExpenseDetailPage` (`/expenses/:id`, with the progress steps); `components/ExpenseApprovalRow`, `ExpenseStatusBadge`, `ReceiptList`; `src/expenses/` (`display.ts`: labels, `formatMoney`; `expenseForm.ts`: validation and building the submission). `ApprovalsPage` has two sections: training requests (team leads and admins) and expenses
   - `src/components/MaterialsSection.tsx`: the training's files on the detail page (download; add/delete for admins and the trainer). `src/lib/download.ts` (`saveFile`) saves a Blob; `api.blob(path)` in `client.ts` fetches one with the token
   - `src/lib/csv.ts`: `toCsv(columns, rows)` (quoting, formula-injection guard) and `downloadCsv(filename, csv)`, used by `AdminReportsPage` (`/admin/reports`)
   - `src/lib/datetime.ts` (local ↔ UTC helpers), `src/lib/days.ts` (local calendar days for the seat map), `src/lib/image.ts` (shrink a photo to a 256 px JPEG) and `src/hooks/` (`useDebouncedValue`)
@@ -204,10 +218,13 @@ fastapi dev app/main.py   # http://localhost:8000, API docs at /docs
 | `rafael@cofinpro.pt` | VV | expert | **No team lead** (an admin approves his requests) |
 | `bernardo.santos@cofinpro.pt` | DBIS | senior_architect | **Admin**, no team lead |
 | `diogo.santos@cofinpro.pt` | DBIS | senior_architect | **Admin**, no team lead |
+| `helena@cofinpro.pt` | DBIS | senior | **HR**: gives the second approval of expenses |
 
 Re-running the seed resets these users to the values above (matched by email) and never duplicates them. `python -m app.seed --keep-existing` (what Render runs on every start) only creates missing users, so passwords and edits made in the app survive restarts.
 
-Admins manage users at `/admin/users` (create, edit, set team lead, make admin, reset password). Everyone can change their own password on the Profile page.
+**Seed expenses** (added if missing, never reset): João's taxi waits for Sofia; Marta's hotel (approved by Sofia) and Rafael's conference ticket (no lead) wait for Helena; João's lunch is approved; Miguel's USB-C dock was rejected by HR.
+
+Admins manage users at `/admin/users` (create, edit, set team lead, make admin or HR, reset password). Everyone can change their own password on the Profile page.
 
 **Seed trainings** (created by the admin, dates relative to the day you run the seed, 09:00 UTC):
 

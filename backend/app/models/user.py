@@ -21,6 +21,8 @@ class User(Base):
     client: Mapped[Client] = mapped_column(enum_column(Client))
     level: Mapped[Level] = mapped_column(enum_column(Level))
     is_admin: Mapped[bool] = mapped_column(default=False, server_default=false())
+    # HR: gives the second approval of expenses (services/expenses.py)
+    is_hr: Mapped[bool] = mapped_column(default=False, server_default=false())
     # If the lead is deleted, their reports just lose their lead
     team_lead_id: Mapped[int | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), index=True

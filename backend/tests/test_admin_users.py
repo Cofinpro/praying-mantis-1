@@ -145,6 +145,14 @@ class TestUpdate:
 
         assert (up.json()["is_admin"], down.json()["is_admin"]) == (True, False)
 
+    def test_can_give_and_take_the_hr_role(self, client, make_user, admin):
+        user = make_user()
+
+        up = client.patch(f"/api/admin/users/{user.id}", headers=auth_headers(admin), json={"is_hr": True})
+        down = client.patch(f"/api/admin/users/{user.id}", headers=auth_headers(admin), json={"is_hr": False})
+
+        assert (up.json()["is_hr"], down.json()["is_hr"]) == (True, False)
+
     def test_unknown_user_is_404(self, client, admin):
         assert client.patch("/api/admin/users/999999", headers=auth_headers(admin), json={"name": "X"}).status_code == 404
 

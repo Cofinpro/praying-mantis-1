@@ -47,6 +47,30 @@ class NotificationType(enum.StrEnum):
     TRAINING_REMINDER = "training_reminder"  # -> everyone approved, the day before it starts
     SEAT_REMINDER = "seat_reminder"  # -> whoever booked a seat, the working day before
     MATERIAL_ADDED = "material_added"  # -> everyone waitlisted, pending or approved
+    EXPENSE_SUBMITTED = "expense_submitted"  # -> whoever decides the next step (team lead, then HR)
+    EXPENSE_LEAD_APPROVED = "expense_lead_approved"  # -> the submitter: it's with HR now
+    EXPENSE_APPROVED = "expense_approved"  # -> the submitter
+    EXPENSE_REJECTED = "expense_rejected"  # -> the submitter
+
+
+class ExpenseStatus(enum.StrEnum):
+    """pending_lead -> pending_hr -> approved; either pending step -> rejected | withdrawn.
+    No team lead = starts at pending_hr."""
+
+    PENDING_LEAD = "pending_lead"
+    PENDING_HR = "pending_hr"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    WITHDRAWN = "withdrawn"
+
+
+class ExpenseCategory(enum.StrEnum):
+    TRAVEL = "travel"
+    ACCOMMODATION = "accommodation"
+    MEALS = "meals"
+    TRAINING = "training"
+    EQUIPMENT = "equipment"
+    OTHER = "other"
 
 
 def enum_column(enum_class: type[enum.Enum]) -> Enum:

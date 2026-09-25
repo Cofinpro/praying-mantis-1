@@ -23,6 +23,7 @@ class CurrentUserRead(BaseModel):
     client: Client
     level: Level
     is_admin: bool
+    is_hr: bool
     is_team_lead: bool
     team_lead: TeamLeadSummary | None
     # e.g. "/api/users/16/avatar?v=1790350000", relative to the API's base URL; null = show initials
@@ -58,6 +59,7 @@ class UserAdminRead(BaseModel):
     client: Client
     level: Level
     is_admin: bool
+    is_hr: bool
     is_team_lead: bool
     team_lead: TeamLeadSummary | None
     avatar_url: str | None
@@ -71,6 +73,7 @@ class UserCreate(BaseModel):
     client: Client
     level: Level
     is_admin: bool = False
+    is_hr: bool = False
     team_lead_id: int | None = None
     password: Password
 
@@ -83,6 +86,7 @@ class UserUpdate(BaseModel):
     client: Client | None = None
     level: Level | None = None
     is_admin: bool | None = None
+    is_hr: bool | None = None
     team_lead_id: int | None = None
 
 

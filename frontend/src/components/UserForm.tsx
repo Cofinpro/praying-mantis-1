@@ -116,6 +116,10 @@ export function UserForm({ initial, userId, submitLabel, submittingLabel, onSubm
             {errors.is_admin}
           </p>
         )}
+        <label className={styles.checkbox}>
+          <input type="checkbox" checked={values.is_hr} onChange={(e) => set('is_hr', e.target.checked)} />
+          HR (gives the second approval of expenses, after the team lead)
+        </label>
         {creating && (
           <TextField
             label="Password"

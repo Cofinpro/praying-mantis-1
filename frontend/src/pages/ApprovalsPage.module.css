@@ -34,3 +34,12 @@
 .emptyTitle {
   font: var(--font-h3);
 }
+
+.section {
+  margin-bottom: var(--space-10);
+}
+
+.sectionTitle {
+  margin-bottom: var(--space-4);
+  font: var(--font-h2);
+}

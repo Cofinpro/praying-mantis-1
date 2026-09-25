@@ -18,7 +18,7 @@ import styles from './TrainingFormPage.module.css'
 // Only what changed, like the training edit (a PATCH never overwrites someone else's newer edit)
 function changedFields(before: UserFormValues, after: UserFormValues): UserUpdate {
   const changes: UserUpdate = {}
-  for (const key of ['name', 'email', 'client', 'level', 'is_admin', 'team_lead_id'] as const) {
+  for (const key of ['name', 'email', 'client', 'level', 'is_admin', 'is_hr', 'team_lead_id'] as const) {
     if (before[key] !== after[key]) Object.assign(changes, { [key]: after[key] })
   }
   return changes

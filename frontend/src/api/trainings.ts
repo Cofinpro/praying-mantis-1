@@ -3,10 +3,9 @@ import type { components } from './schema'
 
 export type Level = components['schemas']['Level']
 export type TrainingCreate = components['schemas']['TrainingCreate']
-export type TrainingRead = components['schemas']['TrainingRead'] & { my_enrollment_id?: number | null }
-// `my_enrollment_id` is hand-written until BE-3.3 adds it (see decisions.md → "Withdraw"): the withdraw
-// endpoint needs the enrollment's id, and the training is where the page gets my enrollment from.
-export type TrainingSummary = components['schemas']['TrainingSummary'] & { my_enrollment_id?: number | null }
+export type TrainingRead = components['schemas']['TrainingRead']
+// Includes my_enrollment_status and my_enrollment_id: the withdraw endpoint needs the enrollment's id.
+export type TrainingSummary = components['schemas']['TrainingSummary']
 export type TrainingUpdate = components['schemas']['TrainingUpdate']
 
 // Employees get upcoming trainings for their own level. Admins get every training, optionally for one

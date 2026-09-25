@@ -696,6 +696,8 @@ export interface components {
             cancelled: boolean;
             /** My Enrollment Status */
             my_enrollment_status?: string | null;
+            /** My Enrollment Id */
+            my_enrollment_id?: number | null;
             /** Description */
             description: string;
         };
@@ -731,6 +733,8 @@ export interface components {
             cancelled: boolean;
             /** My Enrollment Status */
             my_enrollment_status?: string | null;
+            /** My Enrollment Id */
+            my_enrollment_id?: number | null;
         };
         /**
          * TrainingUpdate

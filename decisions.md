@@ -162,7 +162,7 @@ Template:
 - `deploy-pages.yml` now **defaults** to `VITE_API_URL=https://praying-mantis-api.onrender.com` and `VITE_USE_MOCKS=false`, so no one has to click through repo settings. The repo variables of the same names still override both (e.g. `VITE_USE_MOCKS=true` for a mock-only demo). The URL isn't a secret: it ends up in the public JavaScript anyway.
 - The login page shows "Local seed users: password123" on the live site too (`VITE_SHOW_SEED_HINT`), because Render runs the seed data.
 - The login page shows "The server is waking up. This can take up to a minute." when the login takes more than 4 s (Render's free plan sleeps after 15 idle minutes).
-- Seats now use the generated `SeatStatus` type. Every API type now comes from `schema.d.ts` except `my_enrollment_id`, still waiting on BE.
+- Seats now use the generated `SeatStatus` type. With `my_enrollment_id` added later (PR #47), every API type comes from `schema.d.ts`.
 
 **Consequences:** Every push to `main` deploys a frontend that uses the real backend. Mocks remain for `pnpm dev:mock` and the tests.
 
@@ -248,7 +248,7 @@ Template:
 **Consequences:** BE-4.1 matches the contract, so the bell works on the real API.
 
 ## 2026-09-25 — Withdraw: needs `my_enrollment_id` on trainings (contract addition for BE-3.3)
-**Status:** Accepted (FE side); **BE-3.3 to add the field**
+**Status:** Accepted
 **Context:** FE-3.3's Withdraw button calls `POST /api/enrollments/{id}/withdraw`, which needs the enrollment's id. The detail page only has the training (`GET /api/trainings/{id}`), and the F3 contract gives it `my_enrollment_status` but no id.
 **Decision:**
 - **Contract addition:** `TrainingSummary` and `TrainingRead` get `my_enrollment_id: int | null`, next to `my_enrollment_status`, and computed the same way (the viewer's enrollment for that training). BE-3.3 adds it.
@@ -256,7 +256,7 @@ Template:
 - Withdraw is shown while the status is pending or approved, the training isn't cancelled, and it hasn't started (`canWithdraw()`). It asks first in the same `ConfirmDialog` as "Cancel training", worded for a pending request ("Withdraw your request?") or a seat ("Give up your seat?"). A 409 shows inside the dialog. On success, every `['trainings']` query refetches, so the status and seats left update.
 - The mocks implement BE-3.3's rules and the new field.
 
-**Consequences:** When BE-3.3 lands with the field, run `pnpm gen:api` and drop the hand-written addition.
+**Consequences:** Diogo added the field (PR #47). The type now comes from `schema.d.ts`, and Withdraw shows on the real backend.
 
 ## 2026-09-25 — Approvals page: per-row mutations, comment as `{comment}`, built on mocks
 **Status:** Accepted

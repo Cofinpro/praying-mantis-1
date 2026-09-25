@@ -10,6 +10,8 @@ from datetime import UTC, datetime
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
+from app.config import settings
+from app.email import Email
 from app.errors import NotFound
 from app.models import Enrollment, EnrollmentStatus, Notification, NotificationType, Training, User
 
@@ -49,6 +51,25 @@ def enrolled_people(db: Session, training: Training) -> list[User]:
 
 def training_link(training: Training) -> str:
     return f"/trainings/{training.id}"
+
+
+def request_emails(db: Session, enrollment: Enrollment) -> list[Email]:
+    """The emails for a new request: one to each decider (BE-4.2). Built, not sent."""
+    requester, training = enrollment.user, enrollment.training
+    return [
+        Email(
+            to=decider.email,
+            subject=f"Approval needed: {requester.name} → {training.name}",
+            body=(
+                f"Hi {decider.name},\n\n"
+                f"{requester.name} requested a seat in {training.name} "
+                f"on {training.starts_at:%a %d %b %Y, %H:%M} UTC.\n\n"
+                f"Approve or reject it here: {settings.app_url}/approvals\n\n"
+                "— PreyingMantis"
+            ),
+        )
+        for decider in deciders_for(db, requester)
+    ]
 
 
 # --- the bell ---

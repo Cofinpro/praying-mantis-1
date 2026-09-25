@@ -209,6 +209,35 @@ def list_trainings(db: Session, viewer: User, level: Level | None = None) -> lis
     return [TrainingRow(*row) for row in db.execute(query)]
 
 
+def my_enrollments(db: Session, viewer: User) -> dict[str, list[TrainingRow]]:
+    """The viewer's trainings for the Profile page, from one query.
+
+    upcoming:  approved, not cancelled, not ended yet (a training in progress counts)
+    pending:   still waiting for a decision, not started, not cancelled
+    completed: approved, not cancelled, ended (Q10: no attendance check)
+    Upcoming and pending are soonest first; completed is most recent first.
+    """
+    now = datetime.now(UTC)
+    query = (
+        _training_rows(viewer)
+        .join(Enrollment, (Enrollment.training_id == Training.id) & (Enrollment.user_id == viewer.id))
+        .where(
+            Training.cancelled_at.is_(None),
+            Enrollment.status.in_([EnrollmentStatus.PENDING, EnrollmentStatus.APPROVED]),
+        )
+        .order_by(Training.starts_at, Training.id)
+    )
+    result: dict[str, list[TrainingRow]] = {"upcoming": [], "pending": [], "completed": []}
+    for row in (TrainingRow(*r) for r in db.execute(query)):
+        training, status = row.training, row.my_enrollment_status
+        if status == EnrollmentStatus.APPROVED:
+            result["completed" if training.ends_at <= now else "upcoming"].append(row)
+        elif training.starts_at > now:  # pending, and still decidable
+            result["pending"].append(row)
+    result["completed"].reverse()  # most recent first
+    return result
+
+
 def rows_by_id(db: Session, training_ids: list[int], viewer: User) -> dict[int, TrainingRow]:
     """Several trainings in one query, by id, with no level filter (the caller decided access)."""
     if not training_ids:

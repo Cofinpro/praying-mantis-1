@@ -86,6 +86,7 @@ Status flow: `pending → approved | rejected`; `pending | approved → withdraw
 
 What exists today:
 - `docker-compose.yml`: local MySQL 8 with a named volume (`mysql-data`), a health check, and an init script that creates the test database `praying_mantis_test`
+  - and **Mailpit**, a fake mail server: SMTP on `localhost:1025`, web inbox at http://localhost:8025
 - `backend/`: FastAPI + SQLAlchemy on MySQL (via PyMySQL)
   - `app/main.py`: creates the app, adds CORS, and includes every router under `/api`
   - `app/config.py`: `Settings` (pydantic-settings), read from env vars / `backend/.env`
@@ -98,11 +99,12 @@ What exists today:
     - `notification.py`: `Notification` (type, message, link, read_at), with `NotificationType` in `enums.py`
     - `types.py`: `UtcDateTime`, the column type for every datetime the API exposes (stores UTC, returns aware UTC)
   - `app/schemas/`: Pydantic request/response models (the API contract)
-  - `app/routers/`: one `APIRouter` per area. `health.py` has `/api/` and `/api/health/db`, `auth.py` has `/api/auth/login` and `/api/auth/me`, `users.py` has `/api/users` (admin only), `trainings.py` has `/api/trainings` (list, detail, create, `PATCH`, `/cancel`), `enrollments.py` has `POST /api/trainings/{id}/enrollments`, `GET /api/approvals` and `POST /api/enrollments/{id}/approve` / `reject` / `withdraw`. `notifications.py` has `GET /api/notifications` and `POST /api/notifications/{id}/read` / `read-all`.
+  - `app/routers/`: one `APIRouter` per area. `health.py` has `/api/` and `/api/health/db`, `auth.py` has `/api/auth/login` and `/api/auth/me`, `users.py` has `/api/users` (admin only), `trainings.py` has `/api/trainings` (list, detail, create, `PATCH`, `/cancel`) and `GET /api/me/enrollments` (Profile), `enrollments.py` has `POST /api/trainings/{id}/enrollments`, `GET /api/approvals` and `POST /api/enrollments/{id}/approve` / `reject` / `withdraw`. `notifications.py` has `GET /api/notifications` and `POST /api/notifications/{id}/read` / `read-all`.
   - `app/dependencies.py`: shared dependencies. `CurrentUser` (requires a valid token, gives the `User`), `AdminUser` (also requires `is_admin`, else 403) and `DbSession`.
   - `app/services/`: business rules, no HTTP concerns. `enrollments.py` holds every enrollment rule (`request`, `approve`, `reject`, `withdraw`, `pending_for`, `can_decide`, `count_approved`). Status changes go through `check_move` (the state machine in `ALLOWED_MOVES`).
     `notifications.py`: `notify(db, recipients, type, message, link)` adds rows **without committing**; the calling service commits once, so an action and its notifications are one transaction.
   - `app/errors.py`: `NotFound` (→ 404), `Forbidden` (→ 403), `Conflict` (→ 409 with a `code`) and `ValidationFailed` (→ 422 in Pydantic's format), raised by services and turned into responses by handlers registered in `main.py`
+  - `app/email.py`: `send_email(Email)` over SMTP, never raises. Called only through `BackgroundTasks`. Emails are off when `SMTP_HOST` is unset (tests, Render).
   - `app/security.py`: password hashing (`pwdlib`, Argon2id) and JWT create/decode (`PyJWT`, HS256)
   - `app/seed.py`: local seed users (`python -m app.seed`)
   - `alembic/`: migrations (`alembic/versions/`). `env.py` reads the DB URL from `app.config`.
@@ -150,6 +152,8 @@ docker compose ps         # wait until mysql shows "healthy"
 docker compose stop       # stop it; data is kept in the mysql-data volume
 docker compose down -v    # delete the container AND the data, for a clean reset
 ```
+
+Emails sent locally (approval requests) show up in Mailpit's inbox at http://localhost:8025.
 
 Port 3306 must be free. If MySQL is also installed locally (e.g. Homebrew), stop it first: `brew services stop mysql`.
 
@@ -233,6 +237,7 @@ pytest -x                 # stop at the first failure
 - Tests use a separate database, `<DB_NAME>_test` (`praying_mantis_test`). The session fixture drops and recreates it, then runs `alembic upgrade head`, so the migrations are tested too.
 - Each test runs inside a transaction that is rolled back, so every test starts empty. Use the `client` fixture for API calls and `db` for direct DB access in the same transaction.
 - Concurrency tests (two sessions racing) can't use `db`: see `tests/test_approvals_concurrency.py`, which commits real rows through the session-scoped `engine` and deletes them afterwards.
+- Tests that depend on "now" freeze the clock with `time_machine.travel(...)` (see `tests/test_my_enrollments.py`). Services must take "now" from `datetime.now(UTC)`, never from MySQL's `NOW()`, so the frozen clock applies.
 - Create users with `make_user(name=..., is_admin=True, team_lead=lead, ...)` (every field has a default) and call the API as them with `client.get(url, headers=auth_headers(user))`.
 - The test database is created by `docker-compose.yml` only when the volume is **new**. With an older volume, either reset it (`docker compose down -v && docker compose up -d`) or run once: `docker exec -i praying-mantis-mysql mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS praying_mantis_test; GRANT ALL ON praying_mantis_test.* TO 'app'@'%';"`
 Allowed frontend origins are set by `CORS_ORIGINS` (comma-separated).
@@ -257,6 +262,7 @@ Settings come only from environment variables (the image has no `.env`). On a ho
 | `DB_SSL_CA` | for a remote DB | the DB server's CA certificate (PEM text), so TLS also verifies the server |
 | `JWT_SECRET` | yes | at least 32 characters, different from any local one |
 | `CORS_ORIGINS` | yes | the frontend's origin, e.g. `https://cofinpro.github.io` (no path) |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM`, `APP_URL` | no | email for approval requests. Unset `SMTP_HOST` = no email. `APP_URL` is the frontend's base URL, for links. |
 | `SEED_ON_START` | no | `true` runs the demo seed on every start (demo only) |
 | `PORT` | no | set by the host; defaults to 8000 |
 

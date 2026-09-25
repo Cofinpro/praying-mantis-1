@@ -14,6 +14,27 @@ Template:
 
 ---
 
+## 2026-09-25 — My enrollments (Profile): what goes in which section
+**Status:** Accepted
+**Context:** BE-5.1 implements `GET /api/me/enrollments` → `{upcoming, pending, completed}` of `TrainingSummary`, with Q10 answered by the default.
+**Decision:**
+- **upcoming** = approved, not cancelled, not ended yet. A training in progress still counts as upcoming, soonest first.
+- **pending** = waiting for a decision, for a training that hasn't started, soonest first. A pending request for a training that already started is left out, because it can't be decided any more.
+- **completed** = approved, not cancelled, ended (Q10: no attendance check), most recent first.
+- Rejected, withdrawn and cancelled trainings appear in no section. The notification told the user.
+- It's one query: BE-2.2's training rows (seats left, my status) joined with the viewer's enrollments, then split in Python.
+**Consequences:** FE shows each section with `TrainingCard`. `my_enrollment_status` is on every item.
+
+## 2026-09-25 — Email for approval requests: after the response, best effort
+**Status:** Accepted
+**Context:** BE-4.2 (stretch): team leads also get an email for new requests.
+**Decision:**
+- Only **new requests** send email, to the deciders (the team lead, or every admin), with a link to `APP_URL/approvals`. Everything else stays in-app only.
+- The router schedules `send_email` with `BackgroundTasks` **after** the service committed, so the email goes out after the response, and only for a saved request.
+- `send_email` never raises. SMTP errors are logged, and the request has already succeeded. The in-app notification is the record; email is an extra.
+- Locally, Docker Compose runs **Mailpit**. Tests switch email off (an autouse fixture) and capture what would be sent. No `SMTP_HOST` on Render = no email there.
+**Consequences:** No retries: an email lost to a mail outage is gone, but the notification is still in the bell. Real email in production would need an SMTP provider plus `SMTP_HOST`/`SMTP_FROM` in Render.
+
 ## 2026-09-25 — Notifications: events, recipients, and one transaction
 **Status:** Accepted
 **Context:** BE-4.1 implements the F4 contract (`GET /api/notifications`, `/{id}/read`, `/read-all`) and fills in the BE-2.3/BE-3.x hooks.

@@ -4,7 +4,13 @@ from fastapi import APIRouter, HTTPException, Query, status
 
 from app.dependencies import AdminUser, CurrentUser, DbSession
 from app.models import Level
-from app.schemas.training import TrainingCreate, TrainingRead, TrainingSummary, TrainingUpdate
+from app.schemas.training import (
+    MyEnrollments,
+    TrainingCreate,
+    TrainingRead,
+    TrainingSummary,
+    TrainingUpdate,
+)
 from app.services import trainings as service
 
 router = APIRouter(prefix="/trainings", tags=["trainings"])
@@ -91,3 +97,19 @@ def cancel_training(training_id: int, db: DbSession, admin: AdminUser) -> Traini
     if row is None:
         raise _not_found()
     return TrainingRead.model_validate(training_fields(row))
+
+
+# Mounted without the /trainings prefix: GET /api/me/enrollments
+me_router = APIRouter(prefix="/me", tags=["trainings"])
+
+
+@me_router.get("/enrollments", responses=UNAUTHORIZED)
+def my_enrollments(db: DbSession, user: CurrentUser) -> MyEnrollments:
+    """My upcoming (approved), pending and completed trainings, for the Profile page."""
+    sections = service.my_enrollments(db, viewer=user)
+    return MyEnrollments(
+        **{
+            name: [TrainingSummary.model_validate(training_fields(row)) for row in rows]
+            for name, rows in sections.items()
+        }
+    )

@@ -141,3 +141,11 @@ class TrainingSummary(BaseModel):
 
 class TrainingRead(TrainingSummary):
     description: str
+
+
+class MyEnrollments(BaseModel):
+    """GET /api/me/enrollments: the Profile page's three sections."""
+
+    upcoming: list[TrainingSummary]
+    pending: list[TrainingSummary]
+    completed: list[TrainingSummary]

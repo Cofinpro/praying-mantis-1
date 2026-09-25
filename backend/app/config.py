@@ -25,6 +25,14 @@ class Settings(BaseSettings):
     # Comma-separated in .env, e.g. "http://localhost:5173,https://cofinpro.github.io"
     cors_origins: str = "http://localhost:5173,https://cofinpro.github.io"
 
+    # Email (BE-4.2). No SMTP_HOST = emails are switched off (e.g. on Render).
+    # Locally, docker-compose's Mailpit listens on localhost:1025.
+    smtp_host: str | None = None
+    smtp_port: int = 1025
+    smtp_from: str = "PreyingMantis <noreply@preyingmantis.test>"
+    # The frontend's base URL, for links in emails
+    app_url: str = "http://localhost:5173"
+
     # Signs the JWTs. Required, no default: a leaked default would let anyone forge tokens.
     # HS256 needs at least 32 bytes.
     jwt_secret: str = Field(min_length=32)

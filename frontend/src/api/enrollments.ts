@@ -1,6 +1,5 @@
 import { api } from './client'
 import type { components } from './schema'
-import type { TrainingSummary } from './trainings'
 
 export type EnrollmentRead = components['schemas']['EnrollmentRead']
 export type EnrollmentStatus = components['schemas']['EnrollmentStatus']
@@ -9,8 +8,8 @@ export type EnrollmentStatus = components['schemas']['EnrollmentStatus']
 export const requestToJoin = (trainingId: number) =>
   api.post<EnrollmentRead>(`/api/trainings/${trainingId}/enrollments`)
 
-// One pending request: who asked, and for which training (with my_enrollment_id, see trainings.ts).
-export type ApprovalItem = Omit<components['schemas']['ApprovalRead'], 'training'> & { training: TrainingSummary }
+// One pending request: who asked, and for which training
+export type ApprovalItem = components['schemas']['ApprovalRead']
 
 // Pending requests I can decide: my reports', plus (for admins) users without a team lead.
 export const listApprovals = () => api.get<ApprovalItem[]>('/api/approvals')
@@ -26,9 +25,6 @@ export const rejectEnrollment = (id: number, comment: string | null) =>
 export const withdrawEnrollment = (id: number) => api.post<EnrollmentRead>(`/api/enrollments/${id}/withdraw`)
 
 // upcoming = approved and not ended; pending = waiting for a decision; completed = approved, ended, not cancelled.
-// The trainings carry the hand-written my_enrollment_id (see trainings.ts).
-export type MyEnrollments = {
-  [K in keyof components['schemas']['MyEnrollments']]: TrainingSummary[]
-}
+export type MyEnrollments = components['schemas']['MyEnrollments']
 
 export const getMyEnrollments = () => api.get<MyEnrollments>('/api/me/enrollments')

@@ -14,6 +14,18 @@ Template:
 
 ---
 
+## 2026-09-25 — Frontend tests: Vitest in jsdom, reusing the MSW handlers
+**Status:** Accepted
+**Context:** FE-0.3 sets up component tests and CI for `frontend/`.
+**Decision:**
+- Vitest is configured in `vite.config.ts`, with the `jsdom` environment and `src/test/setup.ts` as its setup file. `globals` stays off: tests import from `vitest`, and the setup file calls `cleanup()`.
+- Tests use the same `src/mocks/handlers.ts` as the browser, through `msw/node` (`src/mocks/server.ts`). An API call without a handler fails the test (`onUnhandledRequest: 'error'`).
+- `router.tsx` exports its `routes`, and `renderRoute(path)` in `src/test/render.tsx` mounts them in a memory router, so tests render real pages inside the real layout.
+- Test files sit next to the code they test (`Layout.test.tsx`). They are in `src/`, so `pnpm build` type-checks them too.
+- `.github/workflows/frontend-checks.yml` runs `pnpm lint`, `pnpm build` and `pnpm test` on every PR that touches `frontend/`.
+
+**Consequences:** Tests need no backend. Endpoint-specific cases override a handler with `server.use(...)`.
+
 ## 2026-09-25 — PRs without reviews
 **Status:** Accepted. Supersedes the review part of "Team split and a contract-first workflow" and D12 in `plan.md`.
 **Context:** With everything built in one day, waiting for the other developer to review each PR slows both lanes down.

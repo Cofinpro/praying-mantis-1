@@ -1,3 +1,7 @@
+.wrapper {
+  position: relative;
+}
+
 .bell {
   position: relative;
   display: inline-flex;
@@ -30,5 +34,111 @@
   background: var(--color-action-primary);
   color: var(--color-text-on-brand);
   font: 700 11px / 16px var(--font-family);
+  text-align: center;
+}
+
+/* The dropdown, under the bell, aligned to its right edge */
+.panel {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  z-index: 30;
+  width: min(380px, calc(100vw - 2 * var(--space-4)));
+  max-height: 480px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-md);
+}
+
+.panel:focus-visible {
+  outline: none;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.title {
+  font: var(--font-label);
+}
+
+.markAll {
+  padding: var(--space-1) var(--space-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font: var(--font-caption);
+  color: var(--color-text-brand);
+  cursor: pointer;
+}
+
+.markAll:hover:not(:disabled) {
+  background: var(--color-bg-subtle);
+}
+
+.markAll:disabled {
+  color: var(--color-text-muted);
+  cursor: default;
+}
+
+.list {
+  margin: 0;
+  padding: var(--space-1) 0;
+  list-style: none;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: 8px 1fr;
+  gap: var(--space-1) var(--space-3);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.item:hover {
+  background: var(--color-bg-subtle);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-action-primary);
+}
+
+.message {
+  grid-column: 2;
+  font: var(--font-body-sm);
+  color: var(--color-text-secondary);
+}
+
+/* Unread in bold, as in the F4 wireframe, plus the dot: never weight alone */
+.unread .message {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.time {
+  grid-column: 2;
+  font: var(--font-caption);
+  color: var(--color-text-muted);
+}
+
+.empty {
+  padding: var(--space-6) var(--space-4);
+  font: var(--font-body-sm);
+  color: var(--color-text-secondary);
   text-align: center;
 }

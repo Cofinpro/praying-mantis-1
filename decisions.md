@@ -90,6 +90,17 @@ Template:
 - Services raise `Conflict` / `ValidationFailed` (`app/errors.py`); handlers in `main.py` turn them into 409 / 422.
 **Consequences:** FE's edit form can send the whole form or only changes; both work. Notifying enrolled people on cancel is a `TODO(BE-4.1)` in `cancel_training`.
 
+## 2026-09-25 — Notification bell: polling, a disclosure panel, built on mocks
+**Status:** Accepted
+**Context:** FE-4.1 builds the bell before BE-4.1, following the F4 contract (`GET /api/notifications?limit=20`, `POST …/{id}/read`, `POST …/read-all`).
+**Decision:**
+- `useQuery` with `refetchInterval: 30_000`. The unread count is in the bell's `aria-label` and in a badge (99+ max).
+- The dropdown is a **disclosure**, not an ARIA menu: focus moves into the panel, and Escape or a click outside closes it (Escape returns focus to the bell). Each item is a button whose `aria-label` says "(unread)". Clicking it marks it read and navigates to `link`.
+- Marking read is **optimistic** (`onMutate`); the next poll corrects any failure.
+- Types are hand-written in `api/notifications.ts` until BE-4.1 exists. The mocks have notifications for Sofia and João.
+
+**Consequences:** Against today's backend the bell's request is a 404 every 30 s (not retried), so it shows no count until BE-4.1 is merged. When it lands, run `pnpm gen:api` and swap the hand-written types.
+
 ## 2026-09-25 — Withdraw: needs `my_enrollment_id` on trainings (contract addition for BE-3.3)
 **Status:** Accepted (FE side); **BE-3.3 to add the field**
 **Context:** FE-3.3's Withdraw button calls `POST /api/enrollments/{id}/withdraw`, which needs the enrollment's id. The detail page only has the training (`GET /api/trainings/{id}`), and the F3 contract gives it `my_enrollment_status` but no id.

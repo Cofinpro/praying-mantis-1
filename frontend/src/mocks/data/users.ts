@@ -47,3 +47,10 @@ export function searchSeedUsers(search: string, limit = 20): UserSummary[] {
     .slice(0, limit)
     .map(({ id, name, email, level }) => ({ id, name, email, level }))
 }
+
+// Who decides this user's requests: their team lead, or any admin when they have none (Q6).
+export function canDecideFor(decider: { id: number; email: string; is_admin: boolean }, userId: number) {
+  const user = findSeedUserById(userId)
+  if (!user) return false
+  return user.teamLeadEmail === decider.email || (user.teamLeadEmail === null && decider.is_admin)
+}

@@ -1,11 +1,13 @@
 import { http, HttpResponse } from 'msw'
 import type { CurrentUser, LoginRequest, TokenResponse } from '../api/auth'
 import type { DbHealthResponse, HelloResponse } from '../api/health'
-import type { EnrollmentRead } from '../api/enrollments'
+import type { ApprovalItem, EnrollmentRead } from '../api/enrollments'
 import type { TrainingCreate, TrainingRead, TrainingSummary, TrainingUpdate } from '../api/trainings'
 import { isLevel } from '../trainings/levels'
 import {
+  decideMockEnrollment,
   getMockTraining,
+  listMockApprovals,
   listMockTrainings,
   mockTrainings,
   requestMockEnrollment,
@@ -145,4 +147,22 @@ export const handlers = [
       ? HttpResponse.json<EnrollmentRead>(result.enrollment, { status: 201 })
       : HttpResponse.json({ detail: result.detail }, { status: result.status })
   }),
+
+  http.get('*/api/approvals', ({ request }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    return HttpResponse.json<ApprovalItem[]>(listMockApprovals(user))
+  }),
+
+  ...(['approve', 'reject'] as const).map((action) =>
+    http.post(`*/api/enrollments/:id/${action}`, async ({ request, params }) => {
+      const user = userFromRequest(request)
+      if (!user) return notAuthenticated()
+      const { comment = null } = ((await request.json().catch(() => ({}))) ?? {}) as { comment?: string | null }
+      const result = decideMockEnrollment(user, Number(params.id), action === 'approve' ? 'approved' : 'rejected', comment)
+      return result.status === 200
+        ? HttpResponse.json<EnrollmentRead>(result.enrollment)
+        : HttpResponse.json({ detail: result.detail }, { status: result.status })
+    }),
+  ),
 ]

@@ -13,6 +13,7 @@ import {
   requestMockEnrollment,
   toSummary,
   updateMockTraining,
+  withdrawMockEnrollment,
 } from './data/trainings'
 import type { UserSummary } from '../api/users'
 import { findSeedUserByEmail, findSeedUserById, searchSeedUsers, SEED_PASSWORD, toCurrentUser } from './data/users'
@@ -165,4 +166,13 @@ export const handlers = [
         : HttpResponse.json({ detail: result.detail }, { status: result.status })
     }),
   ),
+
+  http.post('*/api/enrollments/:id/withdraw', ({ request, params }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    const result = withdrawMockEnrollment(user, Number(params.id))
+    return result.status === 200
+      ? HttpResponse.json<EnrollmentRead>(result.enrollment)
+      : HttpResponse.json({ detail: result.detail }, { status: result.status })
+  }),
 ]

@@ -6,6 +6,7 @@ import { JOIN_HINTS, JOIN_LABELS, joinState } from '../enrollments/joinState'
 import { enrollmentErrorMessage } from '../enrollments/messages'
 import { Button } from './Button'
 import styles from './JoinButton.module.css'
+import { WithdrawButton } from './WithdrawButton'
 
 // "Request to join" and its disabled states, for the detail page's "Your place" panel.
 export function JoinButton({ training }: { training: TrainingSummary }) {
@@ -26,6 +27,7 @@ export function JoinButton({ training }: { training: TrainingSummary }) {
         {join.isPending ? 'Sending request…' : JOIN_LABELS[state]}
       </Button>
       {hint && <p className={styles.hint}>{hint}</p>}
+      <WithdrawButton training={training} />
       {join.isError && (
         <p className={styles.error} role="alert">
           {enrollmentErrorMessage(join.error)}

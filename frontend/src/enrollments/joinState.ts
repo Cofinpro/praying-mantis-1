@@ -32,3 +32,14 @@ export const JOIN_HINTS: Partial<Record<JoinState, string>> = {
   full: 'No seats left.',
   started: 'Requests close when a training starts.',
 }
+
+// Withdraw is offered while pending or approved, until the training starts (plan.md → F3).
+export function canWithdraw(training: TrainingSummary, now = new Date()): boolean {
+  const status = training.my_enrollment_status
+  return (
+    !training.cancelled &&
+    (status === 'pending' || status === 'approved') &&
+    training.my_enrollment_id != null &&
+    new Date(training.starts_at) > now
+  )
+}

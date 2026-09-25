@@ -75,16 +75,27 @@ Template:
 - Services raise `Conflict` / `ValidationFailed` (`app/errors.py`); handlers in `main.py` turn them into 409 / 422.
 **Consequences:** FE's edit form can send the whole form or only changes; both work. Notifying enrolled people on cancel is a `TODO(BE-4.1)` in `cancel_training`.
 
+## 2026-09-25 — Withdraw: needs `my_enrollment_id` on trainings (contract addition for BE-3.3)
+**Status:** Accepted (FE side); **BE-3.3 to add the field**
+**Context:** FE-3.3's Withdraw button calls `POST /api/enrollments/{id}/withdraw`, which needs the enrollment's id. The detail page only has the training (`GET /api/trainings/{id}`), and the F3 contract gives it `my_enrollment_status` but no id.
+**Decision:**
+- **Contract addition:** `TrainingSummary` and `TrainingRead` get `my_enrollment_id: int | null`, next to `my_enrollment_status`, and computed the same way (the viewer's enrollment for that training). BE-3.3 adds it.
+- Until then, FE types it by hand (`api/trainings.ts`) and hides Withdraw when the field is missing. So against today's backend the button simply doesn't appear, and nothing breaks.
+- Withdraw is shown while the status is pending or approved, the training isn't cancelled, and it hasn't started (`canWithdraw()`). It asks first in the same `ConfirmDialog` as "Cancel training", worded for a pending request ("Withdraw your request?") or a seat ("Give up your seat?"). A 409 shows inside the dialog. On success, every `['trainings']` query refetches, so the status and seats left update.
+- The mocks implement BE-3.3's rules and the new field.
+
+**Consequences:** When BE-3.3 lands with the field, run `pnpm gen:api` and drop the hand-written addition.
+
 ## 2026-09-25 — Approvals page: per-row mutations, comment as `{comment}`, built on mocks
 **Status:** Accepted
 **Context:** FE-3.2 builds `/approvals` before BE-3.2 exists, so it follows the F3 contract in `plan.md`.
 **Decision:**
 - The **request body** for both `POST /api/enrollments/{id}/approve` and `/reject` is `{"comment": string | null}`. That's the contract's field name, stored as `decision_comment`. **BE-3.2 should accept `comment` on both endpoints.**
-- The types for `GET /api/approvals` are hand-written in `api/enrollments.ts` (`ApprovalItem`) until BE-3.2 adds the response models.
+- The types for `GET /api/approvals` were hand-written until BE-3.2 merged. They now come from the generated `ApprovalRead`.
 - Each `ApprovalRow` has its own `useMutation` and comment state. A row leaves the list after the server confirms (`setQueryData`, not optimistic), so a 409 (`training_full`, `not_pending`) is shown on the row itself. Every `['trainings']` query is invalidated after a decision, because seats left and the employee's status change.
 - New `secondary` Button variant (Reject).
 
-**Consequences:** When BE-3.2 lands, run `pnpm gen:api` and swap `ApprovalItem` for the generated type.
+**Consequences:** BE-3.2 matched the contract (`{comment}`, `ApprovalRead`, the 409 codes), so the page works on the real API unchanged.
 
 ## 2026-09-25 — Request to join: a derived button state and code-based messages
 **Status:** Accepted

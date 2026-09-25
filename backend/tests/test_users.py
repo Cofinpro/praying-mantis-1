@@ -88,10 +88,15 @@ class TestSeed:
         seed(db)
         users = db.scalars(select(User)).all()
 
-        assert len(users) == len(SEED_USERS) == 15
+        assert len(users) == len(SEED_USERS) == 17
         assert {u.level for u in users} == set(Level)
         assert {u.client for u in users} == set(Client)
-        assert sum(u.is_admin for u in users) == 1
+        # Alex Admin, Bernardo and Diogo
+        assert {u.email for u in users if u.is_admin} == {
+            "admin@cofinpro.pt",
+            "bernardo.santos@cofinpro.pt",
+            "diogo.santos@cofinpro.pt",
+        }
         assert sum(u.is_team_lead for u in users) == 3
         assert any(u.team_lead is None and not u.is_admin and not u.is_team_lead for u in users)
 
@@ -99,11 +104,11 @@ class TestSeed:
         seed(db)
         seed(db)
 
-        assert db.scalar(select(text("COUNT(*)")).select_from(User)) == 15
+        assert db.scalar(select(text("COUNT(*)")).select_from(User)) == 17
 
     def test_rerun_restores_changed_seed_data(self, db):
         seed(db)
-        joao = db.scalar(select(User).where(User.email == "joao@preyingmantis.test"))
+        joao = db.scalar(select(User).where(User.email == "joao@cofinpro.pt"))
         joao.team_lead = None
         joao.level = Level.ARCHITECT
         db.commit()
@@ -112,15 +117,33 @@ class TestSeed:
         db.refresh(joao)
 
         assert joao.level == Level.JUNIOR
-        assert joao.team_lead.email == "sofia@preyingmantis.test"
+        assert joao.team_lead.email == "sofia@cofinpro.pt"
 
     def test_seed_password_works_and_names_keep_accents(self, db):
         seed(db)
         db.expire_all()  # force a fresh read from MySQL
-        ines = db.scalar(select(User).where(User.email == "ines@preyingmantis.test"))
+        ines = db.scalar(select(User).where(User.email == "ines@cofinpro.pt"))
 
         assert ines.name == "Inês Rocha"
         assert verify_password(SEED_PASSWORD, ines.password_hash)
+
+
+    def test_renames_users_from_the_old_domain_instead_of_duplicating_them(self, db):
+        old = User(
+            name="Sofia Martins",
+            email="sofia@preyingmantis.test",
+            password_hash="x",
+            client=Client.DKB,
+            level=Level.ARCHITECT,
+        )
+        db.add(old)
+        db.flush()
+
+        seed(db)
+
+        assert db.scalar(select(User).where(User.email == "sofia@preyingmantis.test")) is None
+        assert db.scalar(select(User).where(User.email == "sofia@cofinpro.pt")).id == old.id
+        assert db.scalar(select(text("COUNT(*)")).select_from(User)) == 17
 
 
 class TestSeedTrainings:
@@ -169,7 +192,7 @@ class TestSeedEnrollments:
             if e.status == EnrollmentStatus.PENDING
         }
 
-        assert deciders == {"sofia@preyingmantis.test", "tiago@preyingmantis.test", "ines@preyingmantis.test", "admin"}
+        assert deciders == {"sofia@cofinpro.pt", "tiago@cofinpro.pt", "ines@cofinpro.pt", "admin"}
 
     def test_past_trainings_have_approved_enrollments(self, seeded):
         now = datetime.now(UTC)
@@ -200,7 +223,7 @@ class TestSeedNotifications:
         second = len(seed_notifications(db))
 
         assert first == second == db.scalar(select(text("COUNT(*)")).select_from(Notification))
-        sofia = db.scalar(select(User).where(User.email == "sofia@preyingmantis.test"))
+        sofia = db.scalar(select(User).where(User.email == "sofia@cofinpro.pt"))
         assert any(n.user_id == sofia.id and n.link == "/approvals" for n in db.scalars(select(Notification)))
 
 
@@ -254,8 +277,8 @@ class TestSeedReservations:
         from app.seed import next_weekdays
 
         day = next_weekdays(1)[0]
-        sofia = db.scalar(select(User).where(User.email == "sofia@preyingmantis.test"))
-        other = db.scalar(select(User).where(User.email == "marta@preyingmantis.test"))
+        sofia = db.scalar(select(User).where(User.email == "sofia@cofinpro.pt"))
+        other = db.scalar(select(User).where(User.email == "marta@cofinpro.pt"))
         db.add(SeatReservation(seat_id=seats["DKB-03"].id, user_id=other.id, date=day))  # Sofia's seed seat
         db.add(SeatReservation(seat_id=seats["DKB-09"].id, user_id=sofia.id, date=day))  # Sofia already has one
         db.flush()

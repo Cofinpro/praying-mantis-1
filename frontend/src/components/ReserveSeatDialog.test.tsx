@@ -51,7 +51,7 @@ afterEach(() => {
 })
 
 async function openSeats() {
-  await storeLoginToken('joao@preyingmantis.test')
+  await storeLoginToken('joao@cofinpro.pt')
   renderRoute('/seats')
   await screen.findByRole('button', { name: /^DKB-01/ })
   return userEvent.setup({ advanceTimers: vi.advanceTimersByTime })

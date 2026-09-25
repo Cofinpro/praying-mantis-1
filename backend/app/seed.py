@@ -30,7 +30,10 @@ from app.models import (
 from app.security import hash_password
 
 SEED_PASSWORD = "password123"
-EMAIL_DOMAIN = "preyingmantis.test"
+EMAIL_DOMAIN = "cofinpro.pt"
+# Seed users used to live here. The seed renames them (keeping their ids, enrollments and
+# reservations) instead of creating a second copy of everyone.
+OLD_EMAIL_DOMAINS = ("preyingmantis.test",)
 
 # (name, email local part, client, level, is_admin, team lead's email local part)
 SEED_USERS: list[tuple[str, str, Client, Level, bool, str | None]] = [
@@ -55,6 +58,9 @@ SEED_USERS: list[tuple[str, str, Client, Level, bool, str | None]] = [
     ("Laura Mendes", "laura", Client.DBIS, Level.SENIOR, False, "ines"),
     # A regular employee without a team lead: an admin approves their requests
     ("Rafael Nunes", "rafael", Client.VV, Level.EXPERT, False, None),
+    # The two of us, as admins. Last, so everyone else keeps their id on a fresh database.
+    ("Bernardo Santos", "bernardo.santos", Client.DBIS, Level.SENIOR_ARCHITECT, True, None),
+    ("Diogo Santos", "diogo.santos", Client.DBIS, Level.SENIOR_ARCHITECT, True, None),
 ]
 
 
@@ -153,11 +159,26 @@ def email_for(local_part: str) -> str:
     return f"{local_part}@{EMAIL_DOMAIN}"
 
 
+def rename_old_domains(db: Session) -> None:
+    """sofia@preyingmantis.test -> sofia@cofinpro.pt, unless the new address is already taken."""
+    for _, local_part, *_ in SEED_USERS:
+        new_email = email_for(local_part)
+        if db.scalar(select(User).where(User.email == new_email)) is not None:
+            continue
+        for domain in OLD_EMAIL_DOMAINS:
+            old = db.scalar(select(User).where(User.email == f"{local_part}@{domain}"))
+            if old is not None:
+                old.email = new_email
+                break
+    db.flush()
+
+
 def seed(db: Session) -> list[User]:
     """Creates or updates every seed user, then commits."""
     # Hash once: argon2 is slow on purpose, and every seed user shares the password
     password_hash = hash_password(SEED_PASSWORD)
 
+    rename_old_domains(db)
     existing = {
         user.email: user
         for user in db.scalars(

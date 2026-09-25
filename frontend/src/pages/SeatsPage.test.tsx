@@ -41,7 +41,7 @@ afterEach(() => {
 })
 
 async function openSeats() {
-  await storeLoginToken('joao@preyingmantis.test') // DKB
+  await storeLoginToken('joao@cofinpro.pt') // DKB
   const view = renderRoute('/seats')
   await screen.findByRole('button', { name: 'DKB-01, free' })
   return view

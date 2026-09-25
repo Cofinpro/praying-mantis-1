@@ -5,7 +5,7 @@ import { renderRoute, storeLoginToken } from '../test/render'
 describe('app shell', () => {
   it('shows the main nav links, with Timesheets and Vacations disabled', async () => {
     // A team lead, so Approvals is among the links (see RoleNavigation.test.tsx for who sees what).
-    await storeLoginToken('sofia@preyingmantis.test')
+    await storeLoginToken('sofia@cofinpro.pt')
     renderRoute('/trainings')
 
     // Query by role and accessible name, as a screen reader user would find them, not by class or test id.

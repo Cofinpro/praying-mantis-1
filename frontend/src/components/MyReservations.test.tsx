@@ -42,7 +42,7 @@ afterEach(() => {
 })
 
 async function openSeats() {
-  await storeLoginToken('joao@preyingmantis.test')
+  await storeLoginToken('joao@cofinpro.pt')
   renderRoute('/seats')
   return userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
 }

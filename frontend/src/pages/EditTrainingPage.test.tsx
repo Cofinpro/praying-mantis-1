@@ -47,7 +47,7 @@ function serveTraining(initial: TrainingRead) {
 
 describe('edit training', () => {
   beforeEach(async () => {
-    await storeLoginToken('admin@preyingmantis.test')
+    await storeLoginToken('admin@cofinpro.pt')
   })
 
   it('reuses the form, pre-filled with the training (times in local time)', async () => {
@@ -136,7 +136,7 @@ describe('edit training', () => {
 describe('cancel training', () => {
   it('asks for confirmation, then shows the training as cancelled', async () => {
     const { cancels } = serveTraining(training)
-    await storeLoginToken('admin@preyingmantis.test')
+    await storeLoginToken('admin@cofinpro.pt')
     const user = userEvent.setup()
     renderRoute('/trainings/12')
 
@@ -152,7 +152,7 @@ describe('cancel training', () => {
 
   it('does nothing when the admin keeps it', async () => {
     const { cancels } = serveTraining(training)
-    await storeLoginToken('admin@preyingmantis.test')
+    await storeLoginToken('admin@cofinpro.pt')
     const user = userEvent.setup()
     renderRoute('/trainings/12')
 
@@ -170,7 +170,7 @@ describe('cancel training', () => {
         HttpResponse.json({ detail: { code: 'training_started', message: 'This training has already started' } }, { status: 409 }),
       ),
     )
-    await storeLoginToken('admin@preyingmantis.test')
+    await storeLoginToken('admin@cofinpro.pt')
     const user = userEvent.setup()
     renderRoute('/trainings/12')
 
@@ -183,7 +183,7 @@ describe('cancel training', () => {
 
   it('offers Edit and Cancel to admins only', async () => {
     serveTraining(training)
-    await storeLoginToken('joao@preyingmantis.test')
+    await storeLoginToken('joao@cofinpro.pt')
     renderRoute('/trainings/12')
 
     await screen.findByRole('heading', { name: 'React Basics', level: 1 })
@@ -193,7 +193,7 @@ describe('cancel training', () => {
 
   it('shows a Cancelled badge on the card in the list', async () => {
     server.use(http.get('*/api/trainings', () => HttpResponse.json([{ ...training, cancelled: true }])))
-    await storeLoginToken('admin@preyingmantis.test')
+    await storeLoginToken('admin@cofinpro.pt')
     renderRoute('/trainings')
 
     const card = (await screen.findByRole('heading', { name: 'React Basics' })).closest('article')!

@@ -26,7 +26,7 @@ function serveMine(mine: MyEnrollments) {
   server.use(http.get('*/api/me/enrollments', () => HttpResponse.json(mine)))
 }
 
-async function openProfile(email = 'joao@preyingmantis.test') {
+async function openProfile(email = 'joao@cofinpro.pt') {
   await storeLoginToken(email)
   renderRoute('/profile')
   return screen.findByRole('heading', { name: 'Profile' })
@@ -41,7 +41,7 @@ describe('profile', () => {
 
     const details = screen.getByRole('region', { name: 'Your details' })
     expect(within(details).getByText('João Silva')).toBeInTheDocument()
-    expect(within(details).getByText('joao@preyingmantis.test')).toBeInTheDocument()
+    expect(within(details).getByText('joao@cofinpro.pt')).toBeInTheDocument()
     expect(within(details).getByText('DKB')).toBeInTheDocument()
     expect(within(details).getByText('Junior')).toBeInTheDocument()
     expect(within(details).getByText('Sofia Martins')).toBeInTheDocument()
@@ -49,7 +49,7 @@ describe('profile', () => {
 
   it('says who approves when there is no team lead', async () => {
     serveMine({ upcoming: [], pending: [], completed: [] })
-    await openProfile('rafael@preyingmantis.test')
+    await openProfile('rafael@cofinpro.pt')
 
     expect(screen.getByText('None (an admin approves your requests)')).toBeInTheDocument()
   })

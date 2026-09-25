@@ -19,6 +19,8 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db
 from app.main import app
+from app.models import Client, Level, User
+from app.security import create_access_token
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 TEST_DB_NAME = f"{settings.db_name}_test"
@@ -70,3 +72,31 @@ def client(db):
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def make_user(db):
+    """Factory: make_user(email="x@test.local", is_admin=True, ...) adds a user and returns it."""
+    counter = 0
+
+    def _make_user(**fields) -> User:
+        nonlocal counter
+        counter += 1
+        defaults = {
+            "name": f"User {counter}",
+            "email": f"user{counter}@test.local",
+            "password_hash": "not-a-real-hash",
+            "client": Client.DKB,
+            "level": Level.JUNIOR,
+        }
+        user = User(**(defaults | fields))
+        db.add(user)
+        db.flush()
+        return user
+
+    return _make_user
+
+
+def auth_headers(user: User) -> dict[str, str]:
+    """Headers that log a test request in as `user`."""
+    return {"Authorization": f"Bearer {create_access_token(user.id)}"}

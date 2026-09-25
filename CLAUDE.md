@@ -94,13 +94,13 @@ What exists today:
     - `enums.py`: `Client` and `Level` (`StrEnum`), and `enum_column()` to store them as VARCHAR
     - `user.py`: `User`, with `team_lead` / `reports` (self-referencing) and the derived `is_team_lead`
   - `app/schemas/`: Pydantic request/response models (the API contract)
-  - `app/routers/`: one `APIRouter` per area. `health.py` has `/api/` and `/api/health/db`, `auth.py` has `/api/auth/login` and `/api/auth/me`.
-  - `app/dependencies.py`: shared dependencies. `CurrentUser` (requires a valid token, gives the `User`) and `DbSession`.
+  - `app/routers/`: one `APIRouter` per area. `health.py` has `/api/` and `/api/health/db`, `auth.py` has `/api/auth/login` and `/api/auth/me`, `users.py` has `/api/users` (admin only).
+  - `app/dependencies.py`: shared dependencies. `CurrentUser` (requires a valid token, gives the `User`), `AdminUser` (also requires `is_admin`, else 403) and `DbSession`.
   - `app/services/`: business rules, no HTTP concerns
   - `app/security.py`: password hashing (`pwdlib`, Argon2id) and JWT create/decode (`PyJWT`, HS256)
   - `app/seed.py`: local seed users (`python -m app.seed`)
   - `alembic/`: migrations (`alembic/versions/`). `env.py` reads the DB URL from `app.config`.
-  - `tests/`: pytest. `conftest.py` provides the `db` and `client` fixtures (see Testing below).
+  - `tests/`: pytest. `conftest.py` provides the `db`, `client` and `make_user` fixtures and the `auth_headers(user)` helper (see Testing below).
   - `.env.example`: DB settings, `CORS_ORIGINS` and `JWT_SECRET`. Copy it to `backend/.env` (git-ignored).
 - `frontend/`: React 19 + TypeScript on Vite, managed with **pnpm**
   - `src/main.tsx`: mounts `<RouterProvider>` (from `react-router/dom`) and loads Inter and the global CSS
@@ -194,6 +194,7 @@ pytest -x                 # stop at the first failure
 
 - Tests use a separate database, `<DB_NAME>_test` (`praying_mantis_test`). The session fixture drops and recreates it, then runs `alembic upgrade head`, so the migrations are tested too.
 - Each test runs inside a transaction that is rolled back, so every test starts empty. Use the `client` fixture for API calls and `db` for direct DB access in the same transaction.
+- Create users with `make_user(name=..., is_admin=True, team_lead=lead, ...)` (every field has a default) and call the API as them with `client.get(url, headers=auth_headers(user))`.
 - The test database is created by `docker-compose.yml` only when the volume is **new**. With an older volume, either reset it (`docker compose down -v && docker compose up -d`) or run once: `docker exec -i praying-mantis-mysql mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS praying_mantis_test; GRANT ALL ON praying_mantis_test.* TO 'app'@'%';"`
 Allowed frontend origins are set by `CORS_ORIGINS` (comma-separated).
 
@@ -231,6 +232,7 @@ Until a backend is deployed, the Pages build runs on the MSW mocks (`VITE_USE_MO
 - **Backend:**
   - DB access goes through the `get_db` dependency (`db: DbSession`)
   - An endpoint that needs a logged-in user takes `user: CurrentUser` (from `app/dependencies.py`). That's all it takes: missing, invalid or expired tokens get a 401 before the endpoint runs.
+  - An admin-only endpoint takes `admin: AdminUser` instead: no token → 401, not an admin → 403 `{"detail": "Admins only"}`. Rules like "only your own reports" are checked in `services/` and also return 403.
   - Business rules live in `services/`, not in routers
   - Pydantic schemas (`schemas/`) are the API contract; SQLAlchemy models (`models/`) are the database shape
   - Every schema change needs an Alembic migration (no `create_all`)

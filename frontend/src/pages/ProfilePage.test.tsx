@@ -17,6 +17,7 @@ function training(id: number, name: string, status: TrainingSummary['my_enrollme
     external_trainer_name: null,
     max_seats: 12,
     seats_left: 4,
+    rating_count: 0,
     cancelled: false,
     my_enrollment_status: status,
   }
@@ -68,7 +69,7 @@ describe('profile', () => {
     expect(within(section('Pending')).getByRole('link', { name: 'FastAPI in Practice' })).toBeInTheDocument()
     const completed = section('Completed')
     expect(within(completed).getByRole('link', { name: 'Git Beyond the Basics' })).toBeInTheDocument()
-    expect(within(completed).getByText('Completed', { selector: 'span' })).toBeInTheDocument()
+    expect(within(completed).getByText('Completed · Rate it', { selector: 'span' })).toBeInTheDocument()
   })
 
   it('shows an empty state for each section', async () => {

@@ -11,6 +11,7 @@ const MESSAGES: Record<string, string> = {
   not_pending: 'This request was already decided.',
   not_withdrawable: 'This request can no longer be withdrawn.',
   seat_taken: 'Sorry, this seat was just taken.',
+  not_completed: 'You can rate a training once you have completed it.',
   already_reserved: 'You already have a seat that day.',
   reservation_in_past: "Past reservations can't be cancelled.",
 }

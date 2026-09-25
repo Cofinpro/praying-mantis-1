@@ -121,6 +121,9 @@ def test_summary_shape_has_no_description(client, junior, catalogue):
         "cancelled": False,
         "my_enrollment_status": None,
         "my_enrollment_id": None,
+        "average_rating": None,
+        "rating_count": 0,
+        "my_rating": None,
     }
     assert soon["trainer"] is None
 

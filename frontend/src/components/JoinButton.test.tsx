@@ -17,6 +17,7 @@ const training: TrainingRead = {
   external_trainer_name: null,
   max_seats: 12,
   seats_left: 4,
+  rating_count: 0,
   cancelled: false,
   my_enrollment_status: null,
 }
@@ -33,6 +34,7 @@ describe('join button', () => {
     ['nothing yet', { my_enrollment_status: null }, 'Request to join', true],
     ['pending', { my_enrollment_status: 'pending' }, 'Pending approval', false],
     ['approved', { my_enrollment_status: 'approved' }, 'Enrolled ✓', false],
+    ['approved and ended', { my_enrollment_status: 'approved', starts_at: '2020-01-01T09:00:00Z', ends_at: '2020-01-01T12:00:00Z' }, 'Completed ✓', false],
     ['rejected', { my_enrollment_status: 'rejected' }, 'Rejected', false],
     ['full', { seats_left: 0 }, 'Full', false],
     ['cancelled', { cancelled: true }, 'Cancelled', false],

@@ -24,3 +24,13 @@ export const updateTraining = (id: number, body: TrainingUpdate) => api.patch<Tr
 
 // Admin only. A soft delete. 409 `training_started` once it has begun, `training_cancelled` if already cancelled.
 export const cancelTraining = (id: number) => api.post<TrainingRead>(`/api/trainings/${id}/cancel`)
+
+export type FeedbackSummary = components['schemas']['FeedbackSummary']
+export type FeedbackRead = components['schemas']['FeedbackRead']
+
+// The average for everyone, mine, whether I may rate, and (admins and the trainer) all comments
+export const getFeedback = (trainingId: number) => api.get<FeedbackSummary>(`/api/trainings/${trainingId}/feedback`)
+
+// Rate 1-5 with an optional comment, after completing it. Again = edit. 409 not_completed.
+export const rateTraining = (trainingId: number, rating: number, comment: string | null) =>
+  api.put<FeedbackRead>(`/api/trainings/${trainingId}/feedback`, { rating, comment })

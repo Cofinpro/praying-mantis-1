@@ -26,6 +26,7 @@ from app.models import (
     Seat,
     SeatReservation,
     Training,
+    TrainingFeedback,
     User,
 )
 from app.security import hash_password
@@ -372,6 +373,41 @@ def seed_notifications(db: Session) -> list[Notification]:
     return notifications
 
 
+SEED_COMMENTS = [
+    "Very practical, I used it the next day.",
+    "Good pace and great examples.",
+    None,
+    "A bit fast in the second half, but worth it.",
+]
+
+
+def seed_feedback(db: Session) -> list[TrainingFeedback]:
+    """Ratings for seed trainings that have ended, from the people approved for them. Adds missing ones only."""
+    now = datetime.now(UTC)
+    enrollments = db.scalars(
+        select(Enrollment)
+        .join(Enrollment.training)
+        .where(
+            Training.name.in_([t[0] for t in SEED_TRAININGS]),
+            Training.ends_at <= now,
+            Training.cancelled_at.is_(None),
+            Enrollment.status == E.APPROVED,
+        )
+    )
+    existing = {(f.training_id, f.user_id) for f in db.scalars(select(TrainingFeedback))}
+    added = []
+    for i, e in enumerate(enrollments):
+        if (e.training_id, e.user_id) in existing:
+            continue
+        feedback = TrainingFeedback(
+            training_id=e.training_id, user_id=e.user_id, rating=5 - i % 2, comment=SEED_COMMENTS[i % len(SEED_COMMENTS)]
+        )
+        db.add(feedback)
+        added.append(feedback)
+    db.commit()
+    return added
+
+
 def main() -> None:
     # --keep-existing: don't overwrite users who already exist (their password, level, lead…)
     keep_existing = "--keep-existing" in sys.argv
@@ -402,6 +438,9 @@ def main() -> None:
         enrollments = seed_enrollments(db)
         counts = {status: sum(e.status == status for e in enrollments) for status in EnrollmentStatus}
         print(f"Seeded {len(enrollments)} enrollments: " + ", ".join(f"{n} {s}" for s, n in counts.items()))
+
+        feedback = seed_feedback(db)
+        print(f"Seeded {len(feedback)} new ratings for past trainings.")
 
         notifications = seed_notifications(db)
         unread = sum(n.read_at is None for n in notifications)

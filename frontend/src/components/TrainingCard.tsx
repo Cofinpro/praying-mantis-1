@@ -3,6 +3,7 @@ import type { TrainingSummary } from '../api/trainings'
 import { formatTrainingTime } from '../lib/datetime'
 import { isBadgeStatus, seatsLabel, trainerLabel } from '../trainings/display'
 import { LevelTag } from './LevelTag'
+import { StarRating } from './Stars'
 import { StatusBadge } from './StatusBadge'
 import styles from './TrainingCard.module.css'
 
@@ -26,6 +27,9 @@ export function TrainingCard({ training, footerNote }: TrainingCardProps) {
       </h2>
       <p className={styles.meta}>{formatTrainingTime(training.starts_at, training.ends_at)}</p>
       <p className={styles.meta}>{trainerLabel(training)}</p>
+      {training.average_rating != null && training.rating_count > 0 && (
+        <StarRating average={training.average_rating} count={training.rating_count} />
+      )}
       <ul className={styles.levels} aria-label="Levels">
         {training.levels.map((level) => (
           <li key={level}>

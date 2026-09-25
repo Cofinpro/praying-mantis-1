@@ -62,7 +62,8 @@ export function ProfilePage() {
             title="Completed"
             trainings={mine.data.completed}
             empty="No completed trainings yet."
-            footerNote="Completed"
+            // Nudge towards feedback: "Rate it" until they have, then their stars
+            footerNote={(t) => (t.my_rating ? `Completed · you gave it ${'★'.repeat(t.my_rating)}` : 'Completed · Rate it')}
           />
         </>
       )}
@@ -76,7 +77,7 @@ type SectionProps = {
   title: string
   trainings: TrainingSummary[]
   empty: string
-  footerNote?: string
+  footerNote?: (training: TrainingSummary) => string
 }
 
 function Section({ title, trainings, empty, footerNote }: SectionProps) {
@@ -92,7 +93,7 @@ function Section({ title, trainings, empty, footerNote }: SectionProps) {
         <ul className={styles.grid}>
           {trainings.map((training) => (
             <li key={training.id} className={styles.item}>
-              <TrainingCard training={training} footerNote={footerNote} />
+              <TrainingCard training={training} footerNote={footerNote?.(training)} />
             </li>
           ))}
         </ul>

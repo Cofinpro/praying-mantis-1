@@ -17,6 +17,7 @@ const reactBasics: TrainingSummary = {
   external_trainer_name: null,
   max_seats: 12,
   seats_left: 4,
+  rating_count: 0,
   cancelled: false,
   my_enrollment_status: 'pending',
 }
@@ -29,6 +30,7 @@ const sqlPerformance: TrainingSummary = {
   external_trainer_name: 'Acme Academy',
   levels: ['junior'],
   seats_left: 0,
+  rating_count: 0,
   max_seats: 10,
   my_enrollment_status: null,
 }

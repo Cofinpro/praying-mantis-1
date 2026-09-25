@@ -155,6 +155,26 @@ Template:
 - Services raise `Conflict` / `ValidationFailed` (`app/errors.py`); handlers in `main.py` turn them into 409 / 422.
 **Consequences:** FE's edit form can send the whole form or only changes; both work. Notifying enrolled people on cancel is a `TODO(BE-4.1)` in `cancel_training`.
 
+## 2026-09-25 — Ratings and feedback after a completed training
+**Status:** Accepted
+**Context:** People who took a training should be able to rate it, and admins and trainers should learn from the comments.
+**Decision:**
+- **Who can rate**: only people who *completed* it (Q10: an approved enrollment, the training has ended, not cancelled). Otherwise it's a 409 `not_completed`. One rating per person (`UNIQUE (training_id, user_id)`), 1–5 (checked by the API *and* a `CHECK` constraint), plus an optional comment of up to 2000 characters. Rating again edits it.
+- **API**:
+  - `PUT /api/trainings/{id}/feedback {rating, comment?}` returns my feedback
+  - `GET /api/trainings/{id}/feedback` returns `{average_rating, rating_count, mine, can_rate, comments}`
+- **Who sees what**: the average and count are visible to anyone who can see the training. The individual comments, with names and photos, go only to **admins and the training's trainer**; everyone else gets `comments: null`.
+- **On every training**: `average_rating` (1 decimal, null until someone rates), `rating_count` and `my_rating` are correlated subqueries of the same list query, so there are no extra queries per card.
+- **Frontend**:
+  - a "Feedback" section on the detail page (stars, a rate/update form, and the comments for admins and the trainer)
+  - "★ 4.5 (6)" on cards
+  - "Completed · Rate it" / "Completed · you gave it ★★★★" on the Profile
+  - The star input is a real radio group (arrow keys work, each radio is named "3 stars").
+- **The panel says "Completed ✓"** for approved trainings that have ended. It used to still say "Enrolled ✓ · See you there!".
+- The seed adds ratings for past seed trainings (only missing ones).
+
+**Consequences:** No anonymous comments: the form says that admins and the trainer see your name.
+
 ## 2026-09-25 — Admin user management and personal passwords
 **Status:** Accepted
 **Context:** Users only existed in the seed, and everyone shared `password123`, which the live login page shows. Admins need to add people, and everyone needs their own password.

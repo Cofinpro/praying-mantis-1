@@ -1,5 +1,5 @@
 from datetime import UTC, datetime
-from typing import Annotated, Self
+from typing import Annotated, ClassVar, Self
 
 from pydantic import (
     AwareDatetime,
@@ -59,6 +59,52 @@ class TrainingCreate(BaseModel):
             raise ValueError("ends_at must be after starts_at")
         if self.trainer_id is not None and self.external_trainer_name is not None:
             raise ValueError("Give either trainer_id or external_trainer_name, not both")
+        return self
+
+
+class TrainingUpdate(BaseModel):
+    """PATCH /api/trainings/{id}: any subset of TrainingCreate's fields.
+
+    Only fields that were sent are applied (model_dump(exclude_unset=True)), so
+    "field missing" (keep it) and "field: null" (clear it) mean different things.
+    Rules that involve two fields (end after start, trainer XOR external) are
+    checked in the service against the training as it will be after the change.
+    """
+
+    name: Name | None = None
+    description: Description | None = None
+    starts_at: AwareDatetime | None = None
+    ends_at: AwareDatetime | None = None
+    max_seats: int | None = Field(default=None, ge=1, le=1000)
+    trainer_id: int | None = None
+    external_trainer_name: TrainerName | None = None
+    levels: list[Level] | None = Field(default=None, min_length=1)
+
+    # Fields that can't be cleared: sending null for them is an error
+    REQUIRED_FIELDS: ClassVar = ("name", "description", "starts_at", "ends_at", "max_seats", "levels")
+
+    @field_validator("starts_at", "ends_at")
+    @classmethod
+    def to_utc(cls, value: datetime | None) -> datetime | None:
+        return value.astimezone(UTC) if value is not None else None
+
+    @field_validator("starts_at")
+    @classmethod
+    def starts_in_the_future(cls, value: datetime | None) -> datetime | None:
+        if value is not None and value <= datetime.now(UTC):
+            raise ValueError("must be in the future")
+        return value
+
+    @field_validator("levels")
+    @classmethod
+    def unique_and_sorted(cls, value: list[Level] | None) -> list[Level] | None:
+        return sorted(set(value), key=LEVEL_ORDER.index) if value is not None else None
+
+    @model_validator(mode="after")
+    def required_fields_are_not_null(self) -> Self:
+        cleared = [f for f in self.REQUIRED_FIELDS if f in self.model_fields_set and getattr(self, f) is None]
+        if cleared:
+            raise ValueError(f"These fields can't be null: {', '.join(cleared)}")
         return self
 
 

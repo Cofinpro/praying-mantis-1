@@ -14,6 +14,19 @@ Template:
 
 ---
 
+## 2026-09-25 — Editing and cancelling trainings
+**Status:** Accepted
+**Context:** BE-2.3 implements `PATCH /api/trainings/{id}` and `POST /api/trainings/{id}/cancel` per the F2 contract. Several details were open.
+**Decision:**
+- **PATCH** applies only the fields that were sent. A missing field is kept; `null` clears `trainer_id` / `external_trainer_name` (= External) and is a 422 for fields that can't be empty.
+- **Cross-field rules are checked on the result**: sending only `ends_at` is compared with the stored `starts_at`. Switching to an external trainer means sending both `"trainer_id": null` and the name, so nothing changes silently.
+- `starts_at`, when sent, must still be in the future. Past trainings can otherwise still be edited (e.g. fixing a typo).
+- **409 codes**: `training_cancelled` (edit or cancel a cancelled training), `training_started` (cancel one that already started, which would erase people's completed training), `max_seats_below_approved`.
+- **Cancel is a soft delete**: `cancelled_at` is set and the row stays, so enrollments and history keep pointing at it. There's no un-cancel.
+- The edit and cancel lock the training row (`SELECT … FOR UPDATE`) so they can't interleave with an approval (BE-3.2 locks the same row). `count_approved` is 0 until BE-3.1.
+- Services raise `Conflict` / `ValidationFailed` (`app/errors.py`); handlers in `main.py` turn them into 409 / 422.
+**Consequences:** FE's edit form can send the whole form or only changes; both work. Notifying enrolled people on cancel is a `TODO(BE-4.1)` in `cancel_training`.
+
 ## 2026-09-25 — Training list: TanStack Query, cards, and the admin filter in the URL
 **Status:** Accepted
 **Context:** FE-2.2 shows `/trainings` as cards and introduces TanStack Query (D7).

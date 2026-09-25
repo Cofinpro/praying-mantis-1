@@ -14,7 +14,8 @@ import styles from './NotificationBell.module.css'
 
 // The bell and its dropdown. The list is a disclosure (a button that shows a panel of buttons), not an
 // ARIA "menu": menus promise arrow-key navigation and typeahead, which a short list of links doesn't need.
-export function NotificationBell() {
+// onOpen lets the TopBar close its phone menu, so the two panels never stack.
+export function NotificationBell({ onOpen }: { onOpen?: () => void }) {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
@@ -96,7 +97,11 @@ export function NotificationBell() {
         aria-label={label}
         aria-expanded={open}
         aria-controls={panelId}
-        onClick={() => (open ? close({ restoreFocus: false }) : setOpen(true))}
+        onClick={() => {
+          if (open) return close({ restoreFocus: false })
+          setOpen(true)
+          onOpen?.()
+        }}
       >
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
           <path

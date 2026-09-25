@@ -112,6 +112,10 @@
 }
 
 @media (max-width: 600px) {
+  .title {
+    font: var(--font-h2);
+  }
+
   .header {
     padding: var(--space-5);
   }

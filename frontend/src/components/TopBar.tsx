@@ -37,7 +37,7 @@ export function TopBar() {
       </div>
 
       <div className={styles.right}>
-        <NotificationBell />
+        <NotificationBell onOpen={() => setMenuOpenedAt(null)} />
         <Link to="/profile" className={styles.user}>
           <Avatar name={name} src={user?.avatar_url} />
           <span className={styles.userName}>{name}</span>

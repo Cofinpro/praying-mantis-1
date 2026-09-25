@@ -142,3 +142,20 @@
   color: var(--color-text-secondary);
   text-align: center;
 }
+
+/* Phones: the bell isn't at the screen's right edge, so a panel anchored to it would slide off the left.
+   Pin it under the top bar instead, full width with a small margin, and scroll inside it. */
+@media (max-width: 600px) {
+  .panel {
+    position: fixed;
+    top: 64px;
+    right: var(--space-3);
+    left: var(--space-3);
+    width: auto;
+    max-height: calc(100dvh - 64px - var(--space-6));
+  }
+
+  .item {
+    padding: var(--space-3);
+  }
+}

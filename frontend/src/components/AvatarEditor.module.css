@@ -7,11 +7,14 @@
 
 .actions {
   display: flex;
-  gap: var(--space-3);
+  gap: var(--space-1);
 }
 
 .link {
-  padding: 0;
+  /* Small text, but a comfortable tap target */
+  min-height: 32px;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
   border: none;
   background: none;
   font: var(--font-caption);

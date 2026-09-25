@@ -19,6 +19,7 @@ import {
   withdrawMockEnrollment,
 } from './data/trainings'
 import type { UserSummary } from '../api/users'
+import { getMockAvatar, removeMockAvatar, setMockAvatar } from './data/avatars'
 import { listMockNotifications, markMockRead } from './data/notifications'
 import { cancelMockReservation, listMockMyReservations, listMockSeats, reserveMockSeat } from './data/seats'
 import { findSeedUserByEmail, findSeedUserById, searchSeedUsers, SEED_PASSWORD, toCurrentUser } from './data/users'
@@ -240,5 +241,32 @@ export const handlers = [
     return result.status === 204
       ? new HttpResponse(null, { status: 204 })
       : HttpResponse.json({ detail: result.detail }, { status: result.status })
+  }),
+
+  // Like the backend: only JPEG/PNG/WebP, at most 512 KB. Returns me with the new avatar_url.
+  http.put('*/api/me/avatar', async ({ request }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    const file = (await request.formData()).get('file')
+    if (!(file instanceof Blob) || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      return HttpResponse.json({ detail: [{ type: 'avatar_type', loc: ['body', 'file'], msg: 'Use a JPEG, PNG or WebP image' }] }, { status: 422 })
+    }
+    if (file.size > 512 * 1024) {
+      return HttpResponse.json({ detail: [{ type: 'avatar_too_large', loc: ['body', 'file'], msg: 'The image is too large (max 512 KB)' }] }, { status: 422 })
+    }
+    setMockAvatar(user.id, file)
+    return HttpResponse.json<CurrentUser>(toCurrentUser(user))
+  }),
+
+  http.delete('*/api/me/avatar', ({ request }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    removeMockAvatar(user.id)
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  http.get('*/api/users/:id/avatar', ({ params }) => {
+    const blob = getMockAvatar(Number(params.id))
+    return blob ? new HttpResponse(blob, { headers: { 'Content-Type': blob.type } }) : new HttpResponse(null, { status: 404 })
   }),
 ]

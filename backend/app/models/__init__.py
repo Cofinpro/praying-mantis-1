@@ -4,6 +4,7 @@ Import every model here, so Alembic sees all tables through Base.metadata.
 """
 
 from app.database import Base
+from app.models.avatar import UserAvatar
 from app.models.enrollment import Enrollment
 from app.models.enums import Client, EnrollmentStatus, Level, NotificationType
 from app.models.notification import Notification
@@ -25,4 +26,5 @@ __all__ = [
     "Training",
     "TrainingLevel",
     "User",
+    "UserAvatar",
 ]

@@ -52,6 +52,9 @@ export class ApiError extends Error {
   }
 }
 
+// A path the API returns (e.g. an avatar_url) as a full URL, for places that fetch by themselves like <img src>
+export const apiUrl = (path: string) => `${API_URL}${path}`
+
 type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
 type RequestOptions = {
@@ -63,7 +66,9 @@ type RequestOptions = {
 // match the contract, which is why the types come from the backend's OpenAPI schema (src/api/schema.d.ts).
 async function request<T>(method: Method, path: string, body?: unknown, options: RequestOptions = {}): Promise<T> {
   const headers: Record<string, string> = {}
-  if (body !== undefined) {
+  // FormData (file uploads) goes as is: the browser sets multipart/form-data with its boundary itself
+  const isForm = body instanceof FormData
+  if (body !== undefined && !isForm) {
     headers['Content-Type'] = 'application/json'
   }
   const token = options.anonymous ? null : authToken.get()
@@ -74,7 +79,7 @@ async function request<T>(method: Method, path: string, body?: unknown, options:
   const response = await fetch(`${API_URL}${path}`, {
     method,
     headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
   })
 
   if (!response.ok) {

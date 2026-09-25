@@ -155,6 +155,24 @@ Template:
 - Services raise `Conflict` / `ValidationFailed` (`app/errors.py`); handlers in `main.py` turn them into 409 / 422.
 **Consequences:** FE's edit form can send the whole form or only changes; both work. Notifying enrolled people on cancel is a `TODO(BE-4.1)` in `cancel_training`.
 
+## 2026-09-25 — Profile pictures: shrunk in the browser, stored in MySQL, served publicly
+**Status:** Accepted
+**Context:** Users want a profile picture. The backend runs on Render's free plan, whose disk is wiped on every deploy, and there's no object storage.
+**Decision:**
+- **Storage**: a `user_avatars` table (`user_id` PK → users, `content_type`, `data` MEDIUMBLOB, `updated_at`). `data` is a *deferred* column, so loading a user or `/me` never pulls the bytes.
+- **API**:
+  - `PUT /api/me/avatar` (multipart, field `file`) returns me with `avatar_url`
+  - `DELETE /api/me/avatar` returns 204
+  - `GET /api/users/{id}/avatar` returns the image, with `Cache-Control: public, max-age=31536000, immutable` and `nosniff`
+
+  `CurrentUserRead` has `avatar_url` (e.g. `/api/users/16/avatar?v=1790350000`, or null). The `?v=` changes with each upload, which is what makes the year-long cache safe.
+- **Validation** (422, the same format as Pydantic's): JPEG, PNG or WebP only; at most 512 KB; and the first bytes must match the claimed type, so only real images are stored.
+- **The GET needs no login**, because `<img src>` can't send a Bearer token. The trade-off: anyone who guesses a user id can see that user's picture. That's acceptable for avatars. The alternative (fetching with the token into a blob URL) would add code to every place that shows a picture.
+- **The frontend shrinks the photo first** (`lib/image.ts`): `createImageBitmap` (with EXIF rotation) → center-crop to a square → 256 px canvas → JPEG. A 5 MB phone photo uploads as a few KB. `AvatarEditor` on the Profile page has "Add photo" / "Change photo" / "Remove". The answer goes into the `['me']` cache, so the TopBar updates too.
+- **Tests**: backend tests cover every rule. In the frontend tests, only the upload call is replaced, because Vitest's jsdom fetch shim and MSW crash on multipart bodies inside the test environment (not in our code). The mocks still support the whole flow for `pnpm dev:mock`.
+
+**Consequences:** Other places can show pictures with `<Avatar src={…avatar_url} />` once their API responses include it (e.g. approvals, seat tooltips).
+
 ## 2026-09-25 — Seed logins use @cofinpro.pt, plus admin accounts for both devs
 **Status:** Accepted
 **Context:** The seed users had `@preyingmantis.test` addresses. We want company-style logins, and our own admin accounts.

@@ -19,3 +19,7 @@
   height: 64px;
   font: var(--font-h2);
 }
+
+.photo {
+  object-fit: cover;
+}

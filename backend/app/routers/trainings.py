@@ -19,7 +19,7 @@ def _not_found() -> HTTPException:
     return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Training not found")
 
 
-def _fields(row: service.TrainingRow) -> dict:
+def training_fields(row: service.TrainingRow) -> dict:
     training = row.training
     return {
         "id": training.id,
@@ -48,7 +48,7 @@ def list_trainings(
     """Employees: upcoming, not cancelled trainings for their own level, soonest first.
     Admins: every training (past and cancelled too), optionally filtered by level."""
     rows = service.list_trainings(db, viewer=user, level=level)
-    return [TrainingSummary.model_validate(_fields(row)) for row in rows]
+    return [TrainingSummary.model_validate(training_fields(row)) for row in rows]
 
 
 @router.get(
@@ -60,7 +60,7 @@ def get_training(training_id: int, db: DbSession, user: CurrentUser) -> Training
     if row is None:
         # Same 404 for "doesn't exist" and "not for your level": don't reveal which
         raise _not_found()
-    return TrainingRead.model_validate(_fields(row))
+    return TrainingRead.model_validate(training_fields(row))
 
 
 @router.post("", status_code=status.HTTP_201_CREATED, responses=ADMIN_ONLY)
@@ -68,7 +68,7 @@ def create_training(body: TrainingCreate, db: DbSession, admin: AdminUser) -> Tr
     """Admin only. Times must be sent in UTC (or with an offset); they come back in UTC.
     An unknown trainer_id is a 422 like any other validation error."""
     row = service.create_training(db, body, created_by=admin)
-    return TrainingRead.model_validate(_fields(row))
+    return TrainingRead.model_validate(training_fields(row))
 
 
 @router.patch("/{training_id}", responses=ADMIN_ONLY | NOT_FOUND | CONFLICT)
@@ -80,7 +80,7 @@ def update_training(
     row = service.update_training(db, training_id, body, viewer=admin)
     if row is None:
         raise _not_found()
-    return TrainingRead.model_validate(_fields(row))
+    return TrainingRead.model_validate(training_fields(row))
 
 
 @router.post("/{training_id}/cancel", responses=ADMIN_ONLY | NOT_FOUND | CONFLICT)
@@ -90,4 +90,4 @@ def cancel_training(training_id: int, db: DbSession, admin: AdminUser) -> Traini
     row = service.cancel_training(db, training_id, viewer=admin)
     if row is None:
         raise _not_found()
-    return TrainingRead.model_validate(_fields(row))
+    return TrainingRead.model_validate(training_fields(row))

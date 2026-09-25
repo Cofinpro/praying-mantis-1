@@ -14,6 +14,35 @@ Template:
 
 ---
 
+## 2026-09-25 — Withdrawing, and one state machine for every status change
+**Status:** Accepted
+**Context:** BE-3.3 implements `POST /api/enrollments/{id}/withdraw`. Approve, reject and withdraw each change an enrollment's status.
+**Decision:**
+- **One table decides every move** (`ALLOWED_MOVES` + `check_move` in `services/enrollments.py`): pending → approved | rejected | withdrawn, approved → withdrawn, nothing out of rejected or withdrawn. A test checks all 16 combinations against the agreed diagram.
+- **Withdraw rules:**
+  - only the **owner**: 403 for anyone else, including their team lead and admins
+  - only from **pending or approved**: 409 `not_withdrawable`
+  - only **before `starts_at`**: 409 `training_started`
+  - it works on a cancelled training too (harmless)
+- Withdrawing an approved enrollment frees its seat. `decided_by` / `decided_at` stay as the record of the earlier approval.
+- Requesting again after a withdrawal is `request()`'s job (the same row goes back to pending), not a state-machine move.
+- Withdraw locks the training row, then the enrollment row, like approve, so a withdrawal and an approval of the same request can't interleave.
+**Consequences:** Notifying the team lead is a `TODO(BE-4.1)` in `withdraw`.
+
+## 2026-09-25 — Approvals: who decides, and how the last seat is protected
+**Status:** Accepted
+**Context:** BE-3.2 implements `GET /api/approvals` and approve/reject per the F3 contract, with Q6 answered by the defaults.
+**Decision:**
+- **Who decides** (`can_decide` / `_decidable_by` in `services/enrollments.py`): the requester's team lead. **Admins decide only for users without a team lead** (Q6), not as an override for everyone. Nobody decides their own request. The list and the approve/reject permission use the same rule, so what you see is exactly what you may decide.
+- **The approvals list** holds only pending requests for upcoming, uncancelled trainings, oldest first. Anyone logged in may call it, and employees get `[]`.
+- **Approve** runs in one transaction:
+  1. lock the training row (`SELECT … FOR UPDATE`), then the enrollment row, in that order everywhere
+  2. check it's still pending and the training hasn't started or been cancelled
+  3. count approved enrollments with a **locking read** (`… FOR SHARE`), which is needed under MySQL's REPEATABLE READ. `tests/test_approvals_concurrency.py` proves it: with a plain `COUNT`, two leads both approved a 1-seat training.
+- **409 codes:** `not_pending`, `training_full`, `training_started`, `training_cancelled`. **403** for someone else's report. Approve and reject both take an optional `{comment}` (max 500).
+- Reject doesn't check capacity. A rejected user can't ask again (Q8).
+**Consequences:** An admin can't approve on behalf of an absent team lead. If that's needed, it's a separate rule to add. Notifying the requester is a `TODO(BE-4.1)`.
+
 ## 2026-09-25 — Requesting a seat: rules and error codes
 **Status:** Accepted
 **Context:** BE-3.1 implements `POST /api/trainings/{id}/enrollments` per the F3 contract, with Q7 and Q8 answered by the defaults.

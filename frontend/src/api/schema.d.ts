@@ -337,6 +337,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/seats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Seat Map
+         * @description Every seat's status on a day, sorted by zone, row and column.
+         */
+        get: operations["seat_map_api_seats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/reservations": {
         parameters: {
             query?: never;
@@ -528,6 +548,13 @@ export interface components {
          * @enum {string}
          */
         NotificationType: "enrollment_requested" | "enrollment_approved" | "enrollment_rejected" | "enrollment_withdrawn" | "training_cancelled" | "training_changed";
+        /** Occupant */
+        Occupant: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+        };
         /** Requester */
         Requester: {
             /** Id */
@@ -563,6 +590,29 @@ export interface components {
             /** Label */
             label: string;
             zone: components["schemas"]["Client"];
+        };
+        /**
+         * SeatStatus
+         * @description GET /api/seats?date=: one seat on one day.
+         */
+        SeatStatus: {
+            /** Id */
+            id: number;
+            /** Label */
+            label: string;
+            zone: components["schemas"]["Client"];
+            /** Pos X */
+            pos_x: number;
+            /** Pos Y */
+            pos_y: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "free" | "taken" | "mine";
+            taken_by: components["schemas"]["Occupant"] | null;
+            /** Bookable */
+            bookable: boolean;
         };
         /** TeamLeadSummary */
         TeamLeadSummary: {
@@ -1552,6 +1602,43 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+        };
+    };
+    seat_map_api_seats_get: {
+        parameters: {
+            query: {
+                /** @description YYYY-MM-DD */
+                date: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeatStatus"][];
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description date_in_past | date_too_far | date_weekend */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

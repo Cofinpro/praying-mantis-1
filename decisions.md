@@ -149,6 +149,17 @@ Template:
 - Services raise `Conflict` / `ValidationFailed` (`app/errors.py`); handlers in `main.py` turn them into 409 / 422.
 **Consequences:** FE's edit form can send the whole form or only changes; both work. Notifying enrolled people on cancel is a `TODO(BE-4.1)` in `cancel_training`.
 
+## 2026-09-25 — The live site talks to the Render backend
+**Status:** Accepted
+**Context:** FE-7.1. BE-7.1 deployed the backend on Render, and every endpoint the frontend uses is live (BE-6.2 and BE-4.1 included). The AC says "the `VITE_API_URL` repo variable is set".
+**Decision:**
+- `deploy-pages.yml` now **defaults** to `VITE_API_URL=https://praying-mantis-api.onrender.com` and `VITE_USE_MOCKS=false`, so no one has to click through repo settings. The repo variables of the same names still override both (e.g. `VITE_USE_MOCKS=true` for a mock-only demo). The URL isn't a secret: it ends up in the public JavaScript anyway.
+- The login page shows "Local seed users: password123" on the live site too (`VITE_SHOW_SEED_HINT`), because Render runs the seed data.
+- The login page shows "The server is waking up. This can take up to a minute." when the login takes more than 4 s (Render's free plan sleeps after 15 idle minutes).
+- Seats now use the generated `SeatStatus` type. Every API type now comes from `schema.d.ts` except `my_enrollment_id`, still waiting on BE.
+
+**Consequences:** Every push to `main` deploys a frontend that uses the real backend. Mocks remain for `pnpm dev:mock` and the tests.
+
 ## 2026-09-25 — On mocks, API calls go to the page's own origin
 **Status:** Accepted
 **Context:** On a phone (Chrome), logging in to the live site failed with "Something went wrong". The Pages build runs on MSW mocks but still sent API calls to the default `http://localhost:8000`. Chrome on phones can block a public site's requests to `localhost` (local-network protection) before the mock service worker answers them, so `fetch` failed.

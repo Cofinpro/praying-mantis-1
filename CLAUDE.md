@@ -310,9 +310,10 @@ GitHub Pages hosts only the static frontend.
 - **Cold start:** after 15 minutes without requests the service sleeps, and the next request takes about a minute.
 - Logs and redeploys: Render dashboard → `praying-mantis-api` → **Logs** / **Manual Deploy**.
 
-The Pages build uses `--base=/<repo-name>/` and reads the backend URL from the
-repo variable `VITE_API_URL` (Settings → Secrets and variables → Actions → Variables).
-Until a backend is deployed, the Pages build runs on the MSW mocks (`VITE_USE_MOCKS` defaults to `true` in the workflow; set the repo variable to `false` to use the real API).
+**Frontend:** https://cofinpro.github.io/praying-mantis-1/ talks to the Render backend (FE-7.1).
+- The Pages build uses `--base=/<repo-name>/`. `deploy-pages.yml` defaults to `VITE_API_URL=https://praying-mantis-api.onrender.com` and `VITE_USE_MOCKS=false`. The repo variables of the same names (Settings → Secrets and variables → Actions → Variables) override them, e.g. `VITE_USE_MOCKS=true` for a mock-only demo.
+- The backend's `CORS_ORIGINS` must include `https://cofinpro.github.io`, and it does.
+- After a cold start, the first request (usually the login) can take about a minute.
 
 ## Conventions
 

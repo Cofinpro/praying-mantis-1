@@ -69,6 +69,9 @@
 /* Figma "Tooltip": dark, above the seat, on hover and on focus. :focus (not :focus-visible) so a tap on a
    phone, which focuses the button, shows who took the seat too. */
 .tooltip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   position: absolute;
   bottom: calc(100% + var(--space-2));
   left: 50%;

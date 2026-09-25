@@ -184,7 +184,7 @@ Template:
 - **The frontend shrinks the photo first** (`lib/image.ts`): `createImageBitmap` (with EXIF rotation) → center-crop to a square → 256 px canvas → JPEG. A 5 MB phone photo uploads as a few KB. `AvatarEditor` on the Profile page has "Add photo" / "Change photo" / "Remove". The answer goes into the `['me']` cache, so the TopBar updates too.
 - **Tests**: backend tests cover every rule. In the frontend tests, only the upload call is replaced, because Vitest's jsdom fetch shim and MSW crash on multipart bodies inside the test environment (not in our code). The mocks still support the whole flow for `pnpm dev:mock`.
 
-**Consequences:** Other places can show pictures with `<Avatar src={…avatar_url} />` once their API responses include it (e.g. approvals, seat tooltips).
+**Consequences:** Other places can show pictures with `<Avatar src={…avatar_url} />` once their API responses include it. Approvals (`Requester.avatar_url`) and seat tooltips (`Occupant.avatar_url`) do now. Their queries `joinedload` the avatar row (still one query for the seat map; the bytes stay deferred).
 
 ## 2026-09-25 — Seed logins use @cofinpro.pt, plus admin accounts for both devs
 **Status:** Accepted

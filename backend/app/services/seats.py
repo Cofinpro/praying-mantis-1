@@ -65,6 +65,8 @@ def seat_map(db: Session, viewer: User, day: date) -> list[SeatOnDay]:
         # Zones in the Client enum's order (DKB, Deka, VV, DBIS, UNION), not alphabetical:
         # CASE zone WHEN 'DKB' THEN 0 WHEN 'Deka' THEN 1 ... END
         .order_by(ZONE_ORDER, Seat.pos_y, Seat.pos_x)
+        # The occupant's avatar row joins into the same query (still ONE query); its bytes are deferred
+        .options(joinedload(User.avatar))
     )
     result = []
     for seat, occupant in db.execute(query):

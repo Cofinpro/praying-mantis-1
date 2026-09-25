@@ -91,7 +91,7 @@ def test_lead_sees_only_their_reports_pending_requests(
     body = approvals(client, lead)
 
     assert [a["enrollment"]["id"] for a in body] == [mine.id]
-    assert body[0]["user"] == {"id": report.id, "name": "João Silva"}
+    assert body[0]["user"] == {"id": report.id, "name": "João Silva", "avatar_url": None}
     assert body[0]["training"]["name"] == "Intro to FastAPI"
     assert body[0]["training"]["seats_left"] == 9
     assert "description" not in body[0]["training"]  # a TrainingSummary

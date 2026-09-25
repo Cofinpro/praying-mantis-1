@@ -32,6 +32,7 @@ class Occupant(BaseModel):
 
     id: int
     name: str
+    avatar_url: str | None
 
 
 class SeatStatus(BaseModel):

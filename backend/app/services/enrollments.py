@@ -152,7 +152,8 @@ def pending_for(db: Session, decider: User) -> list[Enrollment]:
             Training.cancelled_at.is_(None),
             Training.starts_at > datetime.now(UTC),
         )
-        .options(joinedload(Enrollment.user))
+        # The requester's avatar row joins in too (its image bytes are deferred), for Requester.avatar_url
+        .options(joinedload(Enrollment.user).joinedload(User.avatar))
         .order_by(Enrollment.requested_at, Enrollment.id)
     )
     return list(db.scalars(query))

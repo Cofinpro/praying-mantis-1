@@ -102,3 +102,52 @@ class TestDelete:
 
     def test_deleting_when_there_is_none_is_fine(self, client, make_user):
         assert client.delete("/api/me/avatar", headers=auth_headers(make_user())).status_code == 204
+
+
+class TestShownElsewhere:
+    def test_approvals_include_the_requesters_picture(self, client, db, make_user):
+        from datetime import UTC, datetime, timedelta
+
+        from app.models import Enrollment, EnrollmentStatus, Level, Training
+
+        lead = make_user()
+        employee = make_user(team_lead=lead)
+        upload(client, employee)
+        training = Training(
+            name="T",
+            description="d",
+            starts_at=datetime.now(UTC) + timedelta(days=3),
+            ends_at=datetime.now(UTC) + timedelta(days=3, hours=2),
+            max_seats=5,
+            created_by=lead,
+            levels=[Level.JUNIOR],
+        )
+        db.add(training)
+        db.flush()
+        db.add(Enrollment(training_id=training.id, user_id=employee.id, status=EnrollmentStatus.PENDING))
+        db.flush()
+
+        items = client.get("/api/approvals", headers=auth_headers(lead)).json()
+
+        assert items[0]["user"]["avatar_url"].startswith(f"/api/users/{employee.id}/avatar?v=")
+
+    def test_seat_map_includes_the_occupants_picture(self, client, db, make_user):
+        from datetime import date, timedelta
+
+        from app.models import Client, Seat, SeatReservation
+
+        me, colleague = make_user(client=Client.DKB), make_user(client=Client.DKB)
+        upload(client, colleague)
+        seat = Seat(label="DKB-01", zone=Client.DKB, pos_x=0, pos_y=0)
+        db.add(seat)
+        day = date.today() + timedelta(days=1)
+        while day.weekday() >= 5:
+            day += timedelta(days=1)
+        db.flush()
+        db.add(SeatReservation(seat_id=seat.id, user_id=colleague.id, date=day))
+        db.flush()
+
+        seats = client.get(f"/api/seats?date={day}", headers=auth_headers(me)).json()
+
+        taken = next(s for s in seats if s["label"] == "DKB-01")
+        assert taken["taken_by"]["avatar_url"].startswith(f"/api/users/{colleague.id}/avatar?v=")

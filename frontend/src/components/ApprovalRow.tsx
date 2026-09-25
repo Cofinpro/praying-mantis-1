@@ -5,6 +5,7 @@ import { queryKeys } from '../api/queryClient'
 import { enrollmentErrorMessage } from '../enrollments/messages'
 import { formatDateTime, formatTrainingTime } from '../lib/datetime'
 import { seatsLabel } from '../trainings/display'
+import { Avatar } from './Avatar'
 import { Button } from './Button'
 import styles from './ApprovalRow.module.css'
 import { TextField } from './TextField'
@@ -39,10 +40,13 @@ export function ApprovalRow({ item }: { item: ApprovalItem }) {
   return (
     <article className={styles.row} aria-labelledby={headingId}>
       <div className={styles.who}>
-        <h2 id={headingId} className={styles.name}>
-          {user.name}
-        </h2>
-        <p className={styles.meta}>Requested {formatDateTime(enrollment.requested_at)}</p>
+        <Avatar name={user.name} src={user.avatar_url} />
+        <div className={styles.whoText}>
+          <h2 id={headingId} className={styles.name}>
+            {user.name}
+          </h2>
+          <p className={styles.meta}>Requested {formatDateTime(enrollment.requested_at)}</p>
+        </div>
       </div>
       <div className={styles.what}>
         <p className={styles.training}>{training.name}</p>

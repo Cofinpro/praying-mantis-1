@@ -5,7 +5,7 @@ type AvatarProps = {
   name: string
   // avatar_url from the API (relative), or null/undefined for the initials
   src?: string | null
-  size?: 'sm' | 'md'
+  size?: 'xs' | 'sm' | 'md'
 }
 
 function initialsOf(name: string) {

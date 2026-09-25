@@ -15,7 +15,7 @@ function seat(id: number, label: string, zone: Seat['zone'], x: number, y: numbe
 
 const seats: Seat[] = [
   seat(1, 'DKB-01', 'DKB', 0, 0),
-  seat(2, 'DKB-02', 'DKB', 1, 0, { status: 'taken', taken_by: { id: 6, name: 'Marta Lopes' }, bookable: false }),
+  seat(2, 'DKB-02', 'DKB', 1, 0, { status: 'taken', taken_by: { id: 6, name: 'Marta Lopes', avatar_url: null }, bookable: false }),
   seat(3, 'DKB-03', 'DKB', 0, 1, { status: 'mine', bookable: false }),
   seat(101, 'DEKA-01', 'Deka', 0, 0, { bookable: false }),
 ]
@@ -130,5 +130,18 @@ describe('seat map', () => {
     // No loading state: Monday's seats come straight from the cache (and refresh in the background)
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'DKB-01, free' })).toBeInTheDocument()
+  })
+
+  it("shows the occupant's photo in the tooltip", async () => {
+    serveSeats(
+      seats.map((s) =>
+        s.status === 'taken' && s.taken_by ? { ...s, taken_by: { ...s.taken_by, avatar_url: '/api/users/6/avatar?v=1' } } : s,
+      ),
+    )
+    await openSeats()
+
+    const tooltip = screen.getByRole('tooltip')
+    expect(tooltip).toHaveTextContent('Taken by Marta Lopes')
+    expect(tooltip.querySelector('img')).toHaveAttribute('src', expect.stringContaining('/api/users/6/avatar?v=1'))
   })
 })

@@ -67,9 +67,9 @@ def test_every_seat_with_its_status(client, make_user, ana, seats, book):
 
     assert body["DKB-01"] == {
         "id": seats["DKB-01"].id, "label": "DKB-01", "zone": "DKB", "pos_x": 0, "pos_y": 0,
-        "status": "mine", "taken_by": {"id": ana.id, "name": "Ana Silva"}, "bookable": False,
+        "status": "mine", "taken_by": {"id": ana.id, "name": "Ana Silva", "avatar_url": None}, "bookable": False,
     }
-    assert (body["DKB-02"]["status"], body["DKB-02"]["taken_by"]) == ("taken", {"id": rui.id, "name": "Rui Costa"})
+    assert (body["DKB-02"]["status"], body["DKB-02"]["taken_by"]) == ("taken", {"id": rui.id, "name": "Rui Costa", "avatar_url": None})
     assert (body["DKB-06"]["status"], body["DKB-06"]["taken_by"]) == ("free", None)
 
 

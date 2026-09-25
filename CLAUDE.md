@@ -263,7 +263,15 @@ pnpm gen:api   # regenerate src/api/schema.d.ts from http://localhost:8000/opena
 
 ## Deployment
 
-GitHub Pages hosts only the static frontend. The backend isn't deployed anywhere yet (story BE-7.1).
+GitHub Pages hosts only the static frontend.
+
+**Backend:** https://praying-mantis-api.onrender.com (API docs at `/docs`, check `/api/health/db`)
+- Render free web service built from `backend/Dockerfile`, set up by `render.yaml`. It redeploys when a push to `main` touches `backend/` and the GitHub checks pass.
+- Database: Aiven free MySQL 8 over verified TLS. Secrets (DB host/port/password, CA, JWT secret) live in Render's **Environment** settings, never in git.
+- Demo data only: `SEED_ON_START=true` re-runs the seed on every start, so seed logins work there too.
+- **Cold start:** after 15 minutes without requests the service sleeps, and the next request takes about a minute.
+- Logs and redeploys: Render dashboard → `praying-mantis-api` → **Logs** / **Manual Deploy**.
+
 The Pages build uses `--base=/<repo-name>/` and reads the backend URL from the
 repo variable `VITE_API_URL` (Settings → Secrets and variables → Actions → Variables).
 Until a backend is deployed, the Pages build runs on the MSW mocks (`VITE_USE_MOCKS` defaults to `true` in the workflow; set the repo variable to `false` to use the real API).

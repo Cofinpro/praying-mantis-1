@@ -26,3 +26,14 @@
   font: var(--font-body);
   color: var(--color-text-secondary);
 }
+
+/* Phones: the 32 px title takes a lot of a 375 px screen */
+@media (max-width: 600px) {
+  .title {
+    font: var(--font-h2);
+  }
+
+  .header {
+    margin-bottom: var(--space-6);
+  }
+}

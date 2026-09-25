@@ -118,4 +118,18 @@ describe('notification bell', () => {
 
     expect(screen.queryByRole('region', { name: 'Notifications' })).not.toBeInTheDocument()
   })
+
+  it('closes the phone menu when it opens, so the two panels never stack', async () => {
+    serveNotifications()
+    const user = userEvent.setup()
+    await renderLoggedIn()
+    const menu = await screen.findByRole('button', { name: 'Menu' })
+
+    await user.click(menu)
+    expect(menu).toHaveAttribute('aria-expanded', 'true')
+    await user.click(screen.getByRole('button', { name: 'Notifications, 2 unread' }))
+
+    expect(menu).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByRole('region', { name: 'Notifications' })).toBeInTheDocument()
+  })
 })

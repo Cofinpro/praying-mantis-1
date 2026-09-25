@@ -32,10 +32,11 @@
   color: var(--color-text-brand);
 }
 
+/* No overflow here: a scroll container would clip the seats' "Taken by …" tooltips. The seat width
+   (--seat-width) is what makes five seats fit on a phone. */
 .grid {
   display: grid;
   gap: var(--space-2);
-  overflow-x: auto;
 }
 
 .legend {

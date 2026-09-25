@@ -155,6 +155,19 @@ Template:
 - Services raise `Conflict` / `ValidationFailed` (`app/errors.py`); handlers in `main.py` turn them into 409 / 422.
 **Consequences:** FE's edit form can send the whole form or only changes; both work. Notifying enrolled people on cancel is a `TODO(BE-4.1)` in `cancel_training`.
 
+## 2026-09-25 — Mobile cleanup: notifications panel, seat tooltips on tap, tap targets
+**Status:** Accepted
+**Context:** On phones, the notifications panel slid off the left edge of the screen, and a few other things were awkward.
+**Decision:**
+- **Notifications panel**: on ≤ 600 px it's `position: fixed` under the top bar, full width with a 12 px margin, and scrolls inside. It used to be anchored to the bell, which isn't at the screen's edge on phones. Opening the bell also closes the phone menu, so the two panels never stack.
+- **Seat tooltips**:
+  - They show on `:focus`, not only `:focus-visible`, so tapping a taken seat on a phone shows "Taken by …".
+  - The zone grid lost its `overflow-x: auto`. A scroll container clips anything drawn outside it, which also hid the first row's tooltips on desktop. `--seat-width` already makes five seats fit.
+- **Tap targets**: "Add photo" / "Change photo" / "Remove" now have padding and a 32 px minimum height.
+- **Titles**: page titles use the h2 size on phones.
+
+**Consequences:** Checked at 375 px: no page is wider than the viewport, and the bell, menu, dialogs and forms all fit.
+
 ## 2026-09-25 — Profile pictures: shrunk in the browser, stored in MySQL, served publicly
 **Status:** Accepted
 **Context:** Users want a profile picture. The backend runs on Render's free plan, whose disk is wiped on every deploy, and there's no object storage.

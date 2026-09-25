@@ -34,9 +34,12 @@ class Conflict(Exception):
 class ValidationFailed(Exception):
     """Invalid input that Pydantic alone couldn't catch (e.g. an id that doesn't exist)."""
 
-    def __init__(self, field: str, message: str, error_type: str, value: object = None):
+    def __init__(
+        self, field: str, message: str, error_type: str, value: object = None, location: str = "body"
+    ):
         super().__init__(message)
-        self.error = {"type": error_type, "loc": ("body", field), "msg": message, "input": value}
+        # location: "body" or "query", like Pydantic's own errors
+        self.error = {"type": error_type, "loc": (location, field), "msg": message, "input": value}
 
 
 def register_error_handlers(app: FastAPI) -> None:

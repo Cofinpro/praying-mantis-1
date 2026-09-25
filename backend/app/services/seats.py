@@ -5,16 +5,19 @@ Compare approvals (services/enrollments.py), which lock the training row
 which is exactly what UNIQUE (seat_id, date) answers, atomically, in the database.
 """
 
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import delete, select
+from sqlalchemy import and_, case, delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from app.config import settings
 from app.errors import Conflict, Forbidden, NotFound, ValidationFailed
-from app.models import Seat, SeatReservation, User
+from app.models import Client, Seat, SeatReservation, User
+
+ZONE_ORDER = case({zone.value: i for i, zone in enumerate(Client)}, value=Seat.zone)
 
 # The constraint names, to tell "seat taken" from "you already have one" (naming convention)
 SEAT_TAKEN_CONSTRAINT = "uq_seat_reservations_seat_id"
@@ -25,20 +28,56 @@ def office_today() -> date:
     return datetime.now(ZoneInfo(settings.office_timezone)).date()
 
 
-def check_booking_date(day: date, field: str = "date") -> None:
+def check_booking_date(day: date, location: str = "body") -> None:
     """Q14: not in the past, at most booking_days_ahead days ahead, and not on a weekend."""
     today = office_today()
+    value = day.isoformat()
     if day < today:
-        raise ValidationFailed(field, "That day is in the past", "date_in_past", day.isoformat())
+        raise ValidationFailed("date", "That day is in the past", "date_in_past", value, location)
     if day > today + timedelta(days=settings.booking_days_ahead):
         raise ValidationFailed(
-            field,
+            "date",
             f"Seats can be booked at most {settings.booking_days_ahead} days ahead",
             "date_too_far",
-            day.isoformat(),
+            value,
+            location,
         )
     if day.weekday() >= 5:
-        raise ValidationFailed(field, "The office is closed at weekends", "date_weekend", day.isoformat())
+        raise ValidationFailed("date", "The office is closed at weekends", "date_weekend", value, location)
+
+
+@dataclass
+class SeatOnDay:
+    seat: Seat
+    status: str  # "free" | "taken" | "mine"
+    taken_by: User | None
+    bookable: bool
+
+
+def seat_map(db: Session, viewer: User, day: date) -> list[SeatOnDay]:
+    """Every seat's status on `day`, in ONE query: seats LEFT JOIN that day's reservations
+    LEFT JOIN their users. A free seat simply has NULLs on the right-hand side."""
+    check_booking_date(day, location="query")
+    query = (
+        select(Seat, User)
+        .outerjoin(SeatReservation, and_(SeatReservation.seat_id == Seat.id, SeatReservation.date == day))
+        .outerjoin(User, User.id == SeatReservation.user_id)
+        # Zones in the Client enum's order (DKB, Deka, VV, DBIS, UNION), not alphabetical:
+        # CASE zone WHEN 'DKB' THEN 0 WHEN 'Deka' THEN 1 ... END
+        .order_by(ZONE_ORDER, Seat.pos_y, Seat.pos_x)
+    )
+    result = []
+    for seat, occupant in db.execute(query):
+        if occupant is None:
+            status = "free"
+        elif occupant.id == viewer.id:
+            status = "mine"
+        else:
+            status = "taken"
+        # The date is already valid here (else 422), so bookable = free and in my zone
+        bookable = status == "free" and seat.zone == viewer.client
+        result.append(SeatOnDay(seat=seat, status=status, taken_by=occupant, bookable=bookable))
+    return result
 
 
 def reserve(db: Session, user: User, seat_id: int, day: date) -> SeatReservation:

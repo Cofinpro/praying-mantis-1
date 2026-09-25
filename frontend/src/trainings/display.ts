@@ -12,9 +12,9 @@ export function seatsLabel({ seats_left, max_seats }: Pick<TrainingSummary, 'sea
   return seats_left <= 0 ? `Full · ${left}` : left
 }
 
-export type BadgeStatus = 'pending' | 'approved' | 'rejected' | 'withdrawn' | 'cancelled'
+export type BadgeStatus = 'waitlisted' | 'pending' | 'approved' | 'rejected' | 'withdrawn' | 'cancelled'
 
-const BADGE_STATUSES: BadgeStatus[] = ['pending', 'approved', 'rejected', 'withdrawn', 'cancelled']
+const BADGE_STATUSES: BadgeStatus[] = ['waitlisted', 'pending', 'approved', 'rejected', 'withdrawn', 'cancelled']
 
 // my_enrollment_status is a plain string in the API schema, so narrow it before showing a badge.
 export const isBadgeStatus = (value: string | null | undefined): value is BadgeStatus =>

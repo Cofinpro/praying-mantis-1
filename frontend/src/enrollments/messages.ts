@@ -5,7 +5,9 @@ import { ApiError } from '../api/client'
 const MESSAGES: Record<string, string> = {
   already_requested: "You've already asked to join this training.",
   request_rejected: 'Your request for this training was rejected, so you can’t ask again.',
-  training_full: 'Sorry, this training just filled up.',
+  training_full: 'Sorry, this training just filled up. You can join the waitlist.',
+  already_waitlisted: "You're already on the waitlist for this training.",
+  training_not_full: 'A seat just opened up: you can request it now.',
   training_started: 'This training has already started.',
   training_cancelled: 'This training was cancelled.',
   not_pending: 'This request was already decided.',

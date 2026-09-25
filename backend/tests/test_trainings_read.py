@@ -124,6 +124,7 @@ def test_summary_shape_has_no_description(client, junior, catalogue):
         "average_rating": None,
         "rating_count": 0,
         "my_rating": None,
+        "my_waitlist_position": None,
     }
     assert soon["trainer"] is None
 

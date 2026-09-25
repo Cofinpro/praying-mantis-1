@@ -36,7 +36,8 @@ describe('join button', () => {
     ['approved', { my_enrollment_status: 'approved' }, 'Enrolled ✓', false],
     ['approved and ended', { my_enrollment_status: 'approved', starts_at: '2020-01-01T09:00:00Z', ends_at: '2020-01-01T12:00:00Z' }, 'Completed ✓', false],
     ['rejected', { my_enrollment_status: 'rejected' }, 'Rejected', false],
-    ['full', { seats_left: 0 }, 'Full', false],
+    ['full', { seats_left: 0 }, 'Join the waitlist', true],
+    ['waitlisted', { my_enrollment_status: 'waitlisted', my_waitlist_position: 2, seats_left: 0 }, 'On the waitlist', false],
     ['cancelled', { cancelled: true }, 'Cancelled', false],
     ['withdrawn earlier', { my_enrollment_status: 'withdrawn' }, 'Request to join', true],
   ])('reflects the state: %s', async (_, change, label, enabled) => {
@@ -67,7 +68,7 @@ describe('join button', () => {
   })
 
   it.each([
-    [409, { code: 'training_full', message: 'This training is full' }, 'Sorry, this training just filled up.'],
+    [409, { code: 'training_full', message: 'This training is full' }, 'Sorry, this training just filled up. You can join the waitlist.'],
     [409, { code: 'already_requested', message: '…' }, "You've already asked to join this training."],
     [409, { code: 'training_started', message: '…' }, 'This training has already started.'],
     [403, "This training isn't for your level", "This training isn't for your level"],
@@ -78,5 +79,46 @@ describe('join button', () => {
     await userEvent.click(within(panel).getByRole('button', { name: 'Request to join' }))
 
     expect(await within(panel).findByRole('alert')).toHaveTextContent(message)
+  })
+})
+
+describe('waitlist', () => {
+  it('joins the waitlist of a full training, then shows the place in line', async () => {
+    let current: TrainingRead = { ...training, seats_left: 0 }
+    server.use(
+      http.get('*/api/trainings/:id', () => HttpResponse.json(current)),
+      http.post('*/api/trainings/:id/waitlist', () => {
+        current = { ...current, my_enrollment_status: 'waitlisted', my_waitlist_position: 3, my_enrollment_id: 9 }
+        return HttpResponse.json({ id: 9, training_id: 12, user_id: 5, status: 'waitlisted' }, { status: 201 })
+      }),
+    )
+    await storeLoginToken('joao@cofinpro.pt')
+    renderRoute('/trainings/12')
+    const panel = await screen.findByRole('complementary', { name: 'Your place' })
+
+    await userEvent.click(within(panel).getByRole('button', { name: 'Join the waitlist' }))
+
+    expect(await within(panel).findByRole('button', { name: 'On the waitlist' })).toBeDisabled()
+    expect(within(panel).getByText(/You’re #3 in line/)).toBeInTheDocument()
+    expect(within(panel).getByText('Waitlisted', { selector: 'span' })).toBeInTheDocument()
+  })
+
+  it('leaves the waitlist', async () => {
+    let current: TrainingRead = { ...training, seats_left: 0, my_enrollment_status: 'waitlisted', my_waitlist_position: 1, my_enrollment_id: 9 }
+    server.use(
+      http.post('*/api/enrollments/9/withdraw', () => {
+        current = { ...current, my_enrollment_status: 'withdrawn', my_waitlist_position: null }
+        return HttpResponse.json({ id: 9, training_id: 12, user_id: 5, status: 'withdrawn' })
+      }),
+    )
+    const panel = await openTraining(current)
+    expect(within(panel).getByText(/You’re next in line/)).toBeInTheDocument()
+
+    await userEvent.click(within(panel).getByRole('button', { name: 'Withdraw' }))
+    const dialog = screen.getByRole('dialog', { name: 'Leave the waitlist?' })
+    server.use(http.get('*/api/trainings/:id', () => HttpResponse.json(current)))
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Withdraw' }))
+
+    expect(await within(panel).findByRole('button', { name: 'Join the waitlist' })).toBeEnabled()
   })
 })

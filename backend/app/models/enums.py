@@ -24,8 +24,10 @@ class Level(enum.StrEnum):
 
 
 class EnrollmentStatus(enum.StrEnum):
-    """pending -> approved | rejected; pending | approved -> withdrawn."""
+    """pending -> approved | rejected; pending | approved -> withdrawn.
+    waitlisted -> pending (a place opened up) | withdrawn."""
 
+    WAITLISTED = "waitlisted"  # the training was full: waits for a free place, takes no seat
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
@@ -39,8 +41,9 @@ class NotificationType(enum.StrEnum):
     ENROLLMENT_APPROVED = "enrollment_approved"  # -> the requester
     ENROLLMENT_REJECTED = "enrollment_rejected"  # -> the requester
     ENROLLMENT_WITHDRAWN = "enrollment_withdrawn"  # -> the decider (approved ones only)
-    TRAINING_CANCELLED = "training_cancelled"  # -> everyone pending or approved
-    TRAINING_CHANGED = "training_changed"  # -> everyone pending or approved
+    TRAINING_CANCELLED = "training_cancelled"  # -> everyone waitlisted, pending or approved
+    TRAINING_CHANGED = "training_changed"  # -> everyone waitlisted, pending or approved
+    WAITLIST_PROMOTED = "waitlist_promoted"  # -> the person who moved up from the waitlist
 
 
 def enum_column(enum_class: type[enum.Enum]) -> Enum:

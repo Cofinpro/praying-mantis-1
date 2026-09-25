@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from sqlalchemy import ColumnElement, Select, func, select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, aliased, joinedload
 
 from app.errors import Conflict, ValidationFailed
 from app.models import (
@@ -31,6 +31,7 @@ class TrainingRow:
     average_rating: float | None
     rating_count: int
     my_rating: int | None
+    my_waitlist_position: int | None
 
 
 def _check_trainer_exists(db: Session, trainer_id: int | None) -> None:
@@ -137,6 +138,8 @@ def update_training(
             f"{training.name} was updated ({', '.join(_LABELS[f] for f in changed)})",
             link=notifications.training_link(training),
         )
+    if "max_seats" in changed:  # more seats: the waitlist may move up
+        enrollment_service.promote_waitlist(db, training)
     db.commit()  # the change and its notifications together
     return get_training(db, training.id, viewer=viewer)
 
@@ -235,6 +238,36 @@ def my_rating_column(viewer: User) -> ColumnElement[int | None]:
     )
 
 
+def my_waitlist_position_column(viewer: User) -> ColumnElement[int | None]:
+    # 1 + how many people joined the waitlist before me; NULL if I'm not waitlisted.
+    # (SELECT COUNT(*) FROM enrollments ahead WHERE ahead.training_id = trainings.id
+    #    AND ahead.status = 'waitlisted' AND (ahead.requested_at, ahead.id) < (mine.requested_at, mine.id))
+    mine, ahead = aliased(Enrollment), aliased(Enrollment)
+    before_me = (
+        select(func.count())
+        .select_from(ahead)
+        .where(
+            ahead.training_id == mine.training_id,
+            ahead.status == EnrollmentStatus.WAITLISTED,
+            (ahead.requested_at < mine.requested_at)
+            | ((ahead.requested_at == mine.requested_at) & (ahead.id < mine.id)),
+        )
+        .correlate(mine)
+        .scalar_subquery()
+    )
+    return (
+        select(before_me + 1)
+        .where(
+            mine.training_id == Training.id,
+            mine.user_id == viewer.id,
+            mine.status == EnrollmentStatus.WAITLISTED,
+        )
+        .correlate(Training)
+        .scalar_subquery()
+        .label("my_waitlist_position")
+    )
+
+
 def _training_rows(viewer: User) -> Select:
     # Column order = TrainingRow's field order (rows are built with TrainingRow(*row))
     return select(
@@ -245,6 +278,7 @@ def _training_rows(viewer: User) -> Select:
         average_rating_column(),
         rating_count_column(),
         my_rating_column(viewer),
+        my_waitlist_position_column(viewer),
     ).options(
         # Trainer in the same query (LEFT OUTER JOIN), not one query per training
         joinedload(Training.trainer),
@@ -275,7 +309,7 @@ def my_enrollments(db: Session, viewer: User) -> dict[str, list[TrainingRow]]:
     """The viewer's trainings for the Profile page, from one query.
 
     upcoming:  approved, not cancelled, not ended yet (a training in progress counts)
-    pending:   still waiting for a decision, not started, not cancelled
+    pending:   still waiting for a decision or on the waitlist, not started, not cancelled
     completed: approved, not cancelled, ended (Q10: no attendance check)
     Upcoming and pending are soonest first; completed is most recent first.
     """
@@ -285,7 +319,9 @@ def my_enrollments(db: Session, viewer: User) -> dict[str, list[TrainingRow]]:
         .join(Enrollment, (Enrollment.training_id == Training.id) & (Enrollment.user_id == viewer.id))
         .where(
             Training.cancelled_at.is_(None),
-            Enrollment.status.in_([EnrollmentStatus.PENDING, EnrollmentStatus.APPROVED]),
+            Enrollment.status.in_(
+                [EnrollmentStatus.WAITLISTED, EnrollmentStatus.PENDING, EnrollmentStatus.APPROVED]
+            ),
         )
         .order_by(Training.starts_at, Training.id)
     )
@@ -294,7 +330,7 @@ def my_enrollments(db: Session, viewer: User) -> dict[str, list[TrainingRow]]:
         training, status = row.training, row.my_enrollment_status
         if status == EnrollmentStatus.APPROVED:
             result["completed" if training.ends_at <= now else "upcoming"].append(row)
-        elif training.starts_at > now:  # pending, and still decidable
+        elif training.starts_at > now:  # pending or waitlisted, and still decidable
             result["pending"].append(row)
     result["completed"].reverse()  # most recent first
     return result

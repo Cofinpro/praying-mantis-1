@@ -226,6 +226,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/trainings/{training_id}/waitlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Join Waitlist
+         * @description Join the waitlist of a full training. When a place opens up, the first in line becomes a
+         *     pending request (they and their team lead are notified), then it's approved as usual.
+         */
+        post: operations["join_waitlist_api_trainings__training_id__waitlist_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/approvals": {
         parameters: {
             query?: never;
@@ -298,7 +319,7 @@ export interface paths {
         put?: never;
         /**
          * Withdraw
-         * @description Withdraw my own pending or approved enrollment, before the training starts.
+         * @description Withdraw my own waitlisted, pending or approved enrollment, before the training starts.
          */
         post: operations["withdraw_api_enrollments__enrollment_id__withdraw_post"];
         delete?: never;
@@ -643,9 +664,10 @@ export interface components {
         /**
          * EnrollmentStatus
          * @description pending -> approved | rejected; pending | approved -> withdrawn.
+         *     waitlisted -> pending (a place opened up) | withdrawn.
          * @enum {string}
          */
-        EnrollmentStatus: "pending" | "approved" | "rejected" | "withdrawn";
+        EnrollmentStatus: "waitlisted" | "pending" | "approved" | "rejected" | "withdrawn";
         /** FeedbackAuthor */
         FeedbackAuthor: {
             /** Id */
@@ -778,7 +800,7 @@ export interface components {
          * @description What happened. FE can pick an icon per type; the message is ready to show.
          * @enum {string}
          */
-        NotificationType: "enrollment_requested" | "enrollment_approved" | "enrollment_rejected" | "enrollment_withdrawn" | "training_cancelled" | "training_changed";
+        NotificationType: "enrollment_requested" | "enrollment_approved" | "enrollment_rejected" | "enrollment_withdrawn" | "training_cancelled" | "training_changed" | "waitlist_promoted";
         /** Occupant */
         Occupant: {
             /** Id */
@@ -960,6 +982,8 @@ export interface components {
             rating_count: number;
             /** My Rating */
             my_rating?: number | null;
+            /** My Waitlist Position */
+            my_waitlist_position?: number | null;
             /** Description */
             description: string;
         };
@@ -1006,6 +1030,8 @@ export interface components {
             rating_count: number;
             /** My Rating */
             my_rating?: number | null;
+            /** My Waitlist Position */
+            my_waitlist_position?: number | null;
         };
         /**
          * TrainingUpdate
@@ -1706,7 +1732,66 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description already_requested | request_rejected | training_full | training_started | training_cancelled */
+            /** @description already_requested | already_waitlisted | request_rejected | training_full (join the waitlist instead) | training_started | training_cancelled */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    join_waitlist_api_trainings__training_id__waitlist_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                training_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnrollmentRead"];
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not for your level */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Training not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description training_not_full (request a seat instead) | already_waitlisted | already_requested | request_rejected | training_started | training_cancelled */
             409: {
                 headers: {
                     [name: string]: unknown;

@@ -14,6 +14,27 @@ Template:
 
 ---
 
+## 2026-09-25 — Waitlist for full trainings
+**Status:** Accepted
+**Context:** A full training turned people away, and a freed seat went to whoever happened to look first.
+**Decision:**
+- A new enrollment status, **`waitlisted`**. It's a VARCHAR enum, so there's no migration.
+- `POST /api/trainings/{id}/waitlist` works only when the training is full (409 `training_not_full` otherwise). `POST …/enrollments` on a full training still answers 409 `training_full`.
+- Moves: `waitlisted → pending | withdrawn`.
+- **A place is free** when `max_seats > pending + approved`.
+- After anything that frees one (a withdrawal, a rejection, or more `max_seats`), the oldest waitlisted people (by `requested_at`, then `id`) become **pending**, in the same transaction, with the training row locked.
+- They get a `waitlist_promoted` notification. Their team lead (or the admins) get `enrollment_requested`. Promotion keeps `requested_at`, so the approvals list stays oldest first.
+- Promotion isn't automatic approval: a lead still decides.
+- Waitlisted people never compete with an earlier pending request, because promotion counts pending requests as holding a place.
+- `TrainingSummary.my_waitlist_position` (1 = next) is a correlated subquery, like the other `my_*` fields.
+- The Profile page shows waitlisted trainings under **Pending**.
+- A cancel or change notifies waitlisted people too.
+
+**Consequences:**
+- Nothing expires: someone promoted stays pending until their lead decides, and the training's normal rules apply.
+- A cancelled or started training never promotes anyone.
+- No emails for the waitlist; notifications are in-app only.
+
 ## 2026-09-25 — Contract addition: `my_enrollment_id` on training responses
 **Status:** Accepted (additive: existing FE code keeps working)
 **Context:** Withdrawing needs the enrollment's id (`POST /api/enrollments/{id}/withdraw`), but training responses only carried `my_enrollment_status`. After a page reload FE had no way to find the id.

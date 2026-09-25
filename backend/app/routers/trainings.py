@@ -1,16 +1,22 @@
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, status
-from fastapi.exceptions import RequestValidationError
 
 from app.dependencies import AdminUser, CurrentUser, DbSession
 from app.models import Level
-from app.schemas.training import TrainingCreate, TrainingRead, TrainingSummary
+from app.schemas.training import TrainingCreate, TrainingRead, TrainingSummary, TrainingUpdate
 from app.services import trainings as service
 
 router = APIRouter(prefix="/trainings", tags=["trainings"])
 
 UNAUTHORIZED = {401: {"description": "Missing, invalid or expired token"}}
+ADMIN_ONLY = UNAUTHORIZED | {403: {"description": "Admins only"}}
+NOT_FOUND = {404: {"description": "Training not found"}}
+CONFLICT = {409: {"description": 'Business rule, e.g. {"detail": {"code": "training_cancelled", ...}}'}}
+
+
+def _not_found() -> HTTPException:
+    return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Training not found")
 
 
 def _fields(row: service.TrainingRow) -> dict:
@@ -53,29 +59,35 @@ def get_training(training_id: int, db: DbSession, user: CurrentUser) -> Training
     row = service.get_training(db, training_id, viewer=user)
     if row is None:
         # Same 404 for "doesn't exist" and "not for your level": don't reveal which
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Training not found")
+        raise _not_found()
     return TrainingRead.model_validate(_fields(row))
 
 
-@router.post(
-    "",
-    status_code=status.HTTP_201_CREATED,
-    responses=UNAUTHORIZED | {403: {"description": "Admins only"}},
-)
+@router.post("", status_code=status.HTTP_201_CREATED, responses=ADMIN_ONLY)
 def create_training(body: TrainingCreate, db: DbSession, admin: AdminUser) -> TrainingRead:
-    """Admin only. Times must be sent in UTC (or with an offset); they come back in UTC."""
-    try:
-        row = service.create_training(db, body, created_by=admin)
-    except service.TrainerNotFound:
-        # Same 422 shape as Pydantic's own validation errors, so FE handles one format
-        raise RequestValidationError(
-            [
-                {
-                    "type": "trainer_not_found",
-                    "loc": ("body", "trainer_id"),
-                    "msg": "No user with this id",
-                    "input": body.trainer_id,
-                }
-            ]
-        ) from None
+    """Admin only. Times must be sent in UTC (or with an offset); they come back in UTC.
+    An unknown trainer_id is a 422 like any other validation error."""
+    row = service.create_training(db, body, created_by=admin)
+    return TrainingRead.model_validate(_fields(row))
+
+
+@router.patch("/{training_id}", responses=ADMIN_ONLY | NOT_FOUND | CONFLICT)
+def update_training(
+    training_id: int, body: TrainingUpdate, db: DbSession, admin: AdminUser
+) -> TrainingRead:
+    """Admin only. Send only the fields to change; `null` clears the trainer fields.
+    409 if the training is cancelled, or max_seats would drop below the approved count."""
+    row = service.update_training(db, training_id, body, viewer=admin)
+    if row is None:
+        raise _not_found()
+    return TrainingRead.model_validate(_fields(row))
+
+
+@router.post("/{training_id}/cancel", responses=ADMIN_ONLY | NOT_FOUND | CONFLICT)
+def cancel_training(training_id: int, db: DbSession, admin: AdminUser) -> TrainingRead:
+    """Admin only. A soft delete: the training stays, marked cancelled.
+    409 if it's already cancelled or has already started."""
+    row = service.cancel_training(db, training_id, viewer=admin)
+    if row is None:
+        raise _not_found()
     return TrainingRead.model_validate(_fields(row))

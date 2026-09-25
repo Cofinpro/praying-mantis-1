@@ -85,6 +85,7 @@ Status flow: `pending → approved | rejected`; `pending | approved → withdraw
 ## Layout
 
 What exists today:
+- `docker-compose.yml`: local MySQL 8 with a named volume (`mysql-data`) and a health check
 - `backend/`: FastAPI + SQLAlchemy on MySQL (via PyMySQL)
   - `app/main.py`: the app and its routes (`/`, `/health/db`), plus CORS
   - `app/database.py`: engine, `SessionLocal`, `Base`, and the `get_db` dependency
@@ -102,16 +103,30 @@ frontend/src/{pages/, components/, api/, mocks/}
 
 ## Commands
 
+### Database (Docker)
+
+Requires Docker Desktop. Run from the repo root:
+
+```sh
+docker compose up -d      # start MySQL 8 on localhost:3306 (user app / password app, db praying_mantis)
+docker compose ps         # wait until mysql shows "healthy"
+docker compose stop       # stop it; data is kept in the mysql-data volume
+docker compose down -v    # delete the container AND the data, for a clean reset
+```
+
+Port 3306 must be free. If MySQL is also installed locally (e.g. Homebrew), stop it first: `brew services stop mysql`.
+
 ### Backend
 
 ```sh
 cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env   # then fill in DB credentials
+cp .env.example .env   # already matches docker-compose.yml
 fastapi dev app/main.py   # http://localhost:8000, API docs at /docs
 ```
 
+Check the database connection at http://localhost:8000/health/db (expects `{"database": "ok"}`).
 Allowed frontend origins are set by `CORS_ORIGINS` (comma-separated).
 
 ### Frontend

@@ -201,3 +201,20 @@ export function withdrawMockEnrollment(viewer: { id: number }, id: number) {
   training.enrollments[userId] = 'withdrawn'
   return { status: 200 as const, enrollment: mockEnrollment(training.id, userId) }
 }
+
+// GET /api/me/enrollments, with the F5 definitions (Q10: completed = approved + ended + not cancelled).
+export function listMockMyEnrollments(viewerId: number) {
+  const now = new Date().toISOString()
+  const mine = mockTrainings
+    .filter((t) => t.enrollments[viewerId])
+    .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
+  const status = (t: MockTraining) => t.enrollments[viewerId]
+  return {
+    upcoming: mine.filter((t) => status(t) === 'approved' && t.ends_at > now).map((t) => toSummary(t, viewerId)),
+    pending: mine.filter((t) => status(t) === 'pending' && !t.cancelled).map((t) => toSummary(t, viewerId)),
+    completed: mine
+      .filter((t) => status(t) === 'approved' && t.ends_at <= now && !t.cancelled)
+      .reverse()
+      .map((t) => toSummary(t, viewerId)),
+  }
+}

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { renderRoute } from '../test/render'
 
 describe('app shell', () => {
-  it('shows the main nav links, with Timesheets and Vacations disabled', async () => {
+  it('shows the main nav links, with Timesheets and Vacations disabled', () => {
     renderRoute('/trainings')
 
     // Query by role and accessible name, as a screen reader user would find them, not by class or test id.
@@ -15,8 +15,5 @@ describe('app shell', () => {
       expect(within(nav).getByRole('link', { name: new RegExp(name) })).toHaveAttribute('aria-disabled', 'true')
     }
     expect(within(nav).getByRole('link', { name: 'Trainings' })).toHaveAttribute('aria-current', 'page')
-
-    // The Trainings page calls GET /api/ on mount, answered by the same MSW handler the browser uses.
-    expect(await screen.findByText('Backend: Hello from the MSW mocks')).toBeInTheDocument()
   })
 })

@@ -241,6 +241,7 @@ Until a backend is deployed, the Pages build runs on the MSW mocks (`VITE_USE_MO
   - `src/api/client.ts` is the only code that talks to the API. Every new endpoint gets a function in `src/api/<area>.ts` **and** an MSW handler in `src/mocks/handlers.ts`
   - Request/response types come from `schema.d.ts` (`components['schemas'][...]`). Hand-written types are only for endpoints without a `response_model` yet, and are marked as such
   - TypeScript API types are generated from `/openapi.json`
+  - Tests only cover real features, i.e. behaviour a story's acceptance criteria ask for. No tests for placeholders, temporary code or made-up cases
 - **Design:**
   - Figma is the visual reference: [PreyingMantis — Design](https://www.figma.com/design/FFlbgdessRR1pHvP0MGpQh) (pages Foundations, Components, Screens). The spec is `docs/superpowers/specs/2026-09-25-figma-design-design.md`
   - The Figma team is on the Starter plan: max 3 pages per file, and about 20 MCP read calls a month, so prefer reviewing in Figma over screenshot tools. When the MCP quota is spent, the Figma REST API (`api.figma.com/v1/files/…`, `/v1/images/…`) with a personal access token still works. Keep the token out of the repo

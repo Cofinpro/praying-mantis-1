@@ -22,6 +22,7 @@ Template:
 - Tests use the same `src/mocks/handlers.ts` as the browser, through `msw/node` (`src/mocks/server.ts`). An API call without a handler fails the test (`onUnhandledRequest: 'error'`).
 - `router.tsx` exports its `routes`, and `renderRoute(path)` in `src/test/render.tsx` mounts them in a memory router, so tests render real pages inside the real layout.
 - Test files sit next to the code they test (`Layout.test.tsx`). They are in `src/`, so `pnpm build` type-checks them too.
+- Tests only cover real features: behaviour that a story's acceptance criteria ask for. Placeholder pages and temporary code (like the `GET /api/` call on the Trainings page) get no tests.
 - `.github/workflows/frontend-checks.yml` runs `pnpm lint`, `pnpm build` and `pnpm test` on every PR that touches `frontend/`.
 
 **Consequences:** Tests need no backend. Endpoint-specific cases override a handler with `server.use(...)`.

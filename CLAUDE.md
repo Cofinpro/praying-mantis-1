@@ -1,6 +1,6 @@
 # praying-mantis-1
 
-Coding dojo project: a FastAPI backend and a React frontend.
+Coding dojo project: a FastAPI backend and a React frontend. The product is called **PreyingMantis** (the repo keeps the name `praying-mantis-1`).
 
 The full plan (data model, decisions, user stories, milestones) is in `plan.md`. The stories are tracked in Jira: project **SCRUM** ("Coding dojo") at https://bernardo-santos-cofinpro.atlassian.net.
 
@@ -176,6 +176,14 @@ Once MSW is in place (FE-0.2), the Pages site can run on mocks until a backend e
   - React Router for pages, TanStack Query for server data, CSS Modules for styles
   - `src/api/client.ts` is the only code that talks to the API
   - TypeScript API types are generated from `/openapi.json`
+- **Design:**
+  - Figma is the visual reference: [PreyingMantis — Design](https://www.figma.com/design/FFlbgdessRR1pHvP0MGpQh) (pages Foundations, Components, Screens). The spec is `docs/superpowers/specs/2026-09-25-figma-design-design.md`
+  - The Figma team is on the Starter plan: max 3 pages per file, and about 20 MCP read calls a month, so prefer reviewing in Figma over screenshot tools
+  - Cofinpro theming (from cofinpro.pt): orange `#FD6202`, ink `#131313`, accents green `#60D391`, purple `#8242D8`, blue `#006CFF`, font **Inter**, pill buttons, 16px card corners
+  - Light mode only, desktop mocks only (1440 wide)
+  - Design tokens: Figma variables and CSS custom properties share names (`color/text/primary` ↔ `--color-text-primary`). Components use only semantic tokens, never primitives or raw hex
+  - `#FD6202` fails AA on white (3.0:1): use it for fills, the logo and large text only. Normal-size text, links and primary buttons use `orange/700` `#C24A00` (4.9:1)
+  - Seat map colours: free = white, taken = crimson + lock icon, mine = Cofinpro green + check icon, other client = grey hatched. Never colour alone
 - **Permissions:** the backend enforces all of them. Hiding buttons in the UI is only a convenience.
 - **Docs:**
   - Record architectural or tooling choices in `decisions.md`

@@ -27,6 +27,20 @@ Template:
 
 **Consequences:** When the backend's rules change, `validateTrainingForm()` must follow. The backend still has the final say, and its 422s are shown too.
 
+## 2026-09-25 — Backend hosting: Render (free) + Aiven MySQL (free)
+**Status:** Proposed by BE, to confirm in SCRUM-55 (F7, together) and, for real employee data, with the company (Q13).
+**Context:** The backend and database need a host. Constraints: no cost, and as little setup and upkeep as possible.
+**Decision:**
+- **Backend:** a Render free web service built from `backend/Dockerfile`. Render redeploys on every push to `main`, and its dashboard stores the secrets.
+- **Database:** Aiven's free MySQL 8 (1 CPU, 1 GB RAM, 1 GB storage, no card). It's real MySQL, so migrations, CHECK constraints and the collation behave as they do locally. Connections use TLS and verify Aiven's CA (`DB_SSL_CA`).
+- **Migrations run on start** (`start.sh`), because Render's pre-deploy command isn't available on the free plan. With one instance, "on start" = "on deploy".
+- **Demo data:** `SEED_ON_START=true`, because the free plan has no shell to run the seed by hand.
+**Consequences:**
+- **Cold starts:** Render's free services sleep after 15 minutes idle, and the next request takes about a minute. FE should show a "waking up" state (FE-7.1).
+- Aiven powers off a free database after a long inactivity (with an email warning first); it's turned back on from their dashboard.
+- **Fake data only** until the company approves a host for employee data. The seed users are fictional.
+- Both are outside company infrastructure; moving later means changing environment variables, not code.
+
 ## 2026-09-25 — Role-aware navigation: permission functions and a "Not allowed" page
 **Status:** Accepted
 **Context:** FE-1.2 hides navigation that doesn't apply to the user and blocks pages they can't use.

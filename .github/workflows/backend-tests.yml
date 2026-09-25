@@ -73,3 +73,16 @@ jobs:
         run: alembic check
         env:
           DB_NAME: praying_mantis_test
+
+  docker-image:
+    # The deploy builds backend/Dockerfile; catch a broken build here instead
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - run: docker build -t praying-mantis-backend backend
+
+      - name: The image contains the app and no local secrets
+        run: |
+          docker run --rm praying-mantis-backend sh -c '
+            test -f app/main.py && test -x start.sh && test ! -e .env && [ "$(id -u)" != 0 ]'

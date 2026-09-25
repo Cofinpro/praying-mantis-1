@@ -104,6 +104,7 @@ What exists today:
   - `alembic/`: migrations (`alembic/versions/`). `env.py` reads the DB URL from `app.config`.
   - `tests/`: pytest. `conftest.py` provides the `db`, `client` and `make_user` fixtures and the `auth_headers(user)` helper (see Testing below).
   - `.env.example`: DB settings, `CORS_ORIGINS` and `JWT_SECRET`. Copy it to `backend/.env` (git-ignored).
+  - `Dockerfile` + `start.sh`: the production image. On start it runs `alembic upgrade head`, optionally the seed (`SEED_ON_START=true`), then the server on `$PORT`.
 - `frontend/`: React 19 + TypeScript on Vite, managed with **pnpm**
   - `src/main.tsx`: mounts `<RouterProvider>` (from `react-router/dom`) and loads Inter and the global CSS
   - `src/router.tsx`: the route table. `/login` stands alone; every other page is a child of `Layout`
@@ -219,6 +220,29 @@ pytest -x                 # stop at the first failure
 - Create users with `make_user(name=..., is_admin=True, team_lead=lead, ...)` (every field has a default) and call the API as them with `client.get(url, headers=auth_headers(user))`.
 - The test database is created by `docker-compose.yml` only when the volume is **new**. With an older volume, either reset it (`docker compose down -v && docker compose up -d`) or run once: `docker exec -i praying-mantis-mysql mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS praying_mantis_test; GRANT ALL ON praying_mantis_test.* TO 'app'@'%';"`
 Allowed frontend origins are set by `CORS_ORIGINS` (comma-separated).
+
+### Production image (Docker)
+
+Run from `backend/`:
+
+```sh
+docker build -t praying-mantis-backend .
+docker run --rm -p 8000:8000 --network praying-mantis-1_default \
+  -e DB_HOST=praying-mantis-mysql -e DB_USER=app -e DB_PASSWORD=app -e DB_NAME=praying_mantis \
+  -e JWT_SECRET=$(python -c "import secrets; print(secrets.token_urlsafe(48))") \
+  praying-mantis-backend
+```
+
+Settings come only from environment variables (the image has no `.env`). On a host, set them in its secret store. For Render, `render.yaml` (repo root) declares the service and every variable; secrets are marked `sync: false` and entered in Render's dashboard.
+
+| Variable | Required | Notes |
+|---|---|---|
+| `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` | yes | from the database host's dashboard |
+| `DB_SSL_CA` | for a remote DB | the DB server's CA certificate (PEM text), so TLS also verifies the server |
+| `JWT_SECRET` | yes | at least 32 characters, different from any local one |
+| `CORS_ORIGINS` | yes | the frontend's origin, e.g. `https://cofinpro.github.io` (no path) |
+| `SEED_ON_START` | no | `true` runs the demo seed on every start (demo only) |
+| `PORT` | no | set by the host; defaults to 8000 |
 
 ### Frontend
 

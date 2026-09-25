@@ -138,6 +138,16 @@ Template:
 - Services raise `Conflict` / `ValidationFailed` (`app/errors.py`); handlers in `main.py` turn them into 409 / 422.
 **Consequences:** FE's edit form can send the whole form or only changes; both work. Notifying enrolled people on cancel is a `TODO(BE-4.1)` in `cancel_training`.
 
+## 2026-09-25 — My reservations: a list under the map, on BE-6.3's real endpoints
+**Status:** Accepted
+**Context:** FE-6.3 adds "My reservations" to `/seats` with `GET /api/reservations/me` and `DELETE /api/reservations/{id}` (BE-6.3, merged).
+**Decision:**
+- The list sits under the map: day and seat per row, soonest first. Cancel asks first in `ConfirmDialog` ("Cancel DKB-03 on Mon 12 Oct?").
+- A cancel invalidates the list and that day's map, so the seat turns white. A 409 `reservation_in_past` shows in the dialog.
+- The mocks remember reservations made through them, so the list works on mocks too.
+
+**Consequences:** With BE-6.2's `GET /api/seats` still missing, the list works against the real backend but the map doesn't yet.
+
 ## 2026-09-25 — Reserve a seat: a confirm dialog, and the ReservationRead shape
 **Status:** Accepted
 **Context:** FE-6.2 reserves through `POST /api/reservations {seat_id, date}` (F6 contract) before BE-6.3 exists. The contract names `ReservationRead` but doesn't list its fields.

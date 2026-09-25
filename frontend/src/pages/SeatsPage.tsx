@@ -8,6 +8,7 @@ import { Alert } from '../components/Alert'
 import { Button } from '../components/Button'
 import { DayPicker } from '../components/DayPicker'
 import { PageHeader } from '../components/PageHeader'
+import { MyReservations } from '../components/MyReservations'
 import { ReserveSeatDialog } from '../components/ReserveSeatDialog'
 import { SeatLegend, SeatMap } from '../components/SeatMap'
 import { defaultDay, formatDay, twoWeeks } from '../lib/days'
@@ -59,6 +60,8 @@ export function SeatsPage() {
       ) : (
         <SeatMap seats={seats.data} myZone={user.client} onSelect={setSelected} />
       )}
+
+      <MyReservations />
 
       <ReserveSeatDialog seat={selected} day={day} mySeat={mySeat} onClose={() => setSelected(null)} />
     </>

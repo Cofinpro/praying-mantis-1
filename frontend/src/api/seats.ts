@@ -27,3 +27,9 @@ export type ReservationRead = components['schemas']['ReservationRead']
 // 403 another client's zone · 409 seat_taken · 422 bad date.
 export const reserveSeat = (seatId: number, date: string) =>
   api.post<ReservationRead>('/api/reservations', { seat_id: seatId, date })
+
+// My reservations from today on, soonest first.
+export const listMyReservations = () => api.get<ReservationRead[]>('/api/reservations/me')
+
+// 204. 403 not mine · 409 reservation_in_past.
+export const cancelReservation = (id: number) => api.delete(`/api/reservations/${id}`)

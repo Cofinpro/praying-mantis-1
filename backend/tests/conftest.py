@@ -50,6 +50,12 @@ def engine():
     engine.dispose()
 
 
+@pytest.fixture(autouse=True)
+def no_real_email(monkeypatch):
+    """Tests never send real email, even if backend/.env points at Mailpit."""
+    monkeypatch.setattr(settings, "smtp_host", None)
+
+
 @pytest.fixture
 def db(engine):
     # One outer transaction per test, rolled back at the end.

@@ -14,6 +14,16 @@ Template:
 
 ---
 
+## 2026-09-25 — Email for approval requests: after the response, best effort
+**Status:** Accepted
+**Context:** BE-4.2 (stretch): team leads also get an email for new requests.
+**Decision:**
+- Only **new requests** send email, to the deciders (the team lead, or every admin), with a link to `APP_URL/approvals`. Everything else stays in-app only.
+- The router schedules `send_email` with `BackgroundTasks` **after** the service committed, so the email goes out after the response, and only for a saved request.
+- `send_email` never raises. SMTP errors are logged, and the request has already succeeded. The in-app notification is the record; email is an extra.
+- Locally, Docker Compose runs **Mailpit**. Tests switch email off (an autouse fixture) and capture what would be sent. No `SMTP_HOST` on Render = no email there.
+**Consequences:** No retries: an email lost to a mail outage is gone, but the notification is still in the bell. Real email in production would need an SMTP provider plus `SMTP_HOST`/`SMTP_FROM` in Render.
+
 ## 2026-09-25 — Notifications: events, recipients, and one transaction
 **Status:** Accepted
 **Context:** BE-4.1 implements the F4 contract (`GET /api/notifications`, `/{id}/read`, `/read-all`) and fills in the BE-2.3/BE-3.x hooks.

@@ -24,6 +24,16 @@ services:
       retries: 20
       start_period: 20s
 
+  mailpit:
+    # A fake mail server for local development: the backend sends to it over SMTP
+    # (port 1025) and every email shows up in its web inbox at http://localhost:8025
+    image: axllent/mailpit:latest
+    container_name: praying-mantis-mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
 volumes:
   mysql-data:
 

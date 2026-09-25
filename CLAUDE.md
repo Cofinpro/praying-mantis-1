@@ -86,6 +86,7 @@ Status flow: `pending → approved | rejected`; `pending | approved → withdraw
 
 What exists today:
 - `docker-compose.yml`: local MySQL 8 with a named volume (`mysql-data`), a health check, and an init script that creates the test database `praying_mantis_test`
+  - and **Mailpit**, a fake mail server: SMTP on `localhost:1025`, web inbox at http://localhost:8025
 - `backend/`: FastAPI + SQLAlchemy on MySQL (via PyMySQL)
   - `app/main.py`: creates the app, adds CORS, and includes every router under `/api`
   - `app/config.py`: `Settings` (pydantic-settings), read from env vars / `backend/.env`
@@ -103,6 +104,7 @@ What exists today:
   - `app/services/`: business rules, no HTTP concerns. `enrollments.py` holds every enrollment rule (`request`, `approve`, `reject`, `withdraw`, `pending_for`, `can_decide`, `count_approved`). Status changes go through `check_move` (the state machine in `ALLOWED_MOVES`).
     `notifications.py`: `notify(db, recipients, type, message, link)` adds rows **without committing**; the calling service commits once, so an action and its notifications are one transaction.
   - `app/errors.py`: `NotFound` (→ 404), `Forbidden` (→ 403), `Conflict` (→ 409 with a `code`) and `ValidationFailed` (→ 422 in Pydantic's format), raised by services and turned into responses by handlers registered in `main.py`
+  - `app/email.py`: `send_email(Email)` over SMTP, never raises. Called only through `BackgroundTasks`. Emails are off when `SMTP_HOST` is unset (tests, Render).
   - `app/security.py`: password hashing (`pwdlib`, Argon2id) and JWT create/decode (`PyJWT`, HS256)
   - `app/seed.py`: local seed users (`python -m app.seed`)
   - `alembic/`: migrations (`alembic/versions/`). `env.py` reads the DB URL from `app.config`.
@@ -150,6 +152,8 @@ docker compose ps         # wait until mysql shows "healthy"
 docker compose stop       # stop it; data is kept in the mysql-data volume
 docker compose down -v    # delete the container AND the data, for a clean reset
 ```
+
+Emails sent locally (approval requests) show up in Mailpit's inbox at http://localhost:8025.
 
 Port 3306 must be free. If MySQL is also installed locally (e.g. Homebrew), stop it first: `brew services stop mysql`.
 
@@ -257,6 +261,7 @@ Settings come only from environment variables (the image has no `.env`). On a ho
 | `DB_SSL_CA` | for a remote DB | the DB server's CA certificate (PEM text), so TLS also verifies the server |
 | `JWT_SECRET` | yes | at least 32 characters, different from any local one |
 | `CORS_ORIGINS` | yes | the frontend's origin, e.g. `https://cofinpro.github.io` (no path) |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM`, `APP_URL` | no | email for approval requests. Unset `SMTP_HOST` = no email. `APP_URL` is the frontend's base URL, for links. |
 | `SEED_ON_START` | no | `true` runs the demo seed on every start (demo only) |
 | `PORT` | no | set by the host; defaults to 8000 |
 

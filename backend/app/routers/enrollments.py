@@ -1,10 +1,12 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, BackgroundTasks, status
 
 from app.dependencies import CurrentUser, DbSession
+from app.email import send_email
 from app.routers.trainings import training_fields
 from app.schemas.enrollment import ApprovalRead, DecisionRequest, EnrollmentRead
 from app.schemas.training import TrainingSummary
 from app.services import enrollments as service
+from app.services import notifications
 from app.services import trainings as training_service
 
 router = APIRouter(tags=["enrollments"])
@@ -23,9 +25,15 @@ router = APIRouter(tags=["enrollments"])
         },
     },
 )
-def request_to_join(training_id: int, db: DbSession, user: CurrentUser) -> EnrollmentRead:
-    """Ask for a seat. Creates a pending enrollment for the team lead (or an admin) to decide."""
-    return EnrollmentRead.model_validate(service.request(db, user, training_id))
+def request_to_join(
+    training_id: int, db: DbSession, user: CurrentUser, background: BackgroundTasks
+) -> EnrollmentRead:
+    """Ask for a seat. Creates a pending enrollment for the team lead (or an admin) to decide,
+    notifies them in the app, and emails them after the response is sent."""
+    enrollment = service.request(db, user, training_id)  # committed when this returns
+    for email in notifications.request_emails(db, enrollment):
+        background.add_task(send_email, email)
+    return EnrollmentRead.model_validate(enrollment)
 
 
 DECISION_RESPONSES = {

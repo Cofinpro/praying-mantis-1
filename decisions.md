@@ -91,11 +91,11 @@ Template:
 **Context:** FE-3.2 builds `/approvals` before BE-3.2 exists, so it follows the F3 contract in `plan.md`.
 **Decision:**
 - The **request body** for both `POST /api/enrollments/{id}/approve` and `/reject` is `{"comment": string | null}`. That's the contract's field name, stored as `decision_comment`. **BE-3.2 should accept `comment` on both endpoints.**
-- The types for `GET /api/approvals` are hand-written in `api/enrollments.ts` (`ApprovalItem`) until BE-3.2 adds the response models.
+- The types for `GET /api/approvals` were hand-written until BE-3.2 merged. They now come from the generated `ApprovalRead`.
 - Each `ApprovalRow` has its own `useMutation` and comment state. A row leaves the list after the server confirms (`setQueryData`, not optimistic), so a 409 (`training_full`, `not_pending`) is shown on the row itself. Every `['trainings']` query is invalidated after a decision, because seats left and the employee's status change.
 - New `secondary` Button variant (Reject).
 
-**Consequences:** When BE-3.2 lands, run `pnpm gen:api` and swap `ApprovalItem` for the generated type.
+**Consequences:** BE-3.2 matched the contract (`{comment}`, `ApprovalRead`, the 409 codes), so the page works on the real API unchanged.
 
 ## 2026-09-25 — Request to join: a derived button state and code-based messages
 **Status:** Accepted

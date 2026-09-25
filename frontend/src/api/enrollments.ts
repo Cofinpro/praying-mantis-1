@@ -9,13 +9,8 @@ export type EnrollmentStatus = components['schemas']['EnrollmentStatus']
 export const requestToJoin = (trainingId: number) =>
   api.post<EnrollmentRead>(`/api/trainings/${trainingId}/enrollments`)
 
-// Hand-written until BE-3.2 adds these endpoints (then use components['schemas'][...] from schema.d.ts).
-// Shapes from the agreed F3 contract in plan.md.
-export type ApprovalItem = {
-  enrollment: EnrollmentRead
-  user: { id: number; name: string }
-  training: TrainingSummary
-}
+// One pending request: who asked, and for which training (with my_enrollment_id, see trainings.ts).
+export type ApprovalItem = Omit<components['schemas']['ApprovalRead'], 'training'> & { training: TrainingSummary }
 
 // Pending requests I can decide: my reports', plus (for admins) users without a team lead.
 export const listApprovals = () => api.get<ApprovalItem[]>('/api/approvals')

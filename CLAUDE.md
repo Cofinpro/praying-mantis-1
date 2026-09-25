@@ -107,8 +107,9 @@ What exists today:
 - `frontend/`: React 19 + TypeScript on Vite, managed with **pnpm**
   - `src/main.tsx`: mounts `<RouterProvider>` (from `react-router/dom`) and loads Inter and the global CSS
   - `src/router.tsx`: the route table. `/login` stands alone; every other page is a child of `Layout`
-  - `src/components/`: `Layout` (TopBar + `<Outlet />`), `TopBar` (with the logout button), `NavItem`, `Logo`, `Avatar`, `NotificationBell`, `PageHeader`, and the form pieces `TextField`, `Button` (primary only so far) and `Alert` (error). Each has a `.module.css`
+  - `src/components/`: `Layout` (TopBar + `<Outlet />`), `TopBar` (with the logout button), `NavItem`, `Logo`, `Avatar`, `NotificationBell`, `PageHeader`, and the form pieces `TextField`, `Button` / `ButtonLink` (primary only so far) and `Alert` (error). `PageHeader` takes `actions` for page buttons on the right. Each has a `.module.css`
   - `src/auth/`: `AuthProvider` (the user from `/me`, `login()`, `logout()`), `useAuth()`, and `<RequireAuth>`, which wraps every route except `/login`
+    - `permissions.ts`: `isAdmin`, `canApprove` (team lead or admin). Used by nav links (`visibleTo`), buttons and `<RequirePermission allow={...}>`, which shows `NotAllowedPage` in place of the page. Everything under `/admin` is guarded by `isAdmin`
   - `src/pages/`: one component per route (placeholders until their stories)
   - `src/config/navigation.ts`: the nav links and the external Timesheets/Vacations links
   - `src/styles/tokens.css`: the Figma variables as CSS custom properties

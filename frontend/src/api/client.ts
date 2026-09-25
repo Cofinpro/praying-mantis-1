@@ -60,6 +60,8 @@ type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 type RequestOptions = {
   // For the login call: no token is sent, and a 401 means "wrong credentials", not "logged out".
   anonymous?: boolean
+  // 'blob' for a file download: the body comes back as a Blob instead of parsed JSON
+  as?: 'blob'
 }
 
 // `T` is what the caller expects back. TypeScript can't check it at runtime: the response is trusted to
@@ -94,11 +96,16 @@ async function request<T>(method: Method, path: string, body?: unknown, options:
   if (response.status === 204) {
     return undefined as T
   }
+  if (options.as === 'blob') {
+    return (await response.blob()) as T
+  }
   return (await response.json()) as T
 }
 
 export const api = {
   get: <T>(path: string) => request<T>('GET', path),
+  // A file, with the login token like every other call (a plain <a href> can't send it)
+  blob: (path: string) => request<Blob>('GET', path, undefined, { as: 'blob' }),
   post: <T>(path: string, body?: unknown, options?: RequestOptions) => request<T>('POST', path, body, options),
   put: <T>(path: string, body?: unknown) => request<T>('PUT', path, body),
   patch: <T>(path: string, body?: unknown) => request<T>('PATCH', path, body),

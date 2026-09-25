@@ -25,6 +25,7 @@ import type { UserSummary } from '../api/users'
 import { getMockAvatar, removeMockAvatar, setMockAvatar } from './data/avatars'
 import { listMockNotifications, markMockRead } from './data/notifications'
 import { mockPeopleReport, mockTrainingReport } from './data/reports'
+import { addMockMaterial, deleteMockMaterial, getMockMaterial, listMockMaterials } from './data/materials'
 import { cancelMockReservation, listMockMyReservations, listMockSeats, reserveMockSeat } from './data/seats'
 import {
   createMockUser,
@@ -292,6 +293,51 @@ export const handlers = [
   http.get('*/api/users/:id/avatar', ({ params }) => {
     const blob = getMockAvatar(Number(params.id))
     return blob ? new HttpResponse(blob, { headers: { 'Content-Type': blob.type } }) : new HttpResponse(null, { status: 404 })
+  }),
+
+  // Materials: anyone who can see the training (getMockTraining) sees them; admins and the trainer manage them
+  http.get('*/api/trainings/:id/materials', ({ request, params }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    if (!getMockTraining(user, Number(params.id))) return trainingNotFound()
+    return HttpResponse.json(listMockMaterials(Number(params.id)))
+  }),
+
+  http.post('*/api/trainings/:id/materials', async ({ request, params }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    const training = getMockTraining(user, Number(params.id))
+    if (!training) return trainingNotFound()
+    if (!user.is_admin && training.trainer?.id !== user.id) {
+      return HttpResponse.json({ detail: 'Only admins and the trainer can change the materials' }, { status: 403 })
+    }
+    const file = (await request.formData()).get('file')
+    if (!(file instanceof File)) return HttpResponse.json({ detail: [{ type: 'missing', loc: ['body', 'file'], msg: 'Field required' }] }, { status: 422 })
+    const result = addMockMaterial(training.id, user.id, file.name, new Uint8Array(await file.arrayBuffer()))
+    return result.status === 201
+      ? HttpResponse.json(result.material, { status: 201 })
+      : HttpResponse.json({ detail: result.detail }, { status: result.status })
+  }),
+
+  http.get('*/api/trainings/:id/materials/:materialId/file', ({ request, params }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    const stored = getMockTraining(user, Number(params.id)) && getMockMaterial(Number(params.id), Number(params.materialId))
+    if (!stored) return HttpResponse.json({ detail: 'Material not found' }, { status: 404 })
+    return new HttpResponse(stored.data, { headers: { 'Content-Type': stored.material.content_type } })
+  }),
+
+  http.delete('*/api/trainings/:id/materials/:materialId', ({ request, params }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    const training = getMockTraining(user, Number(params.id))
+    if (!training) return trainingNotFound()
+    if (!user.is_admin && training.trainer?.id !== user.id) {
+      return HttpResponse.json({ detail: 'Only admins and the trainer can change the materials' }, { status: 403 })
+    }
+    return deleteMockMaterial(training.id, Number(params.materialId))
+      ? new HttpResponse(null, { status: 204 })
+      : HttpResponse.json({ detail: 'Material not found' }, { status: 404 })
   }),
 
   http.get('*/api/admin/reports/trainings', ({ request }) => {

@@ -197,6 +197,15 @@ def test_training_for_another_level_is_404_for_employees(client, junior, catalog
     assert response.json() == {"detail": "Training not found"}  # same as a missing id
 
 
+def test_trainers_can_open_their_own_training_whatever_its_levels(client, catalogue):
+    trainer = catalogue["later_junior"].trainer  # an architect, giving a junior/expert training
+
+    response = client.get(f"{URL}/{catalogue['later_junior'].id}", headers=auth_headers(trainer))
+
+    assert response.status_code == 200
+    assert client.get(f"{URL}/{catalogue['senior_only'].id}", headers=auth_headers(trainer)).status_code == 404
+
+
 def test_admin_can_read_any_training(client, admin, catalogue):
     assert client.get(f"{URL}/{catalogue['senior_only'].id}", headers=auth_headers(admin)).status_code == 200
 

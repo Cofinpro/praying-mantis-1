@@ -1,3 +1,5 @@
+import { saveFile } from './download'
+
 // CSV export for the Reports page, built in the browser from data we already have (no extra endpoint).
 
 export type CsvColumn<T> = { header: string; value: (row: T) => string | number | null | undefined }
@@ -19,13 +21,7 @@ export function toCsv<T>(columns: CsvColumn<T>[], rows: T[]): string {
   return lines.map((line) => line.join(',')).join('\r\n')
 }
 
-// Saves the text as a file: a Blob URL on a temporary <a download>, clicked and thrown away.
 // The BOM (\uFEFF) makes Excel read the file as UTF-8, so "João" doesn't turn into "JoÃ£o".
 export function downloadCsv(filename: string, csv: string) {
-  const url = URL.createObjectURL(new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8' }))
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename
-  link.click()
-  URL.revokeObjectURL(url)
+  saveFile(filename, new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8' }))
 }

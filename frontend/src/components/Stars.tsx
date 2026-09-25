@@ -5,7 +5,10 @@ import styles from './Stars.module.css'
 export function StarRating({ average, count }: { average: number; count: number }) {
   const rounded = Math.round(average)
   return (
-    <span className={styles.rating} aria-label={`Rated ${average} out of 5 by ${count} ${count === 1 ? 'person' : 'people'}`}>
+    // aria-label isn't allowed on a plain <span> (it has no role to name), so screen readers get
+    // visually hidden text instead, and the star characters are hidden from them
+    <span className={styles.rating}>
+      <span className="visually-hidden">{`Rated ${average} out of 5 by ${count} ${count === 1 ? 'person' : 'people'}`}</span>
       <span aria-hidden="true" className={styles.stars}>
         {'★'.repeat(rounded)}
         <span className={styles.off}>{'★'.repeat(5 - rounded)}</span>

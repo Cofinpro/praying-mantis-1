@@ -11,6 +11,7 @@ import { BackLink } from '../components/BackLink'
 import { Button, ButtonLink } from '../components/Button'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { FeedbackSection } from '../components/FeedbackSection'
+import { MaterialsSection } from '../components/MaterialsSection'
 import { JoinButton } from '../components/JoinButton'
 import { LevelTag } from '../components/LevelTag'
 import { PageHeader } from '../components/PageHeader'
@@ -118,6 +119,8 @@ export function TrainingDetailPage() {
               <p className={styles.descriptionText}>{description}</p>
             )}
           </section>
+
+          <MaterialsSection training={data} />
 
           <FeedbackSection trainingId={data.id} />
         </div>

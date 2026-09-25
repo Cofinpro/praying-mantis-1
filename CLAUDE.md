@@ -98,11 +98,13 @@ What exists today:
     - `enrollment.py`: `Enrollment` (UNIQUE `training_id` + `user_id`), with `EnrollmentStatus` in `enums.py`
     - `notification.py`: `Notification` (type, message, link, read_at), with `NotificationType` in `enums.py`
     - `seat.py`: `Seat` (label, zone, pos_x, pos_y), UNIQUE label and UNIQUE (zone, pos_x, pos_y)
+    - `reservation.py`: `SeatReservation` (seat_id, user_id, date), UNIQUE (seat_id, date) and UNIQUE (user_id, date)
     - `types.py`: `UtcDateTime`, the column type for every datetime the API exposes (stores UTC, returns aware UTC)
   - `app/schemas/`: Pydantic request/response models (the API contract)
-  - `app/routers/`: one `APIRouter` per area. `health.py` has `/api/` and `/api/health/db`, `auth.py` has `/api/auth/login` and `/api/auth/me`, `users.py` has `/api/users` (admin only), `trainings.py` has `/api/trainings` (list, detail, create, `PATCH`, `/cancel`) and `GET /api/me/enrollments` (Profile), `enrollments.py` has `POST /api/trainings/{id}/enrollments`, `GET /api/approvals` and `POST /api/enrollments/{id}/approve` / `reject` / `withdraw`. `notifications.py` has `GET /api/notifications` and `POST /api/notifications/{id}/read` / `read-all`.
+  - `app/routers/`: one `APIRouter` per area. `health.py` has `/api/` and `/api/health/db`, `auth.py` has `/api/auth/login` and `/api/auth/me`, `users.py` has `/api/users` (admin only), `trainings.py` has `/api/trainings` (list, detail, create, `PATCH`, `/cancel`) and `GET /api/me/enrollments` (Profile), `enrollments.py` has `POST /api/trainings/{id}/enrollments`, `GET /api/approvals` and `POST /api/enrollments/{id}/approve` / `reject` / `withdraw`. `notifications.py` has `GET /api/notifications` and `POST /api/notifications/{id}/read` / `read-all`. `seats.py` has `POST /api/reservations`, `GET /api/reservations/me` and `DELETE /api/reservations/{id}`.
   - `app/dependencies.py`: shared dependencies. `CurrentUser` (requires a valid token, gives the `User`), `AdminUser` (also requires `is_admin`, else 403) and `DbSession`.
   - `app/services/`: business rules, no HTTP concerns. `enrollments.py` holds every enrollment rule (`request`, `approve`, `reject`, `withdraw`, `pending_for`, `can_decide`, `count_approved`). Status changes go through `check_move` (the state machine in `ALLOWED_MOVES`).
+    `seats.py`: `check_booking_date` (Q14 rules, in the office time zone), `reserve` (move included), `my_upcoming`, `cancel`.
     `notifications.py`: `notify(db, recipients, type, message, link)` adds rows **without committing**; the calling service commits once, so an action and its notifications are one transaction.
   - `app/errors.py`: `NotFound` (→ 404), `Forbidden` (→ 403), `Conflict` (→ 409 with a `code`) and `ValidationFailed` (→ 422 in Pydantic's format), raised by services and turned into responses by handlers registered in `main.py`
   - `app/email.py`: `send_email(Email)` over SMTP, never raises. Called only through `BackgroundTasks`. Emails are off when `SMTP_HOST` is unset (tests, Render).
@@ -224,6 +226,8 @@ pos_y 1     DKB-06   DKB-07   DKB-08   DKB-09   DKB-10
 
 The same for `DEKA-01`…`DEKA-10`, `VV-…`, `DBIS-…` and `UNION-01`…`UNION-10`.
 
+**Seed reservations** (the next two weekdays, skipped if they'd clash with a real booking): day 1 Sofia DKB-03, João DKB-04, Tiago DEKA-01, Pedro VV-05, Inês UNION-02, Laura DBIS-07. Day 2 Marta DKB-03, Miguel DEKA-06, Beatriz UNION-02.
+
 **Trying the API with a login:** open http://localhost:8000/docs, call `POST /api/auth/login` with a seed login, copy the `access_token`, click **Authorize** and paste it. Every request from `/docs` then sends `Authorization: Bearer <token>`.
 
 Check the database connection at http://localhost:8000/api/health/db (expects `{"database": "ok"}`).
@@ -274,6 +278,7 @@ Settings come only from environment variables (the image has no `.env`). On a ho
 | `JWT_SECRET` | yes | at least 32 characters, different from any local one |
 | `CORS_ORIGINS` | yes | the frontend's origin, e.g. `https://cofinpro.github.io` (no path) |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM`, `APP_URL` | no | email for approval requests. Unset `SMTP_HOST` = no email. `APP_URL` is the frontend's base URL, for links. |
+| `OFFICE_TIMEZONE`, `BOOKING_DAYS_AHEAD` | no | seat booking rules (defaults `Europe/Lisbon`, `14`) |
 | `SEED_ON_START` | no | `true` runs the demo seed on every start (demo only) |
 | `PORT` | no | set by the host; defaults to 8000 |
 

@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.errors import register_error_handlers
 from app.scheduler import remind_forever
-from app.routers import admin_reminders, admin_users, avatars, auth, enrollments, health, notifications, seats, trainings, users
+from app.routers import admin_reminders, admin_reports, admin_users, avatars, auth, enrollments, health, notifications, seats, trainings, users
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -46,3 +46,4 @@ app.include_router(avatars.router, prefix="/api")
 app.include_router(admin_users.router, prefix="/api")
 app.include_router(admin_users.me_router, prefix="/api")
 app.include_router(admin_reminders.router, prefix="/api")
+app.include_router(admin_reports.router, prefix="/api")

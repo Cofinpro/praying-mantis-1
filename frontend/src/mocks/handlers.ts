@@ -24,6 +24,7 @@ import {
 import type { UserSummary } from '../api/users'
 import { getMockAvatar, removeMockAvatar, setMockAvatar } from './data/avatars'
 import { listMockNotifications, markMockRead } from './data/notifications'
+import { mockPeopleReport, mockTrainingReport } from './data/reports'
 import { cancelMockReservation, listMockMyReservations, listMockSeats, reserveMockSeat } from './data/seats'
 import {
   createMockUser,
@@ -291,6 +292,21 @@ export const handlers = [
   http.get('*/api/users/:id/avatar', ({ params }) => {
     const blob = getMockAvatar(Number(params.id))
     return blob ? new HttpResponse(blob, { headers: { 'Content-Type': blob.type } }) : new HttpResponse(null, { status: 404 })
+  }),
+
+  http.get('*/api/admin/reports/trainings', ({ request }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    if (!user.is_admin) return adminsOnly()
+    const params = new URL(request.url).searchParams
+    return HttpResponse.json(mockTrainingReport(params.get('from'), params.get('to')))
+  }),
+
+  http.get('*/api/admin/reports/people', ({ request }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    if (!user.is_admin) return adminsOnly()
+    return HttpResponse.json(mockPeopleReport())
   }),
 
   http.get('*/api/admin/users', ({ request }) => {

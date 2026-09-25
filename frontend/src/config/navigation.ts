@@ -10,6 +10,7 @@ export const internalNavLinks: InternalNavLink[] = [
   { label: 'Seats', to: '/seats' },
   { label: 'Approvals', to: '/approvals', visibleTo: canApprove },
   { label: 'Users', to: '/admin/users', visibleTo: isAdmin },
+  { label: 'Reports', to: '/admin/reports', visibleTo: isAdmin },
 ]
 
 // Owned by other teams. `href: null` until we know their URLs, which renders a disabled item.

@@ -3,6 +3,7 @@ import { canApprove, isAdmin } from './auth/permissions'
 import { RequireAuth } from './auth/RequireAuth'
 import { RequirePermission } from './auth/RequirePermission'
 import { Layout } from './components/Layout'
+import { AdminReportsPage } from './pages/AdminReportsPage'
 import { AdminUsersPage } from './pages/AdminUsersPage'
 import { EditTrainingPage } from './pages/EditTrainingPage'
 import { EditUserPage } from './pages/EditUserPage'
@@ -54,6 +55,7 @@ export const routes: RouteObject[] = [
           { path: 'trainings/new', element: <NewTrainingPage /> },
           { path: 'trainings/:id/edit', element: <EditTrainingPage /> },
           { path: 'users', element: <AdminUsersPage /> },
+          { path: 'reports', element: <AdminReportsPage /> },
           { path: 'users/new', element: <NewUserPage /> },
           { path: 'users/:id/edit', element: <EditUserPage /> },
         ],

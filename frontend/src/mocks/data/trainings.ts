@@ -91,6 +91,8 @@ function promoteMockWaitlist(training: MockTraining) {
 type MockFeedback = { rating: number; comment: string | null; created_at: string; updated_at: string }
 const feedback = new Map<number, Map<number, MockFeedback>>()
 
+export const mockRatings = (trainingId: number) => ratingsOf(trainingId)
+
 function ratingsOf(trainingId: number) {
   const all = [...(feedback.get(trainingId)?.values() ?? [])]
   const average = all.length ? Math.round((all.reduce((sum, f) => sum + f.rating, 0) / all.length) * 10) / 10 : null

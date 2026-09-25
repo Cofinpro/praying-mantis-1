@@ -14,6 +14,25 @@ Template:
 
 ---
 
+## 2026-09-25 — Admin reports: one query per table, CSV built in the browser
+**Status:** Accepted
+**Context:** Admins want to see how trainings are used (requests, approvals, ratings) and who completed what, and to take that into Excel.
+**Decision:**
+- **Trainings report:** `GET /api/admin/reports/trainings?from=&to=` (start days in UTC, both included; `to` < `from` is a 422). It lists every training, cancelled ones too, newest first, with enrollments counted by status plus the average rating and the rating count.
+- **People report:** `GET /api/admin/reports/people` lists everyone by name, with:
+  - completed trainings (approved, ended, not cancelled), their hours, the last one
+  - approved ones still to come
+- **One query per report:** each is a single `SELECT` with `GROUP BY` subqueries, guarded by a query-count test.
+- **Summary tiles** on the page, over the trainings that weren't cancelled:
+  - trainings
+  - requests (every status)
+  - **approval rate = approved / (approved + rejected)**: undecided requests don't count
+  - average rating, weighted by the number of ratings
+- **CSV is built in the browser** from the JSON the page already has: `lib/csv.ts`, RFC 4180 quoting, a UTF-8 BOM for Excel. Cells starting with `= + - @` get a leading `'`, so a name can't become a spreadsheet formula (CSV injection).
+- The people table is filtered by client in the browser. The download is what's on screen.
+
+**Consequences:** No second endpoint per format. If the data ever gets too big for one response, the export moves to a streamed `text/csv` endpoint.
+
 ## 2026-09-25 — Reminders the day before, from a loop inside the web process
 **Status:** Accepted
 **Context:** People forget trainings and seat bookings. Something has to run on a schedule, but Render's free plan has no cron jobs or workers, and the web service sleeps after 15 idle minutes.

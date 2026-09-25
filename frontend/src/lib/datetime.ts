@@ -36,6 +36,9 @@ export function formatDateTime(iso: string): string {
   return `${dayFormat.format(date).replace(',', '')} · ${timeFormat.format(date)}`
 }
 
+// "Tue 14 Oct 2026", for tables where the time doesn't matter.
+export const formatDate = (iso: string) => dayFormat.format(new Date(iso)).replace(',', '')
+
 const relative = new Intl.RelativeTimeFormat('en-GB', { numeric: 'auto' })
 
 // "just now", "5 minutes ago", "yesterday"… for notifications.

@@ -5,7 +5,7 @@ from app.dependencies import AdminUser, DbSession
 from app.email import send_email
 from app.services import reminders
 
-router = APIRouter(prefix="/admin/reminders", tags=["admin"])
+router = APIRouter(prefix="/admin/reminders", tags=["admin: reminders"])
 
 
 class ReminderRunRead(BaseModel):

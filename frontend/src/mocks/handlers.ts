@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw'
 import type { CurrentUser, LoginRequest, TokenResponse } from '../api/auth'
 import type { DbHealthResponse, HelloResponse } from '../api/health'
+import type { NotificationList } from '../api/notifications'
 import type { ApprovalItem, EnrollmentRead } from '../api/enrollments'
 import type { TrainingCreate, TrainingRead, TrainingSummary, TrainingUpdate } from '../api/trainings'
 import { isLevel } from '../trainings/levels'
@@ -16,6 +17,7 @@ import {
   withdrawMockEnrollment,
 } from './data/trainings'
 import type { UserSummary } from '../api/users'
+import { listMockNotifications, markMockRead } from './data/notifications'
 import { findSeedUserByEmail, findSeedUserById, searchSeedUsers, SEED_PASSWORD, toCurrentUser } from './data/users'
 
 // The mock token is just the user id. The real one is a signed JWT, but the app treats both as opaque.
@@ -174,5 +176,26 @@ export const handlers = [
     return result.status === 200
       ? HttpResponse.json<EnrollmentRead>(result.enrollment)
       : HttpResponse.json({ detail: result.detail }, { status: result.status })
+  }),
+
+  http.get('*/api/notifications', ({ request }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    const limit = Number(new URL(request.url).searchParams.get('limit') ?? 20)
+    return HttpResponse.json<NotificationList>(listMockNotifications(user.id, limit))
+  }),
+
+  http.post('*/api/notifications/read-all', ({ request }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    markMockRead(user.id, 'all')
+    return new HttpResponse(null, { status: 204 })
+  }),
+
+  http.post('*/api/notifications/:id/read', ({ request, params }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    markMockRead(user.id, Number(params.id))
+    return new HttpResponse(null, { status: 204 })
   }),
 ]

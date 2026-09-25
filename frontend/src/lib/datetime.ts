@@ -35,3 +35,16 @@ export function formatDateTime(iso: string): string {
   const date = new Date(iso)
   return `${dayFormat.format(date).replace(',', '')} · ${timeFormat.format(date)}`
 }
+
+const relative = new Intl.RelativeTimeFormat('en-GB', { numeric: 'auto' })
+
+// "just now", "5 minutes ago", "yesterday"… for notifications.
+export function formatTimeAgo(iso: string, now = new Date()): string {
+  const seconds = Math.round((new Date(iso).getTime() - now.getTime()) / 1000)
+  if (Math.abs(seconds) < 60) return 'just now'
+  const minutes = Math.round(seconds / 60)
+  if (Math.abs(minutes) < 60) return relative.format(minutes, 'minute')
+  const hours = Math.round(minutes / 60)
+  if (Math.abs(hours) < 24) return relative.format(hours, 'hour')
+  return relative.format(Math.round(hours / 24), 'day')
+}

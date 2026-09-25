@@ -21,4 +21,5 @@ export const queryKeys = {
   trainingList: (level: string | null) => ['trainings', 'list', { level }] as const,
   trainingDetail: (id: number) => ['trainings', 'detail', id] as const,
   approvals: ['approvals'] as const,
+  notifications: ['notifications'] as const,
 }

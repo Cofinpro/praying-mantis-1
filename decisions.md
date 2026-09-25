@@ -14,6 +14,19 @@ Template:
 
 ---
 
+## 2026-09-25 — Create-training form: a Trainer combobox, validation in a plain module
+**Status:** Accepted
+**Context:** FE-2.1 builds `/admin/trainings/new` against `POST /api/trainings` (BE-2.1).
+**Decision:**
+- **Trainer** is a searchable combobox (`TrainerPicker`): "External" is always the first option, then users from `GET /api/users?search=`, debounced by 300 ms. This keeps Figma's single "Trainer" select and meets the "searchable user picker **or** External" criterion. "External trainer name (optional)" is only enabled when External is picked.
+- **Validation and mapping** live in `src/trainings/trainingForm.ts`: `validateTrainingForm()` mirrors the backend's `TrainingCreate` rules, `toTrainingCreate()` builds the body (local → UTC), and `serverErrorsToFields()` puts a 422's errors on fields. Errors show under each field and in one alert ("Please fix N fields · …") as in Figma `04b`.
+- The form uses `noValidate`, so only our messages show, not the browser's pop-ups.
+- New shared pieces: `TextArea`, `CheckboxGroup` (generic over the option type), `BackLink`, and a `ghost` variant of `Button` / `ButtonLink`.
+- The MSW `POST /api/trainings` trusts its body (the form validates first) and keeps created trainings in memory. `GET /api/users` searches the seed users.
+- Frontend tests run with `TZ=Europe/Lisbon` (set in `vite.config.ts`).
+
+**Consequences:** When the backend's rules change, `validateTrainingForm()` must follow. The backend still has the final say, and its 422s are shown too.
+
 ## 2026-09-25 — Backend hosting: Render (free) + Aiven MySQL (free)
 **Status:** Proposed by BE, to confirm in SCRUM-55 (F7, together) and, for real employee data, with the company (Q13).
 **Context:** The backend and database need a host. Constraints: no cost, and as little setup and upkeep as possible.

@@ -40,10 +40,23 @@ We're both experienced developers (one from **Vue**, one from **Java**), so skip
 - **Conditional rendering is plain JavaScript**: there's no `v-if`/`v-show`. Use `cond && <X />` or `cond ? <A /> : <B />` inside JSX, or an early `return`. Watch out with numbers: `{count && <Badge />}` renders a literal `0` when `count` is 0, because React renders numbers but skips `false`, `null` and `undefined`. Use `count > 0 && ...`. Nothing is hidden-but-mounted as with `v-show`: a component that isn't rendered doesn't exist, and its state is gone.
 - **Guarding a group of routes**: a route with a `path` but no page, whose `element` is a guard around `<Outlet />`, protects every child at once (`/admin/*` → `<RequirePermission allow={isAdmin}><Outlet /></RequirePermission>`). It's the React Router version of `meta: { requiresAdmin: true }` plus a `beforeEach` in vue-router.
 - **Hiding UI is not security**: anyone can call the API with a token from devtools, so the backend checks every rule (BE-1.3's `require_admin`, 401 vs 403). The frontend only hides what a user can't use, to keep the screens clean.
+- **A form with many fields** (FE-2.1): one `useState<TrainingForm>` object plus a typed setter, `set<K extends keyof TrainingForm>(field: K, value: TrainingForm[K])`. Updates must build a **new** object (`{ ...current, [field]: value }`): React compares state by reference, so mutating `form.name = 'x'` changes nothing on screen. Vue's `reactive()` tracks the mutation for you.
+- **Keep form logic out of the component**: validation, the conversion to the API body and the 422 mapping are plain functions in `src/trainings/trainingForm.ts`. The component only wires inputs to state, a bit like a composable without any reactivity.
+- **Debouncing is an effect with a cleanup**: `useDebouncedValue(value, 300)` starts a `setTimeout` in `useEffect` and clears it in the cleanup. Each keystroke re-runs the effect, so the previous timer is cancelled first. It's the same idea as `watch(query, …, { debounce })` from VueUse, built from two hooks.
+- **`useId()`** makes a stable, unique id per component instance for `htmlFor`, `aria-describedby` and `aria-controls`. Don't use `Math.random()`: it changes on every render.
+- **Generic components**: `function CheckboxGroup<T extends string>(props: Props<T>)` works like a generic Vue SFC (`<script setup generic="T">`). With `Level` options, `onChange` hands back `Level[]`, with no casts.
+- **The `form` attribute**: `<button type="submit" form="new-training">` submits a form it isn't inside of. It's plain HTML, handy when the design puts the buttons below the card.
 - **Where to keep the token**:
   - **localStorage** (our choice): survives refreshes and tabs, but any injected script can read it (XSS).
   - **Memory only**: safer, but you're logged out on every refresh.
   - **httpOnly cookie**: JavaScript can't read it, but it needs CSRF protection and a backend on the same site, or CORS with credentials.
+
+## Dates and time zones (JavaScript)
+
+- **`<input type="datetime-local">`** gives `"2026-10-14T09:00"`, with no zone. `new Date(that)` reads it as **local** time, and `.toISOString()` gives UTC (`"2026-10-14T08:00:00.000Z"` in Lisbon summer time). That's the whole local → UTC conversion (`src/lib/datetime.ts`).
+- **The trap**: `new Date("2026-10-14")` (date only) is read as **UTC** midnight, not local. The same string with a time is local. Java's `LocalDateTime` vs `Instant` makes this explicit; JavaScript's `Date` doesn't.
+- **Chrome's year segment takes 6 digits** unless the input has a `max`. Typing `20102026` then `0900` fills the year with `202609`. `max="9999-12-31T23:59"` limits it to 4.
+- **Tests pin the zone**: `vite.config.ts` sets `process.env.TZ = 'Europe/Lisbon'` before Vitest starts its workers, so "09:00 → 08:00Z" gives the same result on every laptop and in CI.
 
 ## Vite
 
@@ -58,6 +71,7 @@ We're both experienced developers (one from **Vue**, one from **Java**), so skip
 - A service worker only controls pages **under its own path**, so on GitHub Pages it must be registered from `/<repo>/mockServiceWorker.js` (we use `BASE_URL`). It also needs HTTPS or `localhost`.
 - The first page load waits for `worker.start()` before rendering. Otherwise the first requests could go out before the worker is ready and hit the real network.
 - **Mock state lives in the handlers**: the login mock returns `mock-token-<user id>`, and the `/me` mock reads the user back from the `Authorization` header. The app treats the token as opaque either way, so it can't tell it isn't a JWT. `src/mocks/data/users.ts` mirrors `backend/app/seed.py`, so the same logins work with and without the backend.
+- **FastAPI's 422 body** is `{"detail": [{"loc": ["body", "max_seats"], "msg": "…", "type": "…"}]}`. `loc[1]` names the field. Errors from a whole-model validator (`@model_validator`) only have `loc: ["body"]`, so the form finds the field mentioned first in `msg` ("ends_at must be after starts_at" → Ends).
 - **`openapi-typescript`** turns `/openapi.json` into plain TypeScript types (`paths`, `components['schemas']`), with no runtime code. It's the TS counterpart of generating a Java client from an OpenAPI spec, except nothing checks the response at runtime: `api.get<T>()` just **trusts** that the JSON matches `T`. A FastAPI route without a `response_model` generates `unknown`, so ask BE for response models.
 
 ## Vitest and Testing Library

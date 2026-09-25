@@ -1,4 +1,5 @@
 import type { CurrentUser } from '../../api/auth'
+import type { UserSummary } from '../../api/users'
 
 // Mirrors backend/app/seed.py, so the same logins work with and without the backend.
 export const SEED_PASSWORD = 'password123'
@@ -37,3 +38,12 @@ export function toCurrentUser({ teamLeadEmail, ...user }: SeedUser): CurrentUser
 export const findSeedUserByEmail = (email: string) => seedUsers.find((u) => u.email === email.toLowerCase())
 
 export const findSeedUserById = (id: number) => seedUsers.find((u) => u.id === id)
+
+// Like GET /api/users?search=: part of a name or email, case-insensitive, at most `limit` users.
+export function searchSeedUsers(search: string, limit = 20): UserSummary[] {
+  const term = search.trim().toLowerCase()
+  return seedUsers
+    .filter((u) => u.name.toLowerCase().includes(term) || u.email.includes(term))
+    .slice(0, limit)
+    .map(({ id, name, email, level }) => ({ id, name, email, level }))
+}

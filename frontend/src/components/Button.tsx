@@ -2,12 +2,16 @@ import type { ButtonHTMLAttributes } from 'react'
 import { Link, type LinkProps } from 'react-router'
 import styles from './Button.module.css'
 
-// Figma component "Button", primary variant, size md. Other variants get added when a screen needs them.
-export function Button({ className, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
-  return <button className={`${styles.button} ${className ?? ''}`} {...props} />
+// Figma component "Button", size md. Primary is the main action; ghost is a quiet one like "Cancel".
+type Variant = 'primary' | 'ghost'
+
+type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }
+
+export function Button({ variant = 'primary', className, ...props }: ButtonProps) {
+  return <button className={`${styles.button} ${styles[variant]} ${className ?? ''}`} {...props} />
 }
 
 // A link that looks like a button, for actions that go to another page ("+ New training").
-export function ButtonLink({ className, ...props }: LinkProps) {
-  return <Link className={`${styles.button} ${className ?? ''}`} {...props} />
+export function ButtonLink({ variant = 'primary', className, ...props }: LinkProps & { variant?: Variant }) {
+  return <Link className={`${styles.button} ${styles[variant]} ${className ?? ''}`} {...props} />
 }

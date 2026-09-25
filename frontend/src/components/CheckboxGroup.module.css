@@ -1,0 +1,47 @@
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.legend {
+  margin-bottom: var(--space-2);
+  padding: 0;
+  font: var(--font-label);
+  color: var(--color-text-primary);
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+}
+
+.option {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font: var(--font-body-sm);
+  cursor: pointer;
+}
+
+/* A native checkbox, coloured with accent-color: keyboard, focus and screen readers keep working */
+.box {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--color-action-primary);
+  cursor: pointer;
+}
+
+.hint {
+  font: var(--font-caption);
+  color: var(--color-text-muted);
+}
+
+.hintError {
+  color: var(--color-text-danger);
+}

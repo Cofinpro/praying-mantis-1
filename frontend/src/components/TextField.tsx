@@ -1,4 +1,4 @@
-import { useId, type InputHTMLAttributes } from 'react'
+import { useId, type InputHTMLAttributes, type TextareaHTMLAttributes } from 'react'
 import styles from './TextField.module.css'
 
 type TextFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'id'> & {
@@ -28,6 +28,40 @@ export function TextField({ label, help, error, invalid = Boolean(error), ...inp
         aria-invalid={invalid || undefined}
         aria-describedby={hint ? hintId : undefined}
         {...inputProps}
+      />
+      {hint && (
+        <p id={hintId} className={`${styles.hint} ${error ? styles.hintError : ''}`}>
+          {hint}
+        </p>
+      )}
+    </div>
+  )
+}
+
+type TextAreaProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'id'> & {
+  label: string
+  help?: string
+  error?: string
+}
+
+// Figma component "Textarea": the same label, box and help text as TextField, for multi-line text.
+export function TextArea({ label, help, error, ...textareaProps }: TextAreaProps) {
+  const id = useId()
+  const hint = error ?? help
+  const hintId = `${id}-hint`
+
+  return (
+    <div className={styles.field}>
+      <label htmlFor={id} className={styles.label}>
+        {label}
+      </label>
+      <textarea
+        id={id}
+        className={`${styles.input} ${styles.textarea} ${error ? styles.invalid : ''}`}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={hint ? hintId : undefined}
+        rows={3}
+        {...textareaProps}
       />
       {hint && (
         <p id={hintId} className={`${styles.hint} ${error ? styles.hintError : ''}`}>

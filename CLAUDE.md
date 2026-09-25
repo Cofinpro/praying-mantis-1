@@ -9,6 +9,8 @@ Coding dojo project: a FastAPI backend and a React frontend.
   - `app/database.py` — engine, `SessionLocal`, `Base`, `get_db` dependency
   - `.env.example` — DB settings; copy to `backend/.env` (git-ignored)
 - `frontend/` — React 19 + TypeScript on Vite, managed with **pnpm**
+  - `src/App.tsx` calls the backend at `VITE_API_URL` (default `http://localhost:8000`)
+- `.github/workflows/deploy-pages.yml` — builds `frontend/` and deploys it to GitHub Pages on every push to `main`
 
 ## Commands
 
@@ -18,8 +20,9 @@ cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env   # then fill in DB credentials
-fastapi dev app/main.py
+fastapi dev app/main.py   # http://localhost:8000
 ```
+Allowed frontend origins are set by `CORS_ORIGINS` (comma-separated).
 
 ### Frontend
 ```sh
@@ -29,6 +32,12 @@ pnpm dev      # http://localhost:5173
 pnpm build    # tsc -b && vite build
 pnpm lint     # oxlint
 ```
+
+## Deployment
+
+GitHub Pages hosts only the static frontend; the backend is not deployed anywhere.
+The Pages build uses `--base=/<repo-name>/` and reads the backend URL from the
+repo variable `VITE_API_URL` (Settings → Secrets and variables → Actions → Variables).
 
 ## Conventions
 

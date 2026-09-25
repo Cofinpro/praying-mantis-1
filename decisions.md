@@ -24,6 +24,27 @@ Template:
 - An unknown email still runs one Argon2 verification against a dummy hash, so response times don't reveal which emails exist.
 **Consequences:** The contract is unchanged. `JWT_SECRET` must be set everywhere, including CI and, later, the deployment (BE-7.1).
 
+## 2026-09-25 — PRs without reviews
+**Status:** Accepted. Supersedes the review part of "Team split and a contract-first workflow" and D12 in `plan.md`.
+**Context:** With everything built in one day, waiting for the other developer to review each PR slows both lanes down.
+**Decision:** Every story still gets its own branch and PR, but only as a record of the change. Nobody is requested as a reviewer, and a PR doesn't need an approval to be merged.
+**Consequences:** We lose cross-review as the main way to learn the other half of the stack, so the PR descriptions, `learnings.md` and the demo-and-reflect step carry more of that. Mistakes are caught later, at integration.
+
+---
+
+## 2026-09-25 — API client: a hand-written `fetch` wrapper, MSW in dev and on Pages
+**Status:** Accepted
+**Context:** FE-0.2 needs one place that talks to the API, mocks so the frontend doesn't wait for the backend, and types generated from `/openapi.json`.
+**Decision:**
+- **Client:** a small hand-written wrapper in `src/api/client.ts` (`api.get<T>(path)` and so on) around `fetch`, not `openapi-fetch` or axios. We write it once to learn how it works. It throws `ApiError` with `status`, FastAPI's `detail`, and `code` for 409 business-rule conflicts.
+- **Endpoint functions:** one module per area (`src/api/health.ts`, later `trainings.ts`…) with a typed function per endpoint. Pages and hooks call those, never `api` or `fetch` directly, so TanStack Query can wrap them later.
+- **Types:** `openapi-typescript` generates `src/api/schema.d.ts` (`pnpm gen:api`), and it is **committed**, so `pnpm build` and CI never need a running backend. Routes without a `response_model` generate `unknown`, so their types are hand-written next to the endpoint function until the backend adds one.
+- **Mocks:** MSW, switched on by `VITE_USE_MOCKS=true`. `pnpm dev:mock` uses a Vite mode (`.env.mock`) to set it. Handlers match `*/api/...`, so they don't depend on `VITE_API_URL`. An API call without a handler logs an MSW error, and other requests (fonts, Vite modules) pass through silently.
+- **GitHub Pages:** the deploy workflow builds with `VITE_USE_MOCKS=true` unless the repo variable says `false`, so the live site works before the backend is deployed (BE-7.1). The worker is registered from `BASE_URL`, so it works under `/<repo>/`.
+**Consequences:** Every new endpoint needs three things: its function in `src/api/`, an MSW handler, and a `pnpm gen:api` run once BE has merged it. Without mocks, MSW is dead code that Vite drops from the bundle. The live site shows mock data until someone flips `VITE_USE_MOCKS`.
+
+---
+
 ## 2026-09-25 — App shell: GitHub Pages deep links via 404.html, React Router data mode
 **Status:** Accepted
 **Context:** FE-0.1 needs client-side routes that survive a refresh on GitHub Pages. Pages is static hosting, so a refresh on `/praying-mantis-1/trainings` asks for a file that doesn't exist and gets a 404.
@@ -143,7 +164,7 @@ Template:
 **Context:** Two developers. One does backend and database, the other frontend. Both want to learn.
 **Decision:**
 - **Contract first:** each feature starts with a joint session (Jira label `together`) to agree the screens and the API contract. Then BE (`backend`) and FE (`frontend`) stories run in parallel.
-- **Git:** one branch and PR per story, and the other developer reviews every PR.
+- **Git:** one branch and PR per story, and the other developer reviews every PR. *(Review part superseded: see "PRs without reviews".)*
 - **Swap stories:** a few small stories are marked 🔁 swap candidate, for building on the other side.
 **Consequences:** Cross-review is the main way each person learns the other half of the stack. Contract changes after the joint session must be agreed by both.
 

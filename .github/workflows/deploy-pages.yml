@@ -39,6 +39,9 @@ jobs:
       - run: pnpm build --base=/${{ github.event.repository.name }}/
         env:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
+          # No backend is deployed yet (BE-7.1), so the live site runs on the MSW mocks unless the
+          # repo variable VITE_USE_MOCKS is set to 'false'.
+          VITE_USE_MOCKS: ${{ vars.VITE_USE_MOCKS || 'true' }}
 
       - uses: actions/configure-pages@v5
 

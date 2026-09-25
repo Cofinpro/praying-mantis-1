@@ -19,4 +19,5 @@ export const queryKeys = {
   me: ['me'] as const,
   trainings: ['trainings'] as const,
   trainingList: (level: string | null) => ['trainings', 'list', { level }] as const,
+  trainingDetail: (id: number) => ['trainings', 'detail', id] as const,
 }

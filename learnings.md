@@ -13,7 +13,7 @@ We're both experienced developers (one from **Vue**, one from **Java**), so skip
 - **`<Outlet />` = `<router-view>`**: a parent route's element renders `<Outlet />` where its matched child goes. A route with only `element` and `children` (no `path`) is a **layout route**: it wraps its children without adding a URL segment. That's how every page except `/login` gets the TopBar.
 - **`index: true`** marks the child that renders at the parent's own path (like a child with `path: ''` in vue-router). We use it with `<Navigate to="/trainings" replace />` as the redirect for `/`, since routes have no `redirect:` key.
 - **`NavLink`** passes `{ isActive }` to a `className` **function** instead of adding a `router-link-active` class for you. It matches child routes too (`/trainings/42` keeps "Trainings" active) unless you pass `end`. It also sets `aria-current="page"`.
-- **`useParams()`** is `useRoute().params`. Values are always `string | undefined`, so convert `id` to a number yourself.
+- **`useParams()`** is `useRoute().params`. Values are always `string | undefined`, so convert `id` to a number yourself. `Number("abc")` is `NaN`, so check `Number.isInteger(id)` and show "Not found" without calling the API.
 - **v8 imports**: there's no `react-router-dom` package anymore. Everything comes from `react-router`, except `RouterProvider`, which comes from `react-router/dom`. Many tutorials still show v6/v7 imports.
 - **`basename`**: the router strips it from every URL and adds it to every `<Link>`. We set it to Vite's `import.meta.env.BASE_URL`, so links work under `/` locally and under `/praying-mantis-1/` on GitHub Pages without changing any `to=`.
 
@@ -60,6 +60,8 @@ We're both experienced developers (one from **Vue**, one from **Java**), so skip
 - **Log out = `queryClient.clear()`**: the cache holds the last user's data. Without clearing it, the next person to log in on the same browser would briefly see the previous user's trainings.
 - **`isPending` vs `isFetching`**: `isPending` means no data yet (show the loading state). `isFetching` means a request is in flight, maybe in the background while old data is shown.
 - **Retries**: by default a failed query is retried 3 times with backoff, which makes a 401 or 404 feel slow. Our `createQueryClient()` retries only network errors and 5xx, once. Tests that check the error state must wait for that retry (about 1 s).
+- **Sharing cache between queries** (FE-2.3): the detail page uses `placeholderData` to show the card's data from any cached list (`queryClient.getQueriesData({ queryKey: ['trainings', 'list'] })`) while `GET /api/trainings/:id` loads. The name and date appear instantly, and the description fills in when the request lands. Unlike `initialData`, placeholder data is never cached as the real answer.
+- **Derive, don't copy**: the detail page reads `training.data` straight into JSX (status, seats label, trainer label) and never does `useState(training.data)`. Copying server data into state freezes it: when the query refetches after an action (F3's join), a copy would be stale. It's like using a `computed` over the store instead of cloning it into a local `ref`.
 - **`useSearchParams`** keeps UI state in the URL (`/trainings?level=senior`), like `route.query` in vue-router. It survives a refresh and can be shared, and it goes straight into the query key.
 
 ## Dates and time zones (JavaScript)

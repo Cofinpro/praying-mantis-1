@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -50,8 +50,7 @@ describe('create-training form', () => {
     await fillValidForm(user)
     await user.click(screen.getByRole('button', { name: 'Create training' }))
 
-    await screen.findByRole('heading', { name: 'Training 42' })
-    expect(router.state.location.pathname).toBe('/trainings/42')
+    await waitFor(() => expect(router.state.location.pathname).toBe('/trainings/42'))
     expect(sent).toEqual([
       {
         name: 'React Basics',
@@ -70,7 +69,7 @@ describe('create-training form', () => {
   it('sends an External trainer with the optional name', async () => {
     const sent = captureCreate()
     const user = userEvent.setup()
-    renderRoute('/admin/trainings/new')
+    const { router } = renderRoute('/admin/trainings/new')
     await screen.findByRole('heading', { name: 'New training' })
 
     await fillValidForm(user)
@@ -80,7 +79,7 @@ describe('create-training form', () => {
     await user.type(screen.getByLabelText('External trainer name (optional)'), 'Acme Academy')
     await user.click(screen.getByRole('button', { name: 'Create training' }))
 
-    await screen.findByRole('heading', { name: 'Training 42' })
+    await waitFor(() => expect(router.state.location.pathname).toBe('/trainings/42'))
     expect(sent[0]).toMatchObject({ trainer_id: null, external_trainer_name: 'Acme Academy' })
   })
 

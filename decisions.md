@@ -27,6 +27,19 @@ Template:
 - Services raise `Conflict` / `ValidationFailed` (`app/errors.py`); handlers in `main.py` turn them into 409 / 422.
 **Consequences:** FE's edit form can send the whole form or only changes; both work. Notifying enrolled people on cancel is a `TODO(BE-4.1)` in `cancel_training`.
 
+## 2026-09-25 — Training detail: cached card as placeholder, and an action panel for F3
+**Status:** Accepted
+**Context:** FE-2.3 builds `/trainings/:id` on `GET /api/trainings/{id}`.
+**Decision:**
+- The page shows the card's facts (date and time, trainer, levels, seats, status) and the description, which keeps its line breaks (`white-space: pre-line`, no Markdown).
+- While the detail loads, the summary from any cached training list is shown through `placeholderData`, with "Loading description…" in place of the text.
+- A 404, or an id that isn't a positive integer, shows `NotFoundPage` with "Training not found". The API gives the same 404 for "doesn't exist" and "not for your level", so the message covers both.
+- A cancelled training shows a banner and no join area.
+- The right-hand panel ("Your place") holds the seats, the status badge and, for now, "Requests to join open soon." F3 (FE-3.1 / FE-3.3) puts the Request to join and Withdraw buttons there.
+- Figma's detail screens (`03 Training detail`, `03b`–`03e`) couldn't be fetched (the Figma API was rate-limited), so the layout follows the spec's description. Compare it with Figma when you next look.
+
+**Consequences:** F3 only has to fill the panel. The rest of the page is derived from the query, so it updates after a refetch.
+
 ## 2026-09-25 — Training list: TanStack Query, cards, and the admin filter in the URL
 **Status:** Accepted
 **Context:** FE-2.2 shows `/trainings` as cards and introduces TanStack Query (D7).

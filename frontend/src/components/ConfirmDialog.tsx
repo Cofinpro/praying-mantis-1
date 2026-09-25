@@ -7,6 +7,9 @@ type ConfirmDialogProps = {
   title: string
   children: ReactNode
   confirmLabel: string
+  cancelLabel?: string
+  // "danger" for destructive actions (cancel a training, withdraw), "primary" for a normal confirm
+  confirmVariant?: 'danger' | 'primary'
   busy?: boolean
   // Shown inside the dialog, e.g. a 409 from the API
   error?: string | null
@@ -16,7 +19,18 @@ type ConfirmDialogProps = {
 
 // A native <dialog> opened with showModal(): the browser traps focus inside it, closes it on Esc,
 // makes the rest of the page inert and returns focus to the button that opened it. No library needed.
-export function ConfirmDialog({ open, title, children, confirmLabel, busy = false, error, onConfirm, onClose }: ConfirmDialogProps) {
+export function ConfirmDialog({
+  open,
+  title,
+  children,
+  confirmLabel,
+  cancelLabel = 'Keep it',
+  confirmVariant = 'danger',
+  busy = false,
+  error,
+  onConfirm,
+  onClose,
+}: ConfirmDialogProps) {
   const ref = useRef<HTMLDialogElement>(null)
   const titleId = useId()
 
@@ -43,9 +57,9 @@ export function ConfirmDialog({ open, title, children, confirmLabel, busy = fals
       )}
       <div className={styles.actions}>
         <Button variant="ghost" onClick={onClose} disabled={busy}>
-          Keep it
+          {cancelLabel}
         </Button>
-        <Button variant="danger" onClick={onConfirm} disabled={busy}>
+        <Button variant={confirmVariant} onClick={onConfirm} disabled={busy}>
           {confirmLabel}
         </Button>
       </div>

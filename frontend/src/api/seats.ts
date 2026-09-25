@@ -19,3 +19,16 @@ export type Seat = {
 
 // `date` is a local calendar day, "YYYY-MM-DD". 422 for past days, weekends or more than 2 weeks ahead.
 export const listSeats = (date: string) => api.get<Seat[]>(`/api/seats?${new URLSearchParams({ date })}`)
+
+// Hand-written until BE-6.3. The contract names ReservationRead; its fields are FE's proposal
+// (decisions.md → "Reserve a seat"): enough for the "My reservations" list without another request.
+export type ReservationRead = {
+  id: number
+  date: string // "YYYY-MM-DD"
+  seat: { id: number; label: string; zone: Client }
+}
+
+// Reserves `seat_id` for `date`. If I already have a seat that day, the backend moves it.
+// 403 another client's zone · 409 seat_taken · 422 bad date.
+export const reserveSeat = (seatId: number, date: string) =>
+  api.post<ReservationRead>('/api/reservations', { seat_id: seatId, date })

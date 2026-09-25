@@ -161,6 +161,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/me/enrollments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My Enrollments
+         * @description My upcoming (approved), pending and completed trainings, for the Profile page.
+         */
+        get: operations["my_enrollments_api_me_enrollments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/trainings/{training_id}/enrollments": {
         parameters: {
             query?: never;
@@ -172,7 +192,8 @@ export interface paths {
         put?: never;
         /**
          * Request To Join
-         * @description Ask for a seat. Creates a pending enrollment for the team lead (or an admin) to decide.
+         * @description Ask for a seat. Creates a pending enrollment for the team lead (or an admin) to decide,
+         *     notifies them in the app, and emails them after the response is sent.
          */
         post: operations["request_to_join_api_trainings__training_id__enrollments_post"];
         delete?: never;
@@ -256,6 +277,60 @@ export interface paths {
          * @description Withdraw my own pending or approved enrollment, before the training starts.
          */
         post: operations["withdraw_api_enrollments__enrollment_id__withdraw_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Notifications
+         * @description My latest notifications, newest first, and how many are unread. FE polls this every 30 s.
+         */
+        get: operations["list_notifications_api_notifications_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/read-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark All Read */
+        post: operations["mark_all_read_api_notifications_read_all_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/{notification_id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark Read */
+        post: operations["mark_read_api_notifications__notification_id__read_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -351,6 +426,51 @@ export interface components {
             /** Password */
             password: string;
         };
+        /**
+         * MyEnrollments
+         * @description GET /api/me/enrollments: the Profile page's three sections.
+         */
+        MyEnrollments: {
+            /** Upcoming */
+            upcoming: components["schemas"]["TrainingSummary"][];
+            /** Pending */
+            pending: components["schemas"]["TrainingSummary"][];
+            /** Completed */
+            completed: components["schemas"]["TrainingSummary"][];
+        };
+        /**
+         * NotificationList
+         * @description GET /api/notifications. unread_count covers all of them, not just the listed ones.
+         */
+        NotificationList: {
+            /** Unread Count */
+            unread_count: number;
+            /** Items */
+            items: components["schemas"]["NotificationRead"][];
+        };
+        /** NotificationRead */
+        NotificationRead: {
+            /** Id */
+            id: number;
+            type: components["schemas"]["NotificationType"];
+            /** Message */
+            message: string;
+            /** Link */
+            link: string | null;
+            /** Read */
+            read: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * NotificationType
+         * @description What happened. FE can pick an icon per type; the message is ready to show.
+         * @enum {string}
+         */
+        NotificationType: "enrollment_requested" | "enrollment_approved" | "enrollment_rejected" | "enrollment_withdrawn" | "training_cancelled" | "training_changed";
         /** Requester */
         Requester: {
             /** Id */
@@ -945,6 +1065,33 @@ export interface operations {
             };
         };
     };
+    my_enrollments_api_me_enrollments_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyEnrollments"];
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     request_to_join_api_trainings__training_id__enrollments_post: {
         parameters: {
             query?: never;
@@ -1200,6 +1347,112 @@ export interface operations {
             };
             /** @description not_withdrawable | training_started */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_notifications_api_notifications_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationList"];
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_all_read_api_notifications_read_all_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    mark_read_api_notifications__notification_id__read_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notification_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not found (or not yours) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -1,12 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { queryKeys } from '../api/queryClient'
-import { listSeats } from '../api/seats'
+import { listSeats, type Seat } from '../api/seats'
 import { useAuth } from '../auth/useAuth'
 import { Alert } from '../components/Alert'
 import { Button } from '../components/Button'
 import { DayPicker } from '../components/DayPicker'
 import { PageHeader } from '../components/PageHeader'
+import { ReserveSeatDialog } from '../components/ReserveSeatDialog'
 import { SeatLegend, SeatMap } from '../components/SeatMap'
 import { defaultDay, formatDay, twoWeeks } from '../lib/days'
 import styles from './SeatsPage.module.css'
@@ -21,6 +23,7 @@ export function SeatsPage() {
   // Keyed by day: each day is cached on its own, so going back to a day you've seen shows it at once.
   const seats = useQuery({ queryKey: queryKeys.seats(day), queryFn: () => listSeats(day) })
   const mySeat = seats.data?.find((s) => s.status === 'mine')
+  const [selected, setSelected] = useState<Seat | null>(null)
 
   if (!user) return null
 
@@ -54,8 +57,10 @@ export function SeatsPage() {
           <Button onClick={() => seats.refetch()}>Try again</Button>
         </div>
       ) : (
-        <SeatMap seats={seats.data} myZone={user.client} />
+        <SeatMap seats={seats.data} myZone={user.client} onSelect={setSelected} />
       )}
+
+      <ReserveSeatDialog seat={selected} day={day} mySeat={mySeat} onClose={() => setSelected(null)} />
     </>
   )
 }

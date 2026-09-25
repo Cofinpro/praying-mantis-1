@@ -122,6 +122,19 @@ Template:
 - Services raise `Conflict` / `ValidationFailed` (`app/errors.py`); handlers in `main.py` turn them into 409 / 422.
 **Consequences:** FE's edit form can send the whole form or only changes; both work. Notifying enrolled people on cancel is a `TODO(BE-4.1)` in `cancel_training`.
 
+## 2026-09-25 — Reserve a seat: a confirm dialog, and the ReservationRead shape
+**Status:** Accepted (FE side); **BE-6.3 to match the shape**
+**Context:** FE-6.2 reserves through `POST /api/reservations {seat_id, date}` (F6 contract) before BE-6.3 exists. The contract names `ReservationRead` but doesn't list its fields.
+**Decision:**
+- **Proposed `ReservationRead`**: `{"id": int, "date": "YYYY-MM-DD", "seat": {"id": int, "label": str, "zone": Client}}`. That's enough for FE-6.3's "My reservations" list without an extra request. The type is hand-written in `api/seats.ts`.
+- Clicking a bookable seat opens `ConfirmDialog`, which now takes `confirmVariant` and `cancelLabel`:
+  - "Reserve DKB-03 for Tue 14 Oct?"
+  - or, when I already have a seat that day, "Move your reservation from DKB-01 to DKB-03?"
+- After the request, that day's map and `['reservations', 'me']` are invalidated. On a 409 `seat_taken` the dialog says "Sorry, this seat was just taken." and the map refetches.
+- Also in this change: BE-4.1 and BE-5.1 merged, so the notifications and "my enrollments" types now come from `schema.d.ts`.
+
+**Consequences:** If BE-6.3 picks a different response shape, only `ReservationRead` and FE-6.3's list need to change.
+
 ## 2026-09-25 — Seat map: per-zone grid positions, local days, built on mocks
 **Status:** Accepted
 **Context:** FE-6.1 builds `/seats` before BE-6.1/6.2, from the F6 contract (`GET /api/seats?date=` → seats with `status`, `taken_by`, `bookable`).
@@ -157,9 +170,9 @@ Template:
 - `useQuery` with `refetchInterval: 30_000`. The unread count is in the bell's `aria-label` and in a badge (99+ max).
 - The dropdown is a **disclosure**, not an ARIA menu: focus moves into the panel, and Escape or a click outside closes it (Escape returns focus to the bell). Each item is a button whose `aria-label` says "(unread)". Clicking it marks it read and navigates to `link`.
 - Marking read is **optimistic** (`onMutate`); the next poll corrects any failure.
-- Types are hand-written in `api/notifications.ts` until BE-4.1 exists. The mocks have notifications for Sofia and João.
+- The types were hand-written until BE-4.1 merged; they now come from `schema.d.ts` (`NotificationRead`, `NotificationList`). The mocks have notifications for Sofia and João.
 
-**Consequences:** Against today's backend the bell's request is a 404 every 30 s (not retried), so it shows no count until BE-4.1 is merged. When it lands, run `pnpm gen:api` and swap the hand-written types.
+**Consequences:** BE-4.1 matches the contract, so the bell works on the real API.
 
 ## 2026-09-25 — Withdraw: needs `my_enrollment_id` on trainings (contract addition for BE-3.3)
 **Status:** Accepted (FE side); **BE-3.3 to add the field**

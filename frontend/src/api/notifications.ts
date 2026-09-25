@@ -1,18 +1,8 @@
 import { api } from './client'
+import type { components } from './schema'
 
-// Hand-written until BE-4.1 adds these endpoints (then use components['schemas'][...] from schema.d.ts).
-// Shapes from the agreed F4 contract in plan.md.
-export type Notification = {
-  id: number
-  type: string
-  message: string
-  // An in-app path like "/trainings/12", or null when there's nothing to open
-  link: string | null
-  read: boolean
-  created_at: string
-}
-
-export type NotificationList = { unread_count: number; items: Notification[] }
+export type Notification = components['schemas']['NotificationRead']
+export type NotificationList = components['schemas']['NotificationList']
 
 export const listNotifications = () => api.get<NotificationList>('/api/notifications?limit=20')
 

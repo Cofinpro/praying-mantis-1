@@ -606,6 +606,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/reports/trainings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Training Report
+         * @description Every training, newest first, with its requests by status and its ratings.
+         *     `from` / `to` (YYYY-MM-DD, both included) filter on the start day in UTC.
+         */
+        get: operations["training_report_api_admin_reports_trainings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/reports/people": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * People Report
+         * @description Everyone, by name: trainings completed (and their hours), the last one, and approved ones coming up.
+         */
+        get: operations["people_report_api_admin_reports_people_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -849,6 +890,30 @@ export interface components {
             password: string;
         };
         /**
+         * PersonReportRow
+         * @description One person: the trainings they completed (approved, ended, not cancelled) and have coming up.
+         */
+        PersonReportRow: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Email */
+            email: string;
+            client: components["schemas"]["Client"];
+            level: components["schemas"]["Level"];
+            /** Team Lead */
+            team_lead: string | null;
+            /** Completed */
+            completed: number;
+            /** Completed Hours */
+            completed_hours: number;
+            /** Last Completed At */
+            last_completed_at: string | null;
+            /** Upcoming */
+            upcoming: number;
+        };
+        /**
          * ReminderRunRead
          * @description How many reminders this run sent (0 and 0 = nothing was due).
          */
@@ -1016,6 +1081,48 @@ export interface components {
             my_waitlist_position?: number | null;
             /** Description */
             description: string;
+        };
+        /**
+         * TrainingReportRow
+         * @description One training on the admin Reports page: its requests by status, and its ratings.
+         */
+        TrainingReportRow: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /** Cancelled */
+            cancelled: boolean;
+            /** Trainer */
+            trainer: string;
+            /** Levels */
+            levels: components["schemas"]["Level"][];
+            /** Max Seats */
+            max_seats: number;
+            /** Waitlisted */
+            waitlisted: number;
+            /** Pending */
+            pending: number;
+            /** Approved */
+            approved: number;
+            /** Rejected */
+            rejected: number;
+            /** Withdrawn */
+            withdrawn: number;
+            /** Average Rating */
+            average_rating: number | null;
+            /** Rating Count */
+            rating_count: number;
         };
         /**
          * TrainingSummary
@@ -2758,6 +2865,86 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReminderRunRead"];
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    training_report_api_admin_reports_trainings_get: {
+        parameters: {
+            query?: {
+                from?: string | null;
+                to?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainingReportRow"][];
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    people_report_api_admin_reports_people_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonReportRow"][];
                 };
             };
             /** @description Missing, invalid or expired token */

@@ -19,6 +19,8 @@ We're both experienced developers (one from **Vue**, one from **Java**), so skip
 
 ## React
 
+- **Downloading a file the page built** (`lib/csv.ts`): make a `Blob`, get a URL for it with `URL.createObjectURL`, click a temporary `<a download="name.csv">`, then `revokeObjectURL`. It's plain DOM, nothing React-specific, and it works the same in Vue. There's no `ref` or element in the tree: the `<a>` is never mounted.
+
 - **CSS Modules vs Vue `scoped`**: Vite supports `*.module.css` out of the box. `import styles from './TopBar.module.css'` gives an object of **renamed** class names (`styles.bar` → `_bar_x1y2z`), and you apply them with `className={styles.bar}`. Vue's `scoped` keeps your class names and adds a `data-v-*` attribute instead. There's no `:deep()`: to style a child component, give it a `className` prop, or target it structurally (`.nav > *`).
 - **Combining classes** is plain string work (`` `${styles.item} ${isActive ? styles.active : ''}` ``). There's no built-in `:class="{ active: isActive }"` object syntax; the `clsx` package adds one if it gets painful.
 - **`children` = the default slot**: whatever goes between `<PageHeader>…</PageHeader>` arrives as the `children` prop (type `ReactNode`). Named slots are just more props that take JSX.
@@ -261,6 +263,10 @@ We're both experienced developers (one from **Vue**, one from **Java**), so skip
 - MySQL DDL is **not transactional** (Alembic logs "Will assume non-transactional DDL"): if a migration fails halfway, the earlier statements stay applied. Keep migrations small.
 
 ## MySQL / Docker
+
+- **No `COUNT(*) FILTER (WHERE …)` in MySQL** (Postgres has it): count per status with `SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END)`, i.e. `func.sum(case((Enrollment.status == S.APPROVED, 1), else_=0))`. `services/reports.py` does it for five statuses in one pass.
+- **`ONLY_FULL_GROUP_BY`** (on by default in MySQL 8): every selected column must be grouped or aggregated. `GROUP BY trainings.id` plus a `joinedload` of the trainer's columns can trip it. The reports group in a **subquery** (`enrollments` by `training_id`) and join that to the plain `trainings` select, so the outer query has no `GROUP BY` at all.
+- **`TIMESTAMPDIFF(MINUTE, a, b)`** is MySQL's way to subtract datetimes (`b - a` gives a number that isn't minutes). In SQLAlchemy: `func.timestampdiff(literal_column("MINUTE"), a, b)`, since `MINUTE` is a keyword, not a value.
 
 - **`SELECT … FOR UPDATE SKIP LOCKED`** (MySQL 8): lock the matching rows, and skip any that another transaction has already locked instead of waiting for them. Two reminder runs at once each take different rows, so nobody gets a reminder twice. It's the usual way to make a table into a job queue. In SQLAlchemy: `.with_for_update(skip_locked=True, of=Enrollment)`; `of=` locks only that table's rows, not the joined ones. JPA spells it `@Lock(PESSIMISTIC_WRITE)` plus the hint `jakarta.persistence.lock.timeout = -2`.
 - **Named volume** (`mysql-data:` in `docker-compose.yml`) keeps the data outside the container, so `docker compose down` + `up` keeps it. Only `docker compose down -v` deletes it.

@@ -55,22 +55,13 @@ describe('training detail', () => {
     expect(await screen.findByText('External – Acme Academy')).toBeInTheDocument()
   })
 
-  it('shows a banner and no join area for a cancelled training', async () => {
+  it('shows a banner and a disabled join button for a cancelled training', async () => {
     serveTraining({ ...training, cancelled: true, my_enrollment_status: null })
     await openAsEmployee('/trainings/12')
 
     expect(await screen.findByRole('alert')).toHaveTextContent('This training was cancelled')
     const panel = screen.getByRole('complementary', { name: 'Your place' })
-    expect(within(panel).getByText('Cancelled')).toBeInTheDocument()
-    expect(within(panel).queryByText('Requests to join open soon.')).not.toBeInTheDocument()
-  })
-
-  it('has a placeholder area for the join button', async () => {
-    serveTraining({ ...training, my_enrollment_status: null })
-    await openAsEmployee('/trainings/12')
-
-    const panel = await screen.findByRole('complementary', { name: 'Your place' })
-    expect(within(panel).getByText('Requests to join open soon.')).toBeInTheDocument()
+    expect(within(panel).getByRole('button', { name: 'Cancelled' })).toBeDisabled()
   })
 
   it('shows "Not found" when the API answers 404', async () => {

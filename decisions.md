@@ -46,6 +46,19 @@ Template:
 - Services raise `Conflict` / `ValidationFailed` (`app/errors.py`); handlers in `main.py` turn them into 409 / 422.
 **Consequences:** FE's edit form can send the whole form or only changes; both work. Notifying enrolled people on cancel is a `TODO(BE-4.1)` in `cancel_training`.
 
+## 2026-09-25 — Request to join: a derived button state and code-based messages
+**Status:** Accepted
+**Context:** FE-3.1 adds "Request to join" to the detail page's panel (BE-3.1: `POST /api/trainings/{id}/enrollments`).
+**Decision:**
+- `joinState(training)` (`enrollments/joinState.ts`) derives the button from the training on every render:
+  - "Request to join"
+  - disabled: "Pending approval", "Enrolled ✓", "Rejected", "Full", "Cancelled", and "Already started" (added for past trainings)
+  - after a withdrawal, joining is possible again
+- The mutation invalidates every `['trainings']` query in `onSettled`, so both success and a 409 refresh the detail and the lists.
+- 409 and 403 messages come from the error `code` (`enrollments/messages.ts`). The backend's text is the fallback.
+
+**Consequences:** FE-3.3 (Withdraw) adds its button next to this one and reuses the same messages and invalidation.
+
 ## 2026-09-25 — Edit and cancel a training: one shared form, a native confirm dialog
 **Status:** Accepted
 **Context:** FE-2.4 adds `/admin/trainings/:id/edit` and cancelling, on BE-2.3's `PATCH /api/trainings/{id}` and `POST /api/trainings/{id}/cancel`.

@@ -94,3 +94,32 @@ export function updateMockTraining(id: number, changes: Partial<MockTraining>) {
   Object.assign(training, changes)
   return training
 }
+
+let nextEnrollmentId = 1000
+
+// POST /api/trainings/{id}/enrollments, with BE-3.1's rules and error codes.
+export function requestMockEnrollment(viewer: { id: number; level: Level }, trainingId: number) {
+  const training = mockTrainings.find((t) => t.id === trainingId)
+  if (!training) return { status: 404 as const, detail: 'Training not found' }
+  if (!training.levels.includes(viewer.level)) return { status: 403 as const, detail: "This training isn't for your level" }
+  const refuse = (code: string, message: string) => ({ status: 409 as const, detail: { code, message } })
+  if (training.cancelled) return refuse('training_cancelled', 'This training is cancelled')
+  if (training.starts_at <= new Date().toISOString()) return refuse('training_started', 'This training has already started')
+  const current = training.enrollments[viewer.id]
+  if (current === 'pending' || current === 'approved') return refuse('already_requested', "You've already requested this training")
+  if (current === 'rejected') return refuse('request_rejected', 'Your request for this training was rejected')
+  if (training.seats_left <= 0) return refuse('training_full', 'This training is full')
+  training.enrollments[viewer.id] = 'pending'
+  return {
+    status: 201 as const,
+    enrollment: {
+      id: nextEnrollmentId++,
+      training_id: trainingId,
+      user_id: viewer.id,
+      status: 'pending' as const,
+      decision_comment: null,
+      requested_at: new Date().toISOString(),
+      decided_at: null,
+    },
+  }
+}

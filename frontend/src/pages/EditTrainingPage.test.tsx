@@ -145,7 +145,7 @@ describe('cancel training', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Cancel training' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('This training was cancelled')
-    expect(within(screen.getByRole('complementary', { name: 'Your place' })).getByText('Cancelled')).toBeInTheDocument()
+    expect(within(screen.getByRole('complementary', { name: 'Your place' })).getByRole('button', { name: 'Cancelled' })).toBeDisabled()
     expect(screen.queryByRole('button', { name: 'Cancel training' })).not.toBeInTheDocument()
     expect(cancels()).toBe(1)
   })

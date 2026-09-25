@@ -1,8 +1,4 @@
-"""Enrollment rules. Every rule lives here; routers only call these functions.
-
-Status flow:  (none) -> pending -> approved | rejected
-                        pending | approved -> withdrawn
-"""
+"""Enrollment rules. Every rule lives here; routers only call these functions."""
 
 from datetime import UTC, datetime
 
@@ -12,6 +8,40 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.errors import Conflict, Forbidden, NotFound
 from app.models import Enrollment, EnrollmentStatus, Training, User
+
+
+# --- the status state machine ---
+#
+#   (none) ──request──▶ pending ──approve──▶ approved
+#                         │  └────reject───▶ rejected
+#                         └──withdraw──▶ withdrawn ◀──withdraw── approved
+#
+# (A withdrawn request can be requested again: see request().)
+
+ALLOWED_MOVES: dict[EnrollmentStatus, set[EnrollmentStatus]] = {
+    EnrollmentStatus.PENDING: {
+        EnrollmentStatus.APPROVED,
+        EnrollmentStatus.REJECTED,
+        EnrollmentStatus.WITHDRAWN,
+    },
+    EnrollmentStatus.APPROVED: {EnrollmentStatus.WITHDRAWN},
+    EnrollmentStatus.REJECTED: set(),
+    EnrollmentStatus.WITHDRAWN: set(),
+}
+
+# The 409 code when a move isn't allowed, by the status we tried to move to
+REFUSED_MOVE_CODES = {
+    EnrollmentStatus.APPROVED: "not_pending",
+    EnrollmentStatus.REJECTED: "not_pending",
+    EnrollmentStatus.WITHDRAWN: "not_withdrawable",
+}
+
+
+def check_move(current: EnrollmentStatus, target: EnrollmentStatus) -> None:
+    """The one place that decides which status changes are allowed."""
+    if target not in ALLOWED_MOVES[current]:
+        code = REFUSED_MOVE_CODES.get(target, "invalid_status_change")
+        raise Conflict(code, f"This request is already {current}")
 
 
 def count_approved(db: Session, training_id: int, locking: bool = False) -> int:
@@ -121,22 +151,34 @@ def pending_for(db: Session, decider: User) -> list[Enrollment]:
     return list(db.scalars(query))
 
 
-def _lock_for_decision(db: Session, decider: User, enrollment_id: int) -> tuple[Enrollment, Training]:
-    """Loads and locks the training row, then the enrollment row, and checks the decider.
+def _get_enrollment(db: Session, enrollment_id: int) -> Enrollment:
+    enrollment = db.get(Enrollment, enrollment_id)
+    if enrollment is None:
+        raise NotFound("Enrollment not found")
+    return enrollment
+
+
+def _lock(db: Session, enrollment: Enrollment) -> tuple[Enrollment, Training]:
+    """Locks the training row, then the enrollment row, and re-reads both.
 
     Always lock in the same order (training, then enrollment) everywhere, so two
     transactions can't each hold one lock and wait for the other (a deadlock).
     """
-    enrollment = db.get(Enrollment, enrollment_id)
-    if enrollment is None:
-        raise NotFound("Enrollment not found")
+    training = db.get(Training, enrollment.training_id, with_for_update=True, populate_existing=True)
+    enrollment = db.get(Enrollment, enrollment.id, with_for_update=True, populate_existing=True)
+    return enrollment, training
+
+
+def _lock_for_decision(
+    db: Session, decider: User, enrollment_id: int, target: EnrollmentStatus
+) -> tuple[Enrollment, Training]:
+    """Checks the decider, locks, and checks the move and the training."""
+    enrollment = _get_enrollment(db, enrollment_id)
     if not can_decide(decider, enrollment.user):
         raise Forbidden("You can only decide requests from your own reports")
 
-    training = db.get(Training, enrollment.training_id, with_for_update=True, populate_existing=True)
-    enrollment = db.get(Enrollment, enrollment_id, with_for_update=True, populate_existing=True)
-    if enrollment.status != EnrollmentStatus.PENDING:
-        raise Conflict("not_pending", f"This request is already {enrollment.status}")
+    enrollment, training = _lock(db, enrollment)
+    check_move(enrollment.status, target)
     if training.cancelled:
         raise Conflict("training_cancelled", "This training is cancelled")
     if training.starts_at <= datetime.now(UTC):
@@ -157,7 +199,7 @@ def approve(db: Session, decider: User, enrollment_id: int, comment: str | None 
     Two leads approving the last seat at the same moment: the second one waits at the
     training lock until the first commits, then recounts and gets training_full.
     """
-    enrollment, training = _lock_for_decision(db, decider, enrollment_id)
+    enrollment, training = _lock_for_decision(db, decider, enrollment_id, EnrollmentStatus.APPROVED)
     if count_approved(db, training.id, locking=True) >= training.max_seats:
         raise Conflict("training_full", "This training is full")
 
@@ -170,9 +212,34 @@ def approve(db: Session, decider: User, enrollment_id: int, comment: str | None 
 
 def reject(db: Session, decider: User, enrollment_id: int, comment: str | None = None) -> Enrollment:
     """Rejects a pending request. The user can't request this training again (Q8)."""
-    enrollment, _ = _lock_for_decision(db, decider, enrollment_id)
+    enrollment, _ = _lock_for_decision(db, decider, enrollment_id, EnrollmentStatus.REJECTED)
     _decide(enrollment, decider, EnrollmentStatus.REJECTED, comment)
     # TODO(BE-4.1): notify the requester, in this same transaction
+    db.commit()
+    db.refresh(enrollment)
+    return enrollment
+
+
+# --- withdrawing ---
+
+
+def withdraw(db: Session, user: User, enrollment_id: int) -> Enrollment:
+    """The owner withdraws a pending or approved enrollment before the training starts.
+
+    Withdrawing an approved enrollment frees its seat (seats_left goes up).
+    The decision fields stay, as a record of who had approved it.
+    """
+    enrollment = _get_enrollment(db, enrollment_id)
+    if enrollment.user_id != user.id:
+        raise Forbidden("You can only withdraw your own requests")
+
+    enrollment, training = _lock(db, enrollment)
+    check_move(enrollment.status, EnrollmentStatus.WITHDRAWN)
+    if training.starts_at <= datetime.now(UTC):
+        raise Conflict("training_started", "This training has already started")
+
+    enrollment.status = EnrollmentStatus.WITHDRAWN
+    # TODO(BE-4.1): notify the team lead (or admins), in this same transaction
     db.commit()
     db.refresh(enrollment)
     return enrollment

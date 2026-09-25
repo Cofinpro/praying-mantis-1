@@ -97,9 +97,9 @@ What exists today:
     - `enrollment.py`: `Enrollment` (UNIQUE `training_id` + `user_id`), with `EnrollmentStatus` in `enums.py`
     - `types.py`: `UtcDateTime`, the column type for every datetime the API exposes (stores UTC, returns aware UTC)
   - `app/schemas/`: Pydantic request/response models (the API contract)
-  - `app/routers/`: one `APIRouter` per area. `health.py` has `/api/` and `/api/health/db`, `auth.py` has `/api/auth/login` and `/api/auth/me`, `users.py` has `/api/users` (admin only), `trainings.py` has `/api/trainings` (list, detail, create, `PATCH`, `/cancel`), `enrollments.py` has `POST /api/trainings/{id}/enrollments`, `GET /api/approvals` and `POST /api/enrollments/{id}/approve` / `reject`.
+  - `app/routers/`: one `APIRouter` per area. `health.py` has `/api/` and `/api/health/db`, `auth.py` has `/api/auth/login` and `/api/auth/me`, `users.py` has `/api/users` (admin only), `trainings.py` has `/api/trainings` (list, detail, create, `PATCH`, `/cancel`), `enrollments.py` has `POST /api/trainings/{id}/enrollments`, `GET /api/approvals` and `POST /api/enrollments/{id}/approve` / `reject` / `withdraw`.
   - `app/dependencies.py`: shared dependencies. `CurrentUser` (requires a valid token, gives the `User`), `AdminUser` (also requires `is_admin`, else 403) and `DbSession`.
-  - `app/services/`: business rules, no HTTP concerns. `enrollments.py` holds every enrollment rule (`request`, `approve`, `reject`, `pending_for`, `can_decide`, `count_approved`).
+  - `app/services/`: business rules, no HTTP concerns. `enrollments.py` holds every enrollment rule (`request`, `approve`, `reject`, `withdraw`, `pending_for`, `can_decide`, `count_approved`). Status changes go through `check_move` (the state machine in `ALLOWED_MOVES`).
   - `app/errors.py`: `NotFound` (→ 404), `Forbidden` (→ 403), `Conflict` (→ 409 with a `code`) and `ValidationFailed` (→ 422 in Pydantic's format), raised by services and turned into responses by handlers registered in `main.py`
   - `app/security.py`: password hashing (`pwdlib`, Argon2id) and JWT create/decode (`PyJWT`, HS256)
   - `app/seed.py`: local seed users (`python -m app.seed`)

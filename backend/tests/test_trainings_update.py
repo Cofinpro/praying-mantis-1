@@ -2,8 +2,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from app.models import Level, Training
-from app.services import trainings as service
+from app.models import Enrollment, EnrollmentStatus, Level, Training
 from tests.conftest import auth_headers
 
 URL = "/api/trainings"
@@ -161,9 +160,14 @@ def test_unknown_trainer_is_422(client, admin, training):
 # --- max_seats vs approved enrollments (409) ---
 
 
-def test_max_seats_below_the_approved_count_is_409(client, admin, training, monkeypatch):
-    # Enrollments arrive in BE-3.1; pretend 5 people are already approved
-    monkeypatch.setattr(service, "count_approved", lambda db, training_id: 5)
+def approve_people(db, make_user, training, count: int) -> None:
+    for _ in range(count):
+        db.add(Enrollment(user_id=make_user().id, training_id=training.id, status=EnrollmentStatus.APPROVED))
+    db.flush()
+
+
+def test_max_seats_below_the_approved_count_is_409(client, db, make_user, admin, training):
+    approve_people(db, make_user, training, 5)
 
     response = patch(client, admin, training.id, {"max_seats": 4})
 
@@ -171,10 +175,13 @@ def test_max_seats_below_the_approved_count_is_409(client, admin, training, monk
     assert response.json()["detail"]["code"] == "max_seats_below_approved"
 
 
-def test_max_seats_equal_to_the_approved_count_is_fine(client, admin, training, monkeypatch):
-    monkeypatch.setattr(service, "count_approved", lambda db, training_id: 5)
+def test_max_seats_equal_to_the_approved_count_is_fine(client, db, make_user, admin, training):
+    approve_people(db, make_user, training, 5)
 
-    assert patch(client, admin, training.id, {"max_seats": 5}).status_code == 200
+    response = patch(client, admin, training.id, {"max_seats": 5})
+
+    assert response.status_code == 200
+    assert response.json()["seats_left"] == 0
 
 
 # --- cancel (soft delete) ---

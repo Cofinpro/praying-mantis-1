@@ -1,11 +1,12 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from sqlalchemy import ColumnElement, Select, String, literal, null, select
+from sqlalchemy import ColumnElement, Select, func, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.errors import Conflict, ValidationFailed
-from app.models import Level, Training, TrainingLevel, User
+from app.models import Enrollment, EnrollmentStatus, Level, Training, TrainingLevel, User
+from app.services import enrollments as enrollment_service
 from app.schemas.training import TrainingCreate, TrainingUpdate
 
 
@@ -47,11 +48,6 @@ def create_training(db: Session, data: TrainingCreate, created_by: User) -> Trai
 # --- editing and cancelling ---
 
 
-def count_approved(db: Session, training_id: int) -> int:
-    """Approved enrollments for a training. Enrollments arrive in BE-3.1; until then 0."""
-    return 0
-
-
 def _get_for_change(db: Session, training_id: int) -> Training | None:
     # FOR UPDATE: lock the row until commit, so an approval (BE-3.2, which locks the
     # same row) can't slip in between our seat check and our write
@@ -91,7 +87,7 @@ def update_training(
         )
 
     if "max_seats" in data:
-        approved = count_approved(db, training.id)
+        approved = enrollment_service.count_approved(db, training.id)
         if data["max_seats"] < approved:
             raise Conflict(
                 "max_seats_below_approved",
@@ -121,20 +117,32 @@ def cancel_training(db: Session, training_id: int, viewer: User) -> TrainingRow 
 
 # --- reading ---
 #
-# seats_left and my_enrollment_status are columns of the SELECT itself, so a list
-# of 50 trainings is still one query (plus one for all their levels), never 50.
-# Enrollments don't exist yet (BE-3.1). Until then these are placeholders:
-#   seats_left           = max_seats             -> becomes max_seats - COUNT(approved)
-#   my_enrollment_status = NULL                  -> becomes the viewer's enrollment status
-# BE-3.1 only has to replace these two functions.
+# seats_left and my_enrollment_status are columns of the SELECT itself (correlated
+# scalar subqueries), so a list of 50 trainings is still one query (plus one for all
+# their levels), never 50.
 
 
 def seats_left_column() -> ColumnElement[int]:
-    return Training.max_seats.label("seats_left")
+    # max_seats - (SELECT COUNT(*) FROM enrollments WHERE training_id = trainings.id AND status = 'approved')
+    approved = (
+        select(func.count())
+        .where(Enrollment.training_id == Training.id, Enrollment.status == EnrollmentStatus.APPROVED)
+        .correlate(Training)
+        .scalar_subquery()
+    )
+    return (Training.max_seats - approved).label("seats_left")
 
 
 def my_enrollment_status_column(viewer: User) -> ColumnElement[str | None]:
-    return null().cast(String(32)).label("my_enrollment_status")
+    # (SELECT status FROM enrollments WHERE training_id = trainings.id AND user_id = :viewer)
+    # At most one row, thanks to UNIQUE (training_id, user_id)
+    return (
+        select(Enrollment.status)
+        .where(Enrollment.training_id == Training.id, Enrollment.user_id == viewer.id)
+        .correlate(Training)
+        .scalar_subquery()
+        .label("my_enrollment_status")
+    )
 
 
 def _training_rows(viewer: User) -> Select:

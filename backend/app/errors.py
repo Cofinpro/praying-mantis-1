@@ -2,7 +2,9 @@
 
 Services don't know about HTTP. They raise these, and the handlers registered in
 main.py turn them into the agreed formats:
-- Conflict        -> 409 {"detail": {"code": "...", "message": "..."}}
+- NotFound         -> 404 {"detail": "..."}
+- Forbidden        -> 403 {"detail": "..."}
+- Conflict         -> 409 {"detail": {"code": "...", "message": "..."}}
 - ValidationFailed -> 422 in Pydantic's own format, for checks that need the DB
 """
 
@@ -10,6 +12,14 @@ from fastapi import FastAPI, Request
 from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+
+
+class NotFound(Exception):
+    """The thing doesn't exist (or the caller mustn't know it does)."""
+
+
+class Forbidden(Exception):
+    """The caller is known, and isn't allowed to do this."""
 
 
 class Conflict(Exception):
@@ -30,6 +40,14 @@ class ValidationFailed(Exception):
 
 
 def register_error_handlers(app: FastAPI) -> None:
+    @app.exception_handler(NotFound)
+    async def not_found_handler(request: Request, error: NotFound) -> JSONResponse:
+        return JSONResponse(status_code=404, content={"detail": str(error)})
+
+    @app.exception_handler(Forbidden)
+    async def forbidden_handler(request: Request, error: Forbidden) -> JSONResponse:
+        return JSONResponse(status_code=403, content={"detail": str(error)})
+
     @app.exception_handler(Conflict)
     async def conflict_handler(request: Request, error: Conflict) -> JSONResponse:
         return JSONResponse(

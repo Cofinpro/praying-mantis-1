@@ -14,6 +14,21 @@ Template:
 
 ---
 
+## 2026-09-25 — Withdrawing, and one state machine for every status change
+**Status:** Accepted
+**Context:** BE-3.3 implements `POST /api/enrollments/{id}/withdraw`. Approve, reject and withdraw each change an enrollment's status.
+**Decision:**
+- **One table decides every move** (`ALLOWED_MOVES` + `check_move` in `services/enrollments.py`): pending → approved | rejected | withdrawn, approved → withdrawn, nothing out of rejected or withdrawn. A test checks all 16 combinations against the agreed diagram.
+- **Withdraw rules:**
+  - only the **owner**: 403 for anyone else, including their team lead and admins
+  - only from **pending or approved**: 409 `not_withdrawable`
+  - only **before `starts_at`**: 409 `training_started`
+  - it works on a cancelled training too (harmless)
+- Withdrawing an approved enrollment frees its seat. `decided_by` / `decided_at` stay as the record of the earlier approval.
+- Requesting again after a withdrawal is `request()`'s job (the same row goes back to pending), not a state-machine move.
+- Withdraw locks the training row, then the enrollment row, like approve, so a withdrawal and an approval of the same request can't interleave.
+**Consequences:** Notifying the team lead is a `TODO(BE-4.1)` in `withdraw`.
+
 ## 2026-09-25 — Approvals: who decides, and how the last seat is protected
 **Status:** Accepted
 **Context:** BE-3.2 implements `GET /api/approvals` and approve/reject per the F3 contract, with Q6 answered by the defaults.

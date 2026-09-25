@@ -68,3 +68,17 @@ def reject(
     """Reject a pending request, optionally with a comment. The user can't ask again."""
     comment = body.comment if body else None
     return EnrollmentRead.model_validate(service.reject(db, user, enrollment_id, comment))
+
+
+@router.post(
+    "/enrollments/{enrollment_id}/withdraw",
+    responses={
+        401: {"description": "Missing, invalid or expired token"},
+        403: {"description": "Not your enrollment"},
+        404: {"description": "Enrollment not found"},
+        409: {"description": "not_withdrawable | training_started"},
+    },
+)
+def withdraw(enrollment_id: int, db: DbSession, user: CurrentUser) -> EnrollmentRead:
+    """Withdraw my own pending or approved enrollment, before the training starts."""
+    return EnrollmentRead.model_validate(service.withdraw(db, user, enrollment_id))

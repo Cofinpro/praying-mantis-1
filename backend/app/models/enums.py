@@ -32,6 +32,17 @@ class EnrollmentStatus(enum.StrEnum):
     WITHDRAWN = "withdrawn"
 
 
+class NotificationType(enum.StrEnum):
+    """What happened. FE can pick an icon per type; the message is ready to show."""
+
+    ENROLLMENT_REQUESTED = "enrollment_requested"  # -> the decider (team lead or admins)
+    ENROLLMENT_APPROVED = "enrollment_approved"  # -> the requester
+    ENROLLMENT_REJECTED = "enrollment_rejected"  # -> the requester
+    ENROLLMENT_WITHDRAWN = "enrollment_withdrawn"  # -> the decider (approved ones only)
+    TRAINING_CANCELLED = "training_cancelled"  # -> everyone pending or approved
+    TRAINING_CHANGED = "training_changed"  # -> everyone pending or approved
+
+
 def enum_column(enum_class: type[enum.Enum]) -> Enum:
     """A VARCHAR column that stores the enum's *values* ("junior"), not its names ("JUNIOR").
 

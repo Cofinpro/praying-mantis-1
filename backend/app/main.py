@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.errors import register_error_handlers
-from app.routers import auth, enrollments, health, trainings, users
+from app.routers import auth, enrollments, health, notifications, trainings, users
 
 app = FastAPI(title="Praying Mantis API")
 
@@ -21,3 +21,4 @@ app.include_router(auth.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
 app.include_router(trainings.router, prefix="/api")
 app.include_router(enrollments.router, prefix="/api")
+app.include_router(notifications.router, prefix="/api")

@@ -11,11 +11,20 @@ Local development only: never run this against a real environment.
 
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
-from app.models import Client, Enrollment, EnrollmentStatus, Level, Training, User
+from app.models import (
+    Client,
+    Enrollment,
+    EnrollmentStatus,
+    Level,
+    Notification,
+    NotificationType,
+    Training,
+    User,
+)
 from app.security import hash_password
 
 SEED_PASSWORD = "password123"
@@ -180,21 +189,67 @@ def seed_enrollments(db: Session) -> list[Enrollment]:
         for e in db.scalars(select(Enrollment).where(Enrollment.training_id.in_([t.id for t in trainings.values()])))
     }
 
+    now = datetime.now(UTC)
     enrollments = []
-    for training_name, local_part, status, comment in SEED_ENROLLMENTS:
+    for i, (training_name, local_part, status, comment) in enumerate(SEED_ENROLLMENTS):
         training, user = trainings[training_name], users[email_for(local_part)]
         enrollment = existing.get((training.id, user.id)) or Enrollment(training=training, user=user)
         enrollment.status = status
-        enrollment.requested_at = training.starts_at - timedelta(days=5)
+        # 5 days before the training, but never in the future (and a bit apart, for ordering)
+        enrollment.requested_at = min(training.starts_at - timedelta(days=5), now - timedelta(hours=40 - i))
         decided = status in (E.APPROVED, E.REJECTED)
         enrollment.decided_by = (user.team_lead or admin) if decided else None
-        enrollment.decided_at = enrollment.requested_at + timedelta(days=1) if decided else None
+        decided_at = min(enrollment.requested_at + timedelta(days=1), now - timedelta(hours=20 - i))
+        enrollment.decided_at = decided_at if decided else None
         enrollment.decision_comment = comment
         db.add(enrollment)
         enrollments.append(enrollment)
 
     db.commit()
     return enrollments
+
+
+def seed_notifications(db: Session) -> list[Notification]:
+    """Rebuilds the seed users' notifications from the seed enrollments, then commits.
+
+    Replaced on every run (not upserted): notifications are a log, not state.
+    Decisions older than 3 days are already read, so the bell shows a mix.
+    """
+    seed_users = select(User.id).where(User.email.like(f"%@{EMAIL_DOMAIN}"))
+    db.execute(delete(Notification).where(Notification.user_id.in_(seed_users)))
+
+    admins = list(db.scalars(select(User).where(User.is_admin)))
+    enrollments = db.scalars(
+        select(Enrollment).join(Enrollment.training).where(Training.name.in_([t[0] for t in SEED_TRAININGS]))
+    )
+    now = datetime.now(UTC)
+    notifications = []
+    for e in enrollments:
+        link = f"/trainings/{e.training_id}"
+        if e.status == E.PENDING:
+            deciders = [e.user.team_lead] if e.user.team_lead else [a for a in admins if a.id != e.user_id]
+            for decider in deciders:
+                notifications.append(Notification(
+                    user_id=decider.id, type=NotificationType.ENROLLMENT_REQUESTED, link="/approvals",
+                    message=f"{e.user.name} requested a seat in {e.training.name}", created_at=e.requested_at,
+                ))
+        elif e.status in (E.APPROVED, E.REJECTED) and e.decided_at is not None:
+            approved = e.status == E.APPROVED
+            decider = e.decided_by.name if e.decided_by else "An admin"
+            message = (
+                f"You're in: {decider} approved your seat in {e.training.name}"
+                if approved
+                else f"{decider} rejected your request for {e.training.name}"
+                + (f": {e.decision_comment}" if e.decision_comment else "")
+            )
+            notifications.append(Notification(
+                user_id=e.user_id, link=link, message=message, created_at=e.decided_at,
+                type=NotificationType.ENROLLMENT_APPROVED if approved else NotificationType.ENROLLMENT_REJECTED,
+                read_at=e.decided_at if e.decided_at < now - timedelta(days=3) else None,
+            ))
+    db.add_all(notifications)
+    db.commit()
+    return notifications
 
 
 def main() -> None:
@@ -219,6 +274,10 @@ def main() -> None:
         enrollments = seed_enrollments(db)
         counts = {status: sum(e.status == status for e in enrollments) for status in EnrollmentStatus}
         print(f"Seeded {len(enrollments)} enrollments: " + ", ".join(f"{n} {s}" for s, n in counts.items()))
+
+        notifications = seed_notifications(db)
+        unread = sum(n.read_at is None for n in notifications)
+        print(f"Seeded {len(notifications)} notifications ({unread} unread).")
 
 
 if __name__ == "__main__":

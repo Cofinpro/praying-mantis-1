@@ -5,8 +5,9 @@ from sqlalchemy import ColumnElement, Select, func, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.errors import Conflict, ValidationFailed
-from app.models import Enrollment, EnrollmentStatus, Level, Training, TrainingLevel, User
+from app.models import Enrollment, EnrollmentStatus, Level, NotificationType, Training, TrainingLevel, User
 from app.services import enrollments as enrollment_service
+from app.services import notifications
 from app.schemas.training import TrainingCreate, TrainingUpdate
 
 
@@ -57,6 +58,24 @@ def _get_for_change(db: Session, training_id: int) -> Training | None:
     return training
 
 
+# Field names as people read them, for "training changed" messages
+_LABELS = {
+    "name": "name",
+    "description": "description",
+    "starts_at": "start time",
+    "ends_at": "end time",
+    "max_seats": "seats",
+    "trainer_id": "trainer",
+    "external_trainer_name": "trainer",
+    "levels": "levels",
+}
+
+
+def _current(training: Training, field: str):
+    value = getattr(training, field)
+    return sorted(value) if field == "levels" else value
+
+
 def update_training(
     db: Session, training_id: int, changes: TrainingUpdate, viewer: User
 ) -> TrainingRow | None:
@@ -94,9 +113,18 @@ def update_training(
                 f"{approved} people are already approved, so max_seats can't be lower than that",
             )
 
+    changed = [f for f, value in data.items() if _current(training, f) != (sorted(value) if f == "levels" else value)]
     for field, value in data.items():
         setattr(training, field, value)  # "levels" goes through the association proxy
-    db.commit()
+    if changed:
+        notifications.notify(
+            db,
+            notifications.enrolled_people(db, training),
+            NotificationType.TRAINING_CHANGED,
+            f"{training.name} was updated ({', '.join(_LABELS[f] for f in changed)})",
+            link=notifications.training_link(training),
+        )
+    db.commit()  # the change and its notifications together
     return get_training(db, training.id, viewer=viewer)
 
 
@@ -109,9 +137,14 @@ def cancel_training(db: Session, training_id: int, viewer: User) -> TrainingRow 
         raise Conflict("training_started", "A training that has already started can't be cancelled")
 
     training.cancelled_at = datetime.now(UTC)
-    # TODO(BE-4.1): notify everyone with a pending or approved enrollment, in this
-    # same transaction (see decisions.md, "Notifications")
-    db.commit()
+    notifications.notify(
+        db,
+        notifications.enrolled_people(db, training),
+        NotificationType.TRAINING_CANCELLED,
+        f"{training.name} on {training.starts_at:%d %b} was cancelled",
+        link=notifications.training_link(training),
+    )
+    db.commit()  # the cancellation and its notifications together
     return get_training(db, training.id, viewer=viewer)
 
 

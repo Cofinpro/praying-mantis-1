@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 
-from app.models import Client, Enrollment, EnrollmentStatus, Level, Training, TrainingLevel, User
+from app.models import Client, Enrollment, EnrollmentStatus, Level, Notification, Training, TrainingLevel, User
 from app.security import hash_password, verify_password
 from app.seed import (
     SEED_ENROLLMENTS,
@@ -13,6 +13,7 @@ from app.seed import (
     SEED_USERS,
     seed,
     seed_enrollments,
+    seed_notifications,
     seed_trainings,
 )
 
@@ -173,6 +174,12 @@ class TestSeedEnrollments:
 
         assert any(e.status == EnrollmentStatus.APPROVED and e.training.ends_at < now for e in seeded)
 
+    def test_no_seed_times_are_in_the_future(self, seeded):
+        now = datetime.now(UTC)
+
+        assert all(e.requested_at <= now and (e.decided_at is None or e.decided_at <= now) for e in seeded)
+        assert all(e.decided_at is None or e.decided_at > e.requested_at for e in seeded)
+
     def test_seed_follows_the_level_rule(self, seeded):
         assert all(e.user.level in e.training.levels for e in seeded)
 
@@ -180,3 +187,16 @@ class TestSeedEnrollments:
         seed_enrollments(db)
 
         assert db.scalar(select(text("COUNT(*)")).select_from(Enrollment)) == len(SEED_ENROLLMENTS)
+
+
+class TestSeedNotifications:
+    def test_every_decider_has_a_request_and_reruns_dont_duplicate(self, db):
+        seed(db)
+        seed_trainings(db)
+        seed_enrollments(db)
+        first = len(seed_notifications(db))
+        second = len(seed_notifications(db))
+
+        assert first == second == db.scalar(select(text("COUNT(*)")).select_from(Notification))
+        sofia = db.scalar(select(User).where(User.email == "sofia@preyingmantis.test"))
+        assert any(n.user_id == sofia.id and n.link == "/approvals" for n in db.scalars(select(Notification)))

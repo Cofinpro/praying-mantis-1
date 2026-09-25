@@ -14,6 +14,22 @@ Template:
 
 ---
 
+## 2026-09-25 — Visual design: PreyingMantis with Cofinpro theming and shared design tokens
+**Status:** Accepted
+**Context:** Nothing visual existed yet (the frontend used `system-ui`), and FE-0.1 needs a look and feel. We also want design and code to share one vocabulary.
+**Decision:**
+- The product is named **PreyingMantis**. The repo keeps its name.
+- Cofinpro theming from cofinpro.pt: orange `#FD6202`, ink `#131313`, accents green `#60D391`, purple `#8242D8`, blue `#006CFF`, Inter, pill buttons, 16px card corners.
+- Light mode only. Desktop mocks only (1440 wide); mobile is handled in code (FE-7.2).
+- Tokens live as Figma variables with the same names as our CSS custom properties (`color/text/primary` ↔ `--color-text-primary`): a hidden `Primitives` collection and a semantic `Tokens` collection. Components use semantic tokens only.
+- Brand orange fails AA on white (3.0:1), so text, links and primary buttons use `#C24A00` (4.9:1). `#FD6202` is for fills, the logo and large text.
+- Enrollment status colours: pending = purple, approved = green, rejected = red, withdrawn and cancelled = grey.
+- Seat "taken" is crimson (not orange-red, which would read as the brand), with a lock icon; "mine" is Cofinpro green with a check icon; other clients' seats are grey and hatched.
+- Figma mocks every page: Login, Trainings list, Training detail, Create/edit training, Approvals, Seats, Profile, plus the notifications dropdown. Full spec: `docs/superpowers/specs/2026-09-25-figma-design-design.md`.
+**Consequences:** FE-0.1 starts by copying the token values into a `tokens.css` of CSS custom properties. Figma is a reference, not a gate: when code diverges on purpose, update Figma. Dark mode would only need a second variable mode later.
+
+---
+
 ## 2026-09-25 — Defaults for the open questions in plan.md
 **Status:** Accepted as defaults. Change any of them by adding a new entry.
 **Context:** `plan.md` §8 lists 17 open questions. Work can't wait for all the answers, so we use the defaults until someone decides otherwise.

@@ -243,7 +243,7 @@ These stories don't depend on each other across roles, so both of you can start 
 - Sketch the app shell together (it drives FE-0.1):
   ```
   ┌────────────────────────────────────────────────────┐
-  │ 🦗 Praying Mantis   Trainings  Seats  Approvals  🔔 👤 │
+  │ 🦗 PreyingMantis    Trainings  Seats  Approvals  🔔 👤 │
   ├────────────────────────────────────────────────────┤
   │                                                    │
   │                  page content                      │

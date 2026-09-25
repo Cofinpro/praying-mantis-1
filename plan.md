@@ -7,19 +7,21 @@
 
 ## 0. How to read this plan
 
+**Team:** two developers.
+- **BE dev**: backend and database (Python, FastAPI, SQLAlchemy, MySQL)
+- **FE dev**: frontend (React, TypeScript, pnpm)
+
+**Sections:**
 1. **Section 1–2**: what we're building, and what we're *not* building.
-2. **Section 3**: the learning approach, i.e. how each story is set up so we actually learn the stack.
-3. **Section 4**: the proposed database model, with every change from your sketch explained.
-4. **Section 5**: decisions to make *before* coding (the big "think" items).
-5. **Section 6**: user stories, grouped into epics. Every story has the same shape:
-   - **Story**: who wants what, and why
-   - **Acceptance criteria**: how we know it's done
-   - **🧠 Think**: questions to discuss before starting
-   - **🎨 Design**: UI sketches, API shape, data changes
-   - **⚙️ Backend**: FastAPI / SQLAlchemy / MySQL tasks
-   - **🖥️ Frontend**: React tasks
-   - **📚 Learn**: the concepts this story is meant to teach
-6. **Section 7**: suggested order and dependencies.
+2. **Section 3**: how two people split the work and still learn from each other.
+3. **Section 4**: the proposed database model, with every change from your sketch explained. This is mostly BE work, but FE should read it too.
+4. **Section 5**: decisions to make *before* coding, together.
+5. **Section 6**: the work, feature by feature. Each feature has:
+   - **🤝 Together: Think & Design**: a short joint session to agree the questions, the screens and the **API contract**
+   - **⚙️ BE-x.y stories** for the backend developer
+   - **🖥️ FE-x.y stories** for the frontend developer
+   Every story lists its acceptance criteria, tasks, what it depends on, and **📚 Learn** (the concepts it is meant to teach).
+6. **Section 7**: order and milestones, as two swimlanes (one per developer).
 7. **Section 8**: all open questions in one list, to answer in one go.
 
 ---
@@ -43,36 +45,50 @@ The second goal matters just as much: **learn Python, FastAPI, MySQL (through SQ
 - Company SSO (Azure AD / Entra etc.). We build our own simple login first. See **D1**.
 - Timesheets, vacations and expenses. The layout only leaves room for them.
 - Mobile apps. The web app should still work on a phone screen.
-- Real email delivery in production. Emails go to a local fake inbox (a stretch goal, **US-4.2**).
-- Deploying the backend. This is a later epic (**US-7.1**). Until then the GitHub Pages site shows "Backend unreachable".
+- Real email delivery in production. Emails go to a local fake inbox (a stretch goal, **BE-4.2**).
+- Deploying the backend. This is a later story (**BE-7.1**). Until then the GitHub Pages site runs on mocked data (see **D13**).
 
 ---
 
-## 3. Learning approach
+## 3. Working as a pair of specialists
 
-**Each story is a vertical slice.** It touches the database, the API and the UI, so everyone sees the whole stack early instead of one person only ever writing CSS.
+### 3.1 The rhythm for each feature
 
-**Suggested rhythm for a dojo session:**
+1. **🤝 Together (30–60 min)**: go through the feature's 🧠 questions, sketch the screens, and **agree the API contract**: endpoints, request and response JSON, and error codes. Write the decisions into `decisions.md`. The contract is the promise between the two of you.
+2. **Work in parallel**:
+   - **BE** implements the contract, test-first for business rules. FastAPI's `/docs` page shows the contract live.
+   - **FE** builds the screens against **mocked responses** that follow the contract (**D13**), so FE never waits for BE.
+3. **🤝 Integrate (15–30 min)**: FE switches from mocks to the real API. Fix any mismatch, and whoever broke the contract fixes their side.
+4. **🤝 Demo and reflect (10 min)**: click through the feature together. Each of you adds at least one entry to `learnings.md` under a topic heading (`## Python`, `## FastAPI`, `## SQLAlchemy`, `## MySQL`, `## React`, `## TypeScript`, …).
 
-1. **Think (10–15 min)**: read the story and go through its 🧠 questions. Record any decision in `decisions.md`.
-2. **Design (10–15 min)**: sketch the screen on paper or a whiteboard, and write the API endpoint(s) and JSON shape down before coding.
-3. **Build**: backend first, test-first where there are business rules (TDD fits rules like "can't book a taken seat" very well). Then the frontend against the real API.
-4. **Reflect (5 min)**: add what you learned to `learnings.md` under a topic heading (`## Python`, `## FastAPI`, `## SQLAlchemy`, `## MySQL`, `## React`, `## TypeScript`, …).
+### 3.2 Learning from the other side
 
-**Rotate roles.** Whoever drove the backend last time drives the frontend next time.
+With a fixed split there's a risk that the BE dev never learns React and the FE dev never learns FastAPI. Three cheap ways to avoid that:
+- **Cross-review every PR.** FE reviews BE's PRs and BE reviews FE's PRs. Reading code in a language you don't write every day is a very efficient way to learn it. Ask "why?" in review comments; answering them teaches the author too.
+- **Explain your side in the demo.** Two minutes of "this is the interesting bit of my code" at every demo.
+- **Optional swap stories.** Some small stories are marked **🔁 swap candidate**. If you want to, the *other* developer builds that one, with the owner as the helper.
 
-**Definition of Done**, for every story:
-- [ ] Acceptance criteria met and demoed in the browser
-- [ ] Backend tests cover the business rules
+### 3.3 Definition of Done
+
+**BE story:**
+- [ ] Matches the agreed contract (check it in `/docs`)
+- [ ] Tests cover every business rule and error code
 - [ ] New tables and columns come with an Alembic migration
-- [ ] `pnpm lint` and `pnpm build` pass, and backend tests pass
-- [ ] Any decision made is in `decisions.md`
-- [ ] At least one entry added to `learnings.md`
-- [ ] Merged to `main` through a PR that someone else reviewed
+- [ ] Seed data updated if the feature needs demo data
+- [ ] Reviewed by FE and merged to `main`
+
+**FE story:**
+- [ ] Works against the real API (not just mocks) once the matching BE story is merged
+- [ ] Loading, empty and error states are handled
+- [ ] Works with the keyboard and at phone width
+- [ ] `pnpm lint`, `pnpm build` and `pnpm test` pass
+- [ ] Reviewed by BE and merged to `main`
+
+**Both:** the decision is in `decisions.md` (if one was made), and there's at least one new `learnings.md` entry per feature.
 
 ---
 
-## 4. Data model
+## 4. Data model (mostly BE, read by FE)
 
 ### 4.1 Your sketch (summarized)
 
@@ -147,6 +163,7 @@ erDiagram
         int training_id FK
         int user_id FK
         enum status "pending|approved|rejected|withdrawn"
+        string decision_comment "nullable"
         datetime requested_at
         int decided_by FK "nullable"
         datetime decided_at "nullable"
@@ -188,147 +205,41 @@ erDiagram
 
 ---
 
-## 5. Up-front decisions (🧠 Think)
+## 5. Up-front decisions (🤝 decide together)
 
-These affect several stories, so decide them in the first session. Each has a recommendation.
+These affect several stories, so decide them in the first session. Each has a recommendation, and the **Owner** column says who carries the decision out.
 
-| # | Decision | Options | 💡 Recommendation |
-|---|---|---|---|
-| **D1** | How do users log in? | (a) email + password + JWT, (b) "pick a user" dev login, (c) company SSO | **(a)**. It teaches password hashing, tokens, FastAPI dependencies and protected routes. SSO is real-world but mostly configuration, so there's little to learn. (b) could serve as a temporary shortcut. |
-| **D2** | Where does the frontend keep the token? | localStorage + `Authorization: Bearer` header, or an httpOnly cookie | **localStorage + Bearer** for now. Cookies are more secure, but they get tricky when the frontend (GitHub Pages) and backend live on different domains. Revisit in US-7.1. |
-| **D3** | Local MySQL | Docker Compose, or MySQL installed on each laptop | **Docker Compose**. One `docker compose up`, the same version for everyone, and easy to reset. |
-| **D4** | Database schema changes | Alembic migrations, or `Base.metadata.create_all()` | **Alembic**. `create_all` can't change an existing table, and migrations are a core skill worth learning. |
-| **D5** | Sync or async SQLAlchemy | sync (current code) or async | **Sync**. It's simpler to learn, and FastAPI runs sync endpoints in a thread pool, so it's fine for our load. |
-| **D6** | Frontend routing | React Router, TanStack Router | **React Router**. It's the most common, so it has the most tutorials. |
-| **D7** | Fetching data in React | plain `fetch` + `useEffect`, or TanStack Query | **Both, on purpose**: plain fetch in the first story so we understand the basics and the pain points (loading, errors, stale data), then introduce TanStack Query in US-2.3 and compare. |
-| **D8** | Styling | plain CSS / CSS Modules, Tailwind, a component library (MUI, Mantine…) | **CSS Modules**. It's closest to "real" CSS, and a component library would hide much of what React is doing. ❓ Team preference matters most here. |
-| **D9** | Forms | controlled components, or React Hook Form + Zod | **Controlled components first** (learn `useState`), then React Hook Form if the training form gets painful. |
-| **D10** | Testing | backend: pytest + FastAPI `TestClient` against a test MySQL database; frontend: Vitest + React Testing Library | **As listed.** Backend tests matter most (the business rules live there), and frontend tests are for key interactions only. |
-| **D11** | API style | REST + JSON under an `/api` prefix | **REST**. FastAPI's automatic docs at `/docs` make exploring it easy. |
-| **D12** | Git workflow | direct pushes to `main`, or a branch + PR per story | **A branch + PR per story**, reviewed by someone who didn't write it. Reviewing is a learning tool too. |
-
----
-
-## 6. User stories
-
-Stories are numbered **US-epic.story**. "Developer" stories are enablers: they deliver no feature but make the rest possible.
-
-### Epic 0 — Foundations
-
-#### US-0.1 Local database with Docker
-**Story:** As a developer, I can start a MySQL database with one command, so everyone has the same setup.
-
-**Acceptance criteria**
-- `docker compose up -d` in the repo root starts MySQL 8
-- `backend/.env.example` matches the compose credentials
-- `GET /health/db` returns `{"database": "ok"}`
-
-🧠 **Think**
-- Docker (**D3**)? Does everyone have Docker Desktop, or an alternative like Colima or Podman?
-- Should data survive a restart (a named volume)? 💡 Yes.
-
-🎨 **Design**
-- `docker-compose.yml` with a `mysql` service, a named volume and a health check
-
-⚙️ **Backend**
-- Add `docker-compose.yml`, update `.env.example`, and check that `/health/db` works
-- Update `CLAUDE.md` commands
-
-🖥️ **Frontend**
-- none
-
-📚 **Learn**
-- Environment variables and `python-dotenv`
-- How `create_engine` and the connection URL work
-- What `pool_pre_ping` does
+| # | Decision | Options | 💡 Recommendation | Owner |
+|---|---|---|---|---|
+| **D1** | How do users log in? | (a) email + password + JWT, (b) "pick a user" dev login, (c) company SSO | **(a)**. It teaches password hashing, tokens, FastAPI dependencies and protected routes. SSO is real-world but mostly configuration, so there's little to learn. | both |
+| **D2** | Where does the frontend keep the token? | localStorage + `Authorization: Bearer` header, or an httpOnly cookie | **localStorage + Bearer** for now. Cookies are more secure, but they get tricky when the frontend (GitHub Pages) and backend live on different domains. Revisit in BE-7.1. | both |
+| **D3** | Local MySQL | Docker Compose, or MySQL installed on each laptop | **Docker Compose**. One `docker compose up`, the same version for both of you, and easy to reset. FE needs it too, to run the real backend at integration time. | BE |
+| **D4** | Database schema changes | Alembic migrations, or `Base.metadata.create_all()` | **Alembic**. `create_all` can't change an existing table, and migrations are a core skill worth learning. | BE |
+| **D5** | Sync or async SQLAlchemy | sync (current code) or async | **Sync**. It's simpler to learn, and FastAPI runs sync endpoints in a thread pool, so it's fine for our load. | BE |
+| **D6** | Frontend routing | React Router, TanStack Router | **React Router**. It's the most common, so it has the most tutorials. | FE |
+| **D7** | Fetching data in React | plain `fetch` + `useEffect`, or TanStack Query | **Both, on purpose**: plain fetch in FE-1.1 so the basics and their pain points are clear (loading, errors, stale data), then introduce TanStack Query in FE-2.2 and compare. | FE |
+| **D8** | Styling | plain CSS / CSS Modules, Tailwind, a component library (MUI, Mantine…) | **CSS Modules**. It's closest to "real" CSS, and a component library would hide much of what React is doing. ❓ FE dev's preference matters most here. | FE |
+| **D9** | Forms | controlled components, or React Hook Form + Zod | **Controlled components first** (learn `useState`), then React Hook Form if the training form gets painful. | FE |
+| **D10** | Testing | BE: pytest + FastAPI `TestClient` against a test MySQL database. FE: Vitest + React Testing Library. | **As listed.** BE tests matter most (the business rules live there), and FE tests are for key interactions only. | each |
+| **D11** | API style | REST + JSON under an `/api` prefix | **REST**. FastAPI's automatic docs at `/docs` make exploring it easy. | both |
+| **D12** | Git workflow | direct pushes to `main`, or a branch + PR per story | **A branch + PR per story**, reviewed by the other developer (section 3.2). | both |
+| **D13** | How FE works before BE is ready | wait; hard-coded fake data in components; **MSW** (Mock Service Worker) | **MSW**. It intercepts `fetch` calls and answers with contract-shaped data, so FE code is identical with mocks or the real API. Bonus: the GitHub Pages site can run on mocks until the backend is deployed. | FE |
+| **D14** | Keeping TypeScript types in sync with the API | write TS types by hand, or generate them from FastAPI's `/openapi.json` with `openapi-typescript` | **Generate them.** BE's Pydantic schemas become the single source of truth, and when BE changes a field, FE's build breaks where the change matters. It's also a nice lesson in how OpenAPI connects both worlds. | FE (BE keeps the schemas accurate) |
 
 ---
 
-#### US-0.2 Backend structure and migrations
-**Story:** As a developer, I have a clear folder structure and database migrations, so adding features stays tidy.
+## 6. Features and stories
 
-**Acceptance criteria**
-- Folder layout:
-  ```
-  backend/app/
-    main.py          # creates the app, includes routers
-    config.py        # settings (pydantic-settings)
-    database.py
-    models/          # SQLAlchemy models (tables)
-    schemas/         # Pydantic models (API input/output)
-    routers/         # one file per area: auth, trainings, seats, ...
-    services/        # business rules, no HTTP concerns
-  backend/alembic/   # migrations
-  backend/tests/
-  ```
-- `alembic upgrade head` creates all tables in an empty database
-- All routes live under `/api` (existing ones move: `/api/health/db`)
+Numbering: **F** = feature, **BE-x.y** = backend story, **FE-x.y** = frontend story, where **x** is the feature number.
 
-🧠 **Think**
-- Why separate **models** (database shape) from **schemas** (API shape)? Example: `User` has `password_hash`, but `UserRead` must never expose it.
-- Why a **services** layer? So "can this user book this seat?" can be tested without HTTP, and reused.
+### F0 — Foundations
 
-🎨 **Design**
-- Write the folder layout into `CLAUDE.md`
+These stories don't depend on each other across roles, so both of you can start on day one.
 
-⚙️ **Backend**
-- Add `alembic` and `pydantic-settings` to requirements, run `alembic init`, and point `env.py` at `Base.metadata` and the settings
-- Move `/` and `/health/db` into `routers/health.py`
-- Frontend `App.tsx` must call `/api/` afterwards (or a new `/api/hello`)
-
-🖥️ **Frontend**
-- Update the hello call to the new path
-
-📚 **Learn**
-- `APIRouter` and `include_router`
-- Pydantic `BaseModel` vs SQLAlchemy `DeclarativeBase`
-- Alembic `revision --autogenerate`, and why you always read the generated file
-
----
-
-#### US-0.3 Testing setup
-**Story:** As a developer, I can run automated tests for backend and frontend.
-
-**Acceptance criteria**
-- `pytest` runs against a separate test database, and each test starts clean
-- `pnpm test` runs Vitest with at least one React Testing Library test
-- CI: a workflow runs both on every PR
-
-🧠 **Think**
-- How does each test get a clean database? 💡 Wrap each test in a transaction and roll it back at the end, or truncate tables. A good learning discussion.
-- SQLite for tests would be faster, but it behaves differently from MySQL (enums, constraints). 💡 Use real MySQL in Docker (a service container in CI).
-
-⚙️ **Backend**
-- `tests/conftest.py`: create the test DB, override the `get_db` dependency, and provide a `client` fixture
-- A first test: `GET /api/` returns 200
-
-🖥️ **Frontend**
-- Add `vitest`, `@testing-library/react` and `jsdom`
-- A first test: App renders "Hello World"
-
-📚 **Learn**
-- pytest fixtures
-- FastAPI `app.dependency_overrides`
-- Testing Library's "test what the user sees" philosophy
-
----
-
-#### US-0.4 Frontend app shell
-**Story:** As a user, I see a consistent layout with navigation, so I can move between features.
-
-**Acceptance criteria**
-- Top bar with the app name, nav links (Trainings, Seats, Profile, and Approvals for team leads), and a user menu with logout
-- Routes: `/trainings`, `/trainings/:id`, `/seats`, `/profile`, `/approvals`, `/admin/trainings/new`, `/login`
-- Placeholder pages for each route
-- Works on a phone-width screen
-- Pages deploy still works (routing under `/praying-mantis-1/`)
-
-🧠 **Think**
-- Styling approach (**D8**)
-- GitHub Pages doesn't support client-side routes: refreshing `/praying-mantis-1/trainings` returns 404. 💡 Either a `404.html` redirect trick or `HashRouter` (URLs like `/#/trainings`). Discuss the trade-off.
-
-🎨 **Design**
-- Wireframe the shell. Leave space in the nav for future Timesheets and Vacations links.
+#### 🤝 Together: Think & Design
+- Go through decisions **D1–D14** (section 5).
+- Agree the URL prefix `/api`, the error format (FastAPI's `{"detail": ...}`), and date formats (ISO 8601; datetimes in UTC with `Z`, plain dates as `YYYY-MM-DD`).
+- Sketch the app shell together (it drives FE-0.1):
   ```
   ┌────────────────────────────────────────────────────┐
   │ 🦗 Praying Mantis   Trainings  Seats  Approvals  🔔 👤 │
@@ -338,210 +249,286 @@ Stories are numbered **US-epic.story**. "Developer" stories are enablers: they d
   │                                                    │
   └────────────────────────────────────────────────────┘
   ```
-- Pick a small palette and type scale, and write it down as CSS variables
 
-⚙️ **Backend**
-- none
+#### ⚙️ BE-0.1 Local database with Docker
+**Story:** As the BE dev, I can start MySQL with one command, so we both have the same setup.
 
-🖥️ **Frontend**
-- Install React Router, create `src/pages/*`, `src/components/Layout.tsx` and `src/api/client.ts` (one place that knows `VITE_API_URL` and adds the token later)
+**Acceptance criteria**
+- `docker compose up -d` in the repo root starts MySQL 8 with a named volume, so data survives restarts
+- `backend/.env.example` matches the compose credentials
+- `GET /health/db` returns `{"database": "ok"}`
+- `CLAUDE.md` commands are updated. FE can follow them to run the backend locally.
 
-📚 **Learn**
-- Components and props
-- `<Outlet />` layouts
-- How client-side routing differs from server routing
+**Tasks:** `docker-compose.yml` with a health check, update `.env.example`
+
+**📚 Learn**
+- Environment variables and `python-dotenv`
+- The SQLAlchemy engine and connection URL
+- What `pool_pre_ping` does
 
 ---
 
-### Epic 1 — Users and authentication
+#### ⚙️ BE-0.2 Backend structure and migrations
+**Story:** As the BE dev, I have a clear folder structure and database migrations, so adding features stays tidy.
 
-#### US-1.1 Users in the database
-**Story:** As a developer, I have realistic users (clients, levels, team leads, an admin) so we can build features against real data.
+**Acceptance criteria**
+- Folder layout:
+  ```
+  backend/app/
+    main.py          # creates the app, includes routers
+    config.py        # settings (pydantic-settings)
+    database.py
+    models/          # SQLAlchemy models (tables)
+    schemas/         # Pydantic models (API input/output = the contract)
+    routers/         # one file per area: auth, trainings, seats, ...
+    services/        # business rules, no HTTP concerns
+  backend/alembic/   # migrations
+  backend/tests/
+  ```
+- `alembic upgrade head` creates all tables in an empty database
+- All routes live under `/api` (e.g. `/api/health/db`). Tell FE, because the hello call in `App.tsx` moves.
+
+**Tasks:** add `alembic` and `pydantic-settings`, run `alembic init`, point `env.py` at `Base.metadata`, and move the existing routes into `routers/health.py`
+
+**Depends on:** BE-0.1
+
+**📚 Learn**
+- `APIRouter` and `include_router`
+- Pydantic `BaseModel` (API shape) vs SQLAlchemy models (database shape), and why `password_hash` lives in one and never the other
+- Alembic `revision --autogenerate`, and why you always read the generated file
+
+---
+
+#### ⚙️ BE-0.3 Backend tests and CI
+**Story:** As the BE dev, I can run automated tests against a real MySQL, locally and on every PR.
+
+**Acceptance criteria**
+- `pytest` runs against a separate test database, and each test starts clean
+- A GitHub Actions job runs pytest on every PR, with a MySQL service container
+
+**Tasks:** `tests/conftest.py` (create the test DB, override `get_db`, provide a `client` fixture), and a first test: `GET /api/` returns 200
+
+🧠 **Think**
+- A transaction rollback per test, or truncating tables? Discuss the trade-offs.
+- Why not SQLite for tests? It behaves differently from MySQL (enums, constraints, locking).
+
+**Depends on:** BE-0.2
+
+**📚 Learn**
+- pytest fixtures
+- `app.dependency_overrides`
+- Service containers in CI
+
+---
+
+#### 🖥️ FE-0.1 App shell and routing
+**Story:** As a user, I see a consistent layout with navigation, so I can move between features.
+
+**Acceptance criteria**
+- The top bar from the sketch above. Nav links: Trainings, Seats, Profile, Approvals (all visible for now; FE-1.2 hides some). Leave room for future Timesheets and Vacations links.
+- Routes with placeholder pages: `/login`, `/trainings`, `/trainings/:id`, `/seats`, `/profile`, `/approvals`, `/admin/trainings/new`
+- Works at phone width
+- Deep links survive a refresh on GitHub Pages
+
+🧠 **Think**
+- GitHub Pages doesn't support client-side routes: refreshing `/praying-mantis-1/trainings` gives a 404. Use the `404.html` redirect trick, or `HashRouter` (`/#/trainings`)? Pick one and record the decision.
+- Styling (**D8**). Define a small palette and type scale as CSS variables.
+
+**Tasks:** install React Router, create `src/pages/*` and `src/components/Layout.tsx`
+
+**📚 Learn**
+- Components and props
+- `<Outlet />` layouts
+- Client-side vs server-side routing
+
+---
+
+#### 🖥️ FE-0.2 API client, generated types and mocks
+**Story:** As the FE dev, I have one place that talks to the API, types generated from the backend, and mocks, so I can build screens before the backend exists.
+
+**Acceptance criteria**
+- `src/api/client.ts` is the only code that knows `VITE_API_URL`. Later it adds the auth token and handles 401s.
+- MSW set up: `VITE_USE_MOCKS=true` makes all API calls answer from `src/mocks/handlers.ts`
+- `pnpm gen:api` generates `src/api/schema.d.ts` from `http://localhost:8000/openapi.json` (**D14**). Until BE has real endpoints, types can be written by hand and swapped later.
+- The existing hello call uses the client, and works with mocks and with the real API
+
+**Depends on:** BE-0.2 for the `/api` path. Use a mock until it's merged.
+
+**📚 Learn**
+- `fetch` and `async`/`await`
+- TypeScript generics (`get<T>()`)
+- How MSW intercepts requests
+- What OpenAPI is
+
+---
+
+#### 🖥️ FE-0.3 Frontend tests and CI
+**Story:** As the FE dev, I can run component tests locally and on every PR.
+
+**Acceptance criteria**
+- `pnpm test` runs Vitest with React Testing Library, and tests reuse the MSW handlers
+- The PR workflow runs `pnpm lint`, `pnpm build` and `pnpm test`
+- First test: the app shell renders the nav links
+
+**📚 Learn**
+- Testing Library's "test what the user sees" philosophy
+- `jsdom`
+- Using the same mocks in the browser and in tests
+
+---
+
+### F1 — Users and login
+
+#### 🤝 Together: Think & Design
+- Decide **D1** and **D2**. Token lifetime: 💡 8 hours, and refresh tokens are out of scope.
+- Wrong email vs wrong password: 💡 the same generic "Invalid email or password".
+- **❓ Q6:** Can admins approve enrollments? Who approves users without a team lead?
+- **Contract:**
+  ```
+  POST /api/auth/login        {email, password}  → 200 {access_token, token_type: "bearer"}
+                                                  → 401 {"detail": "Invalid email or password"}
+  GET  /api/auth/me           (Bearer token)     → 200 {id, name, email, client, level,
+                                                        is_admin, is_team_lead,
+                                                        team_lead: {id, name} | null}
+                                                  → 401 if missing, invalid or expired
+  GET  /api/users?search=ana  (admin only)       → 200 [{id, name, email, level}]   # for the trainer picker in F2
+  ```
+- Login page wireframe: email, password, a submit button, and space for an error message
+
+#### ⚙️ BE-1.1 Users in the database
+**Story:** As the BE dev, I have realistic users in the database (every client and level, team leads, an admin), so both of us can build and test against real data.
 
 **Acceptance criteria**
 - `users` table matches section 4.3 (via a migration)
-- `python -m app.seed` creates about 15 users: every level, every client, 2–3 team leads with reports, 1 admin, and 1 user without a team lead
-- Seed passwords are documented (e.g. all `password123`, local only)
+- `python -m app.seed` creates about 15 users: every level, every client, 2–3 team leads with reports, 1 admin, and 1 user without a team lead. Running it twice creates no duplicates.
+- Seed logins are documented in `CLAUDE.md` (e.g. every password is `password123`, local only). FE needs these!
 
 🧠 **Think**
-- Review section 4.2, changes 3, 4, 6 and 12
-- Enum storage: a MySQL `ENUM` column, or a `VARCHAR` plus a Python enum? 💡 SQLAlchemy `Enum(..., native_enum=False)` stores a VARCHAR. Changing a MySQL ENUM later needs a migration that rewrites the column, which is painful.
-- What happens to a user's reports if that user is deleted? 💡 `ON DELETE SET NULL`. Real systems usually "deactivate" users instead of deleting them.
+- A MySQL `ENUM` column, or a VARCHAR with a Python enum? 💡 `Enum(..., native_enum=False)` stores a VARCHAR, because changing a MySQL ENUM later means rewriting the column.
+- What happens to a lead's reports if the lead is deleted? 💡 `ON DELETE SET NULL`. Real systems usually deactivate users rather than delete them.
 
-🎨 **Design**
-- The `User` model and the `UserRead` schema (no password hash!)
+**Depends on:** BE-0.2
 
-⚙️ **Backend**
-- `models/user.py` with a self-referencing `team_lead` relationship
-- Migration
-- Seed script (idempotent: running it twice creates no duplicates)
-
-🖥️ **Frontend**
-- none
-
-📚 **Learn**
+**📚 Learn**
 - SQLAlchemy 2.0 `Mapped[...]` / `mapped_column`
 - Self-referencing relationships
 - Python `enum.Enum`
-- Making a script idempotent
+- Idempotent scripts
 
 ---
 
-#### US-1.2 Log in and log out
-**Story:** As an employee, I can log in with my email and password so the platform knows who I am, and log out when I'm done.
+#### ⚙️ BE-1.2 Login API
+**Story:** As an employee, I can exchange my email and password for a token, and the API knows who I am on every request.
 
 **Acceptance criteria**
-- `/login` page with email and password fields, and an error message on wrong credentials
-- After login I land on `/trainings`. The top bar shows my name.
-- Every page except `/login` redirects to `/login` when I'm not logged in
-- Logout clears the session and returns to `/login`
-- Refreshing the page keeps me logged in until the token expires
+- `POST /api/auth/login` and `GET /api/auth/me` match the contract
+- Passwords are hashed with `pwdlib[argon2]` (or bcrypt), and tokens are JWTs signed with a secret from `.env`
+- A `get_current_user` dependency is reusable by every future endpoint
+- Tests: correct login, wrong password, unknown email, missing token, expired token, garbage token
 
-🧠 **Think**
-- **D1** and **D2**
-- How long should a token last? 💡 8 hours (a work day). Refresh tokens are out of scope.
-- Which error message for a wrong email vs a wrong password? 💡 The same generic "Invalid email or password", so nobody can find out which emails exist.
+**Depends on:** BE-1.1
 
-🎨 **Design**
-- `POST /api/auth/login` with `{email, password}` → `{access_token, token_type}`
-- `GET /api/auth/me` → `UserRead` (plus `is_team_lead` computed)
-- Login page wireframe
-
-⚙️ **Backend**
-- Password hashing with `pwdlib[argon2]` (or `passlib[bcrypt]`), and JWT with `PyJWT`
-- A `get_current_user` dependency that reads the Bearer token, returns a `User` or raises 401
-- Tests: correct login, wrong password, expired or garbage token
-
-🖥️ **Frontend**
-- An `AuthContext` (current user, `login()`, `logout()`) and a `RequireAuth` wrapper route
-- `api/client.ts` adds the `Authorization` header and logs out on a 401
-
-📚 **Learn**
-- FastAPI dependency injection (`Depends`) and `OAuth2PasswordBearer`
-- What a JWT contains, and why you must *never* put secrets in it
+**📚 Learn**
+- FastAPI `Depends` and `OAuth2PasswordBearer`
+- What's inside a JWT, and why you never put secrets in it
 - Hashing vs encryption
-- React Context and custom hooks (`useAuth`)
 
 ---
 
-#### US-1.3 Permissions: admin and team lead
-**Story:** As the system, I only let admins create trainings and only let team leads approve their own reports' enrollments.
+#### ⚙️ BE-1.3 Permissions
+**Story:** As the system, I only let admins do admin things and only let team leads act on their own reports.
 
 **Acceptance criteria**
 - A `require_admin` dependency returns 403 for non-admins
-- The Approvals nav link only shows for team leads, and Admin links only for admins
-- Hiding links is *not* the security: the backend enforces every permission
+- An `is_team_lead(user)` helper, and `is_team_lead` filled in on `/me`
+- `GET /api/users?search=` works (admin only)
+- Tests show the difference between 401 and 403
 
-🧠 **Think**
-- Can an admin approve any enrollment, or only team leads? ❓
-- Who approves for a user **without a team lead**? ❓ 💡 An admin, or auto-approve.
+**Depends on:** BE-1.2
 
-⚙️ **Backend**
-- `require_admin`, plus an `is_team_lead(user)` helper
-- Tests for 401 vs 403
-
-🖥️ **Frontend**
-- Conditional nav items based on `me`
-
-📚 **Learn**
+**📚 Learn**
 - 401 vs 403
-- Composing dependencies (`require_admin` depends on `get_current_user`)
-- Why UI checks are only a convenience
+- Composing dependencies
+- Why the backend must enforce every rule, even when the UI hides buttons
 
 ---
 
-### Epic 2 — Trainings
-
-#### US-2.1 Admin creates a training
-**Story:** As an admin, I can create a training with name, description, date and time, trainer, skill level(s) and max seats, so employees can sign up.
+#### 🖥️ FE-1.1 Login, logout and protected pages
+**Story:** As an employee, I can log in, stay logged in across refreshes, and log out.
 
 **Acceptance criteria**
-- `/admin/trainings/new` form with fields: name, description (multi-line), start date/time, end date/time, trainer (choose a user **or** tick "External", plus an optional external name), levels (multi-select, at least one), max seats
-- Validation, shown next to the field: required fields, end after start, start in the future, max seats ≥ 1, at least one level
-- On success, redirect to the new training's detail page
-- Non-admins get a 403 from the API and never see the link
+- The `/login` form shows the API's error message on a 401
+- After login I go to `/trainings`, and the top bar shows my name
+- Every other page redirects to `/login` when I'm not logged in
+- Logout clears the token and goes to `/login`. Any 401 from the API does the same.
+- Built with plain `fetch` + `useEffect` / `useState` (**D7**). Write down in `learnings.md` what felt clumsy.
 
-🧠 **Think**
-- Should the description support formatting (Markdown)? 💡 Plain text first.
-- Where does validation live, frontend or backend? 💡 **Both**. The backend is the source of truth (Pydantic validators); the frontend is for fast feedback.
-- Time zones: the browser sends local time, so convert to UTC before storing. See change 8.
+**Tasks:** an `AuthContext` (`user`, `login()`, `logout()`), a `useAuth()` hook, a `<RequireAuth>` route wrapper, and token handling in `api/client.ts`
 
-🎨 **Design**
-- `POST /api/trainings`:
-  ```json
-  {
-    "name": "Intro to FastAPI",
-    "description": "…",
-    "starts_at": "2026-10-14T09:00:00Z",
-    "ends_at": "2026-10-14T12:00:00Z",
-    "max_seats": 12,
-    "trainer_id": 7,
-    "external_trainer_name": null,
-    "levels": ["junior", "expert"]
-  }
+**Depends on:** FE-0.1, FE-0.2. Mocks until BE-1.2 is merged.
+
+**📚 Learn**
+- React Context
+- Custom hooks
+- Controlled inputs
+- Form submit handling
+- Where to store a token, and the risks of each option (**D2**)
+
+---
+
+#### 🖥️ FE-1.2 Role-aware navigation 🔁 swap candidate
+**Story:** As a user, I only see the navigation that applies to me.
+
+**Acceptance criteria**
+- "Approvals" only shows when `is_team_lead` is true, and "New training" only when `is_admin` is true
+- Visiting an admin page as a non-admin shows a friendly "Not allowed" page
+
+**Depends on:** FE-1.1
+
+**📚 Learn**
+- Conditional rendering
+- Why hiding UI is only a convenience, not security (the backend enforces it, see BE-1.3)
+
+---
+
+### F2 — Trainings
+
+#### 🤝 Together: Think & Design
+- Plain-text descriptions for now? 💡 Yes, no Markdown.
+- Validation lives on **both** sides: BE is the source of truth, and FE gives fast feedback. Agree the rules once:
+  - required fields
+  - end after start
+  - start in the future
+  - max seats ≥ 1
+  - at least one level
+  - trainer XOR external
+- Time zones: FE converts the local time from the form into UTC before sending, and back to local time for display.
+- **❓ Q9:** Can users see trainings for other levels? 💡 No.
+- Soft delete for cancelling (`cancelled_at`)? 💡 Yes.
+- **Contract:**
   ```
-  → `201` with `TrainingRead`
-- `GET /api/users?search=...` for the trainer picker
-- Form wireframe
+  POST  /api/trainings            (admin)  body: TrainingCreate → 201 TrainingRead | 422 validation errors
+  PATCH /api/trainings/{id}       (admin)  body: partial TrainingCreate → 200 TrainingRead
+  POST  /api/trainings/{id}/cancel (admin)                      → 200 TrainingRead
+  GET   /api/trainings            ?level=junior (admin only filter) → 200 [TrainingSummary]
+  GET   /api/trainings/{id}                                     → 200 TrainingRead | 404
+  ```
+  ```json
+  // TrainingCreate
+  { "name": "Intro to FastAPI", "description": "…",
+    "starts_at": "2026-10-14T09:00:00Z", "ends_at": "2026-10-14T12:00:00Z",
+    "max_seats": 12, "trainer_id": 7, "external_trainer_name": null,
+    "levels": ["junior", "expert"] }
 
-⚙️ **Backend**
-- `Training` and `TrainingLevel` models, a migration, schemas with `@field_validator` / `@model_validator`
-- Router with `require_admin`
-- Tests for every validation rule
-
-🖥️ **Frontend**
-- The form with controlled inputs (**D9**), showing API errors (FastAPI 422 responses) next to the right fields
-
-📚 **Learn**
-- Pydantic validation and FastAPI's 422 error format
-- One-to-many with a join table in SQLAlchemy
-- Controlled inputs, and `<input type="datetime-local">` quirks
-
----
-
-#### US-2.2 Admin edits or cancels a training
-**Story:** As an admin, I can edit a training or cancel it, so wrong details get fixed and enrolled people know when it's off.
-
-**Acceptance criteria**
-- Edit uses the same form, pre-filled
-- Cancel sets `cancelled_at`. Cancelled trainings show a "Cancelled" badge and can't be joined.
-- Everyone with a pending or approved enrollment gets a notification (depends on **US-4.1**, so it can land later)
-- `max_seats` can't go below the current number of approved enrollments
-
-🧠 **Think**
-- Soft delete (`cancelled_at`) or hard delete? 💡 Soft. Enrollment history stays intact.
-- If the date changes, should enrolled people be notified? 💡 Yes, same mechanism.
-
-⚙️ **Backend**
-- `PATCH /api/trainings/{id}` and `POST /api/trainings/{id}/cancel`
-
-🖥️ **Frontend**
-- Edit page reusing the form component, and a cancel button with a confirmation dialog
-
-📚 **Learn**
-- PATCH semantics, where only the sent fields change (`model_dump(exclude_unset=True)`)
-- Reusing components for create and edit
-
----
-
-#### US-2.3 Employee browses trainings for their level
-**Story:** As an employee, I see upcoming trainings for my skill level, so I can find ones worth joining.
-
-**Acceptance criteria**
-- `/trainings` lists upcoming, non-cancelled trainings where one of the training's levels = my level, sorted by date
-- Each card shows name, date and time, trainer ("External" if external), seats left, and my status (Not requested / Pending / Enrolled / Rejected)
-- Admins see all trainings, with a level filter
-- Empty state: "No upcoming trainings for your level yet"
-- Loading and error states are visible
-
-🧠 **Think**
-- Can users see trainings for *other* levels (read-only)? ❓ 💡 No, to keep it simple (matches the spec).
-- Pagination? 💡 Not until there are more than ~50 trainings.
-- This is the moment to introduce **TanStack Query** (**D7**). Compare it with the plain-fetch version from US-0.2.
-
-🎨 **Design**
-- `GET /api/trainings` → list of `TrainingSummary` with `seats_left` and `my_enrollment_status`
-- A card-list wireframe:
+  // TrainingSummary (TrainingRead adds "description")
+  { "id": 12, "name": "Intro to FastAPI",
+    "starts_at": "…", "ends_at": "…", "levels": ["junior", "expert"],
+    "trainer": {"id": 7, "name": "Ana Silva"} | null,
+    "external_trainer_name": null,
+    "max_seats": 12, "seats_left": 4, "cancelled": false,
+    "my_enrollment_status": null | "pending" | "approved" | "rejected" | "withdrawn" }
+  ```
+- Wireframes: the create form, and the list card:
   ```
   ┌──────────────────────────────────────────┐
   │ Intro to FastAPI              Pending ⏳ │
@@ -550,265 +537,377 @@ Stories are numbered **US-epic.story**. "Developer" stories are enablers: they d
   └──────────────────────────────────────────┘
   ```
 
-⚙️ **Backend**
-- A query that filters by level and computes `seats_left` in SQL (`COUNT` with a `GROUP BY` or a subquery), not with a Python loop, so we avoid the N+1 problem
+#### ⚙️ BE-2.1 Create trainings
+**Story:** As an admin, I can create a training through the API with all its details and levels.
 
-🖥️ **Frontend**
-- `useQuery` for the list, and `TrainingCard` + `StatusBadge` components
+**Acceptance criteria**
+- `Training` and `TrainingLevel` models plus a migration, matching section 4.3
+- `POST /api/trainings` matches the contract, is admin-only, and enforces every agreed validation rule with Pydantic validators
+- Seed adds about 8 trainings (past, future, cancelled, full, different levels, external trainer)
+- A test for every validation rule
 
-📚 **Learn**
-- SQL `JOIN`, `GROUP BY` and subqueries through SQLAlchemy
-- The N+1 query problem (turn on `echo=True` and count the queries!)
-- TanStack Query caching
+**Depends on:** BE-1.3
+
+**📚 Learn**
+- `@field_validator` and `@model_validator`
+- FastAPI's 422 error format
+- Join tables in SQLAlchemy
 
 ---
 
-#### US-2.4 Training detail page
-**Story:** As an employee, I can open a training and read its full description before deciding to join.
+#### ⚙️ BE-2.2 List and read trainings
+**Story:** As an employee, I can get the upcoming trainings for my level, with seats left and my own status.
 
 **Acceptance criteria**
-- `/trainings/:id` shows everything from the card, plus the full description
-- A "Request to join" button whose state depends on status: disabled when full, cancelled or already requested, and hidden for levels that don't match
-- 404 page for unknown IDs, and for trainings not at my level (unless I'm an admin)
+- `GET /api/trainings` for employees: upcoming, not cancelled, one of the training's levels = my level, sorted by date. Admins get everything, with an optional `?level=` filter.
+- `seats_left` and `my_enrollment_status` are computed **in SQL** (a join or subquery with `COUNT`), not in a Python loop
+- `GET /api/trainings/{id}` returns 404 for unknown IDs and for trainings outside my level (unless I'm an admin)
+- `my_enrollment_status` is always `null` until F3 adds enrollments (the column is ready)
 
-⚙️ **Backend**
-- `GET /api/trainings/{id}`
+**Depends on:** BE-2.1
 
-🖥️ **Frontend**
-- The page, using `useParams`
-
-📚 **Learn**
-- Route params
-- Deriving UI state from data, rather than storing it twice
+**📚 Learn**
+- SQL `JOIN`, `GROUP BY` and subqueries in SQLAlchemy
+- **The N+1 problem**: turn on `echo=True` and count the queries
 
 ---
 
-### Epic 3 — Enrollment and approval
-
-#### US-3.1 Request to join a training
-**Story:** As an employee, I can request to join a training, so my team lead can approve it.
+#### ⚙️ BE-2.3 Edit and cancel trainings
+**Story:** As an admin, I can fix a training's details or cancel it.
 
 **Acceptance criteria**
-- Clicking "Request to join" creates an enrollment with status `pending`, and the button changes to "Pending approval"
-- Rejected with a clear message when: the level doesn't match, the training is in the past or cancelled, the training is full, or I already requested it
-- My team lead gets a notification (once **US-4.1** exists)
-- Users without a team lead follow the rule decided in **US-1.3**
+- `PATCH` only changes the fields that were sent (`model_dump(exclude_unset=True)`)
+- `max_seats` can't drop below the current number of approved enrollments (409)
+- Cancel sets `cancelled_at`, and cancelled trainings can't be edited again
+- Notifying enrolled users happens in BE-4.1 (leave a `# TODO` hook)
 
-🧠 **Think**
-- **❓ Q7:** Do pending requests take up a seat? If not, 20 people can request 12 seats and team leads approve until it's full, so the last approvers are told "full". If they do, seats get blocked by slow team leads. 💡 Only approved enrollments count, and approval checks capacity again.
-- After a rejection, can a user request again? ❓ 💡 No.
-- Can a user withdraw a pending or approved request? ❓ 💡 Yes (**US-3.3**).
+**Depends on:** BE-2.2
 
-🎨 **Design**
-- `POST /api/trainings/{id}/enrollments` → `201` with `EnrollmentRead`, `409` if already requested or full, `403` if the level is wrong
-
-⚙️ **Backend**
-- An `enrollment_service.request(user, training)` function holding all the rules
-- Tests for **each** rule (a good TDD exercise: write the tests from the acceptance criteria first)
-
-🖥️ **Frontend**
-- A `useMutation` that invalidates the trainings query on success so the badge updates
-
-📚 **Learn**
-- Business rules in a service layer
-- Mapping domain errors to HTTP status codes
-- TanStack Query mutations and cache invalidation
+**📚 Learn**
+- PATCH vs PUT
+- Soft deletes
 
 ---
 
-#### US-3.2 Team lead approves or rejects
-**Story:** As a team lead, I see my reports' pending training requests and can approve or reject them, so they know if they can go.
+#### 🖥️ FE-2.1 Create-training form
+**Story:** As an admin, I can create a training through a form, and I see validation errors next to the right field.
 
 **Acceptance criteria**
-- `/approvals` lists pending enrollments of *my* reports only: person, training, date, and seats left
-- Approve / Reject buttons, with an optional comment on reject
-- Approving when the training is already full fails with a clear message
-- The employee gets a notification with the result (once **US-4.1** exists)
-- The list updates without a page reload
+- `/admin/trainings/new` fields: name, description (multi-line), start and end (`datetime-local`), trainer (a searchable user picker **or** an "External" checkbox with an optional name), levels (multi-select), max seats
+- Client-side validation for the agreed rules. Server 422 errors are also mapped onto fields.
+- Local time → UTC conversion on submit
+- On success, redirect to `/trainings/:id`
 
-🧠 **Think**
-- **Race condition:** two team leads approve the last seat at the same moment. 💡 Inside one transaction, lock the training row (`SELECT … FOR UPDATE`), count the approved enrollments, then approve. This is a great MySQL learning moment.
-- Should a rejection store a reason? 💡 Yes, with an optional `decision_comment` column on `enrollments`.
+**Depends on:** FE-1.2. Mocks until BE-2.1 is merged.
 
-🎨 **Design**
-- `GET /api/approvals` → pending enrollments for my reports
-- `POST /api/enrollments/{id}/approve`
-- `POST /api/enrollments/{id}/reject` with `{comment?}`
-- Approvals table wireframe
-
-⚙️ **Backend**
-- Service functions with the row lock, and a permission check (only this person's lead, or an admin if **US-1.3** says so)
-- A test that simulates the "last seat" case
-
-🖥️ **Frontend**
-- Approvals page, and an optimistic update or refetch after each action
-
-📚 **Learn**
-- Database transactions, isolation and `with_for_update()`
-- Checking ownership (authorization on a specific row, not just a role)
+**📚 Learn**
+- Controlled forms with many fields
+- Debounced search input
+- `Date` and time-zone pitfalls
+- Showing server errors next to fields
 
 ---
 
-#### US-3.3 Withdraw from a training (nice to have)
-**Story:** As an employee, I can withdraw my request or enrollment, so the seat goes to someone else.
+#### 🖥️ FE-2.2 Training list page
+**Story:** As an employee, I see the upcoming trainings for my level as cards.
 
 **Acceptance criteria**
-- A "Withdraw" button on the detail page while status is pending or approved and the training hasn't started
-- Status becomes `withdrawn`, and seats left goes up
-- My team lead gets a notification if I was already approved
+- `/trainings` shows `TrainingCard`s as in the wireframe, with a `StatusBadge` for `my_enrollment_status`
+- A level filter for admins
+- Loading, empty ("No upcoming trainings for your level yet") and error states
+- **Introduce TanStack Query here** (**D7**) and refactor FE-1.1's `/me` call to use it. Note the difference in `learnings.md`.
 
-⚙️ **Backend**
-- `POST /api/enrollments/{id}/withdraw` (only the owner can call it)
+**Depends on:** FE-1.1. Mocks until BE-2.2 is merged.
 
-🖥️ **Frontend**
-- Button with a confirmation step
-
-📚 **Learn**
-- Status transitions, e.g. a small state machine: which status can move to which?
+**📚 Learn**
+- `useQuery`, query keys and caching
+- Splitting UI into small components
+- Formatting dates with `Intl.DateTimeFormat`
 
 ---
 
-### Epic 4 — Notifications
-
-#### US-4.1 In-app notifications
-**Story:** As a user, I see a bell with unread notifications, so I notice approval requests and decisions.
+#### 🖥️ FE-2.3 Training detail page
+**Story:** As an employee, I can open a training and read the full description.
 
 **Acceptance criteria**
-- A bell in the top bar with an unread count
-- Clicking it shows the latest 20 notifications. Clicking one marks it read and opens its link (e.g. the training or the approvals page).
-- A "Mark all as read" option
-- Notifications are created for: new request (→ team lead), approved or rejected (→ employee), training cancelled or changed (→ enrolled users), withdrawal (→ team lead)
-- New notifications show up within about 30 seconds without a reload
+- `/trainings/:id` shows everything from the card, plus the description
+- A "Not found" page on 404
+- Placeholder area for the join button (F3)
 
-🧠 **Think**
-- Live updates: polling vs Server-Sent Events vs WebSockets. 💡 Polling every 30 s with TanStack Query's `refetchInterval`. Simple and enough; SSE could be a later learning spike.
-- Create the notification in the same transaction as the action? 💡 Yes, so there's never "approved but not notified".
+**Depends on:** FE-2.2
 
-🎨 **Design**
-- `GET /api/notifications?unread=true`, `POST /api/notifications/{id}/read`, `POST /api/notifications/read-all`
-- Bell dropdown wireframe
+**📚 Learn**
+- `useParams`
+- Deriving UI from data instead of copying it into state
 
-⚙️ **Backend**
-- `Notification` model, a `notification_service.notify(user, type, message, link)` function, and calls to it from the enrollment and training services
+---
 
-🖥️ **Frontend**
-- `NotificationBell` component with polling
+#### 🖥️ FE-2.4 Edit and cancel training
+**Story:** As an admin, I can edit a training in the same form, or cancel it.
 
-📚 **Learn**
+**Acceptance criteria**
+- `/admin/trainings/:id/edit` reuses the FE-2.1 form, pre-filled, and sends only the changed fields
+- A "Cancel training" button with a confirmation dialog. Cancelled trainings show a "Cancelled" badge everywhere.
+
+**Depends on:** FE-2.1, FE-2.3. Mocks until BE-2.3 is merged.
+
+**📚 Learn**
+- Reusing a component for create and edit
+- An accessible confirmation dialog (`<dialog>`)
+
+---
+
+### F3 — Enrollment and approval
+
+#### 🤝 Together: Think & Design
+- **❓ Q7:** Do pending requests take up a seat? 💡 No, only approved ones count, and approval checks capacity again.
+- **❓ Q8:** Can a rejected user request again? 💡 No.
+- Withdraw allowed while pending or approved, before the training starts? 💡 Yes.
+- Users without a team lead: follow the answer to **Q6**.
+- The status flow, drawn together:
+  ```
+  (none) ──request──▶ pending ──approve──▶ approved
+                        │  └────reject───▶ rejected
+                        └──withdraw──▶ withdrawn ◀──withdraw── approved
+  ```
+- **Contract:**
+  ```
+  POST /api/trainings/{id}/enrollments   → 201 EnrollmentRead
+                                         → 403 wrong level · 409 already requested | full | past | cancelled
+  GET  /api/approvals                    → 200 [ {enrollment: EnrollmentRead, user: {id,name}, training: TrainingSummary} ]
+  POST /api/enrollments/{id}/approve     → 200 EnrollmentRead · 403 not your report · 409 full | not pending
+  POST /api/enrollments/{id}/reject      body {comment?} → 200 EnrollmentRead
+  POST /api/enrollments/{id}/withdraw    → 200 EnrollmentRead · 403 not yours · 409 already started
+  ```
+  Every 409 response uses one agreed shape, so FE can show a friendly message: `{"detail": {"code": "training_full", "message": "This training is full"}}`
+- Wireframe: the approvals table (person, training, date, seats left, Approve/Reject)
+
+#### ⚙️ BE-3.1 Request to join
+**Story:** As an employee, I can request a seat in a training, and the rules are enforced.
+
+**Acceptance criteria**
+- `Enrollment` model plus a migration (UNIQUE `training_id` + `user_id`)
+- An `enrollment_service.request(user, training)` function holds **all** the rules, and the router only maps errors to status codes
+- `my_enrollment_status` and `seats_left` from BE-2.2 now use real data
+- **TDD:** write one test per acceptance rule *before* the code
+
+**Depends on:** BE-2.2
+
+**📚 Learn**
+- A service layer
+- Domain exceptions → HTTP errors
+- Writing tests first
+
+---
+
+#### ⚙️ BE-3.2 Approve and reject
+**Story:** As a team lead, I can list and decide my reports' pending requests.
+
+**Acceptance criteria**
+- `/api/approvals` only returns *my* reports' pending enrollments
+- Approving locks the training row (`with_for_update()`), recounts approved enrollments and refuses when full. This all happens in one transaction.
+- `decided_by`, `decided_at` and `decision_comment` are stored
+- Tests: approving someone who isn't my report (403), approving when full (409), approving twice (409), plus a test that simulates two leads approving the last seat
+
+**Depends on:** BE-3.1
+
+**📚 Learn**
+- Transactions and isolation levels
+- `SELECT … FOR UPDATE`
+- Row-level authorization (checking *whose* record it is, not just the user's role)
+
+---
+
+#### ⚙️ BE-3.3 Withdraw
+**Story:** As an employee, I can withdraw my request or enrollment.
+
+**Acceptance criteria**
+- Only the owner can withdraw, only from pending or approved, only before `starts_at`
+- Seats left goes up after withdrawing an approved enrollment
+
+**Depends on:** BE-3.2
+
+**📚 Learn**
+- Status transitions as a small state machine: one function decides which moves are allowed
+
+---
+
+#### 🖥️ FE-3.1 Request-to-join button
+**Story:** As an employee, I can request to join from the detail page and immediately see my new status.
+
+**Acceptance criteria**
+- The button on `/trainings/:id` reflects the state: "Request to join" / "Pending approval" (disabled) / "Enrolled ✓" / "Rejected" / "Full" / "Cancelled"
+- A `useMutation` that invalidates the list and detail queries, so the badge updates everywhere
+- 409 and 403 messages come from the error `code` and are shown clearly
+
+**Depends on:** FE-2.3. Mocks until BE-3.1 is merged.
+
+**📚 Learn**
+- `useMutation` and cache invalidation
+- Mapping error codes to UI messages
+
+---
+
+#### 🖥️ FE-3.2 Approvals page
+**Story:** As a team lead, I see pending requests from my reports and approve or reject them.
+
+**Acceptance criteria**
+- `/approvals` table as in the wireframe, with an empty state ("Nothing to approve 🎉")
+- Reject opens a small dialog with an optional comment
+- Rows disappear after a decision without a reload. If the training was full, the row shows why.
+
+**Depends on:** FE-1.2. Mocks until BE-3.2 is merged.
+
+**📚 Learn**
+- Tables in React (keys!)
+- Optimistic updates vs refetching: try both and compare
+
+---
+
+#### 🖥️ FE-3.3 Withdraw button 🔁 swap candidate
+**Story:** As an employee, I can withdraw from the detail page.
+
+**Acceptance criteria**
+- A "Withdraw" button while pending or approved and not yet started, with a confirmation step
+
+**Depends on:** FE-3.1. Mocks until BE-3.3 is merged.
+
+**📚 Learn**
+- Reusing the mutation and confirmation patterns you already built
+
+---
+
+### F4 — Notifications
+
+#### 🤝 Together: Think & Design
+- Live updates: 💡 FE polls every 30 s. Server-Sent Events or WebSockets could be a later learning spike.
+- Which events create a notification?
+  - new request → team lead
+  - approved or rejected → employee
+  - withdrawal of an approved enrollment → team lead
+  - training cancelled or changed → everyone pending or approved
+- **Contract:**
+  ```
+  GET  /api/notifications?limit=20        → 200 {unread_count, items: [{id, type, message, link, read, created_at}]}
+  POST /api/notifications/{id}/read       → 204
+  POST /api/notifications/read-all        → 204
+  ```
+- Wireframe: the bell with a badge, and a dropdown list with unread items in bold
+
+#### ⚙️ BE-4.1 Notification storage and triggers
+**Story:** As a user, I get a notification whenever something happens that I need to know about.
+
+**Acceptance criteria**
+- `Notification` model plus a migration, and the endpoints match the contract
+- `notification_service.notify(...)` is called from the enrollment and training services **inside the same transaction** as the action, so an approval can never be saved without its notification
+- Fills in the `# TODO` from BE-2.3 (cancel and change notifications)
+- Tests check that each event creates the right notification for the right person
+
+**Depends on:** BE-3.3, BE-2.3
+
+**📚 Learn**
 - Side effects inside a transaction
-- Polling vs push
-- Dropdown accessibility (focus, Escape to close)
+- Keeping services small and composable
 
 ---
 
-#### US-4.2 Email notifications (stretch)
-**Story:** As a team lead, I also get an email when someone requests approval, so I don't miss it when I'm not on the platform.
+#### ⚙️ BE-4.2 Email notifications (stretch)
+**Story:** As a team lead, I also get an email for approval requests.
 
 **Acceptance criteria**
-- Emails are sent for the same events as US-4.1
-- Locally, emails land in **Mailpit** (a fake inbox in Docker Compose, viewed in the browser)
-- A slow or broken email server never makes the API request slow or fail
+- Mailpit is added to Docker Compose. Local emails show up in its web inbox.
+- Emails are sent through `BackgroundTasks` after the response, so a slow mail server never slows or breaks the API
 
-🧠 **Think**
-- Send emails inside the request, or after it? 💡 FastAPI `BackgroundTasks` runs code after the response is sent. A real job queue (Celery, RQ) is overkill for now.
+**Depends on:** BE-4.1
 
-⚙️ **Backend**
-- Add Mailpit to compose, and an `email_service` using `smtplib` / `email.message`, triggered from `notify()` through `BackgroundTasks`
-
-🖥️ **Frontend**
-- none
-
-📚 **Learn**
+**📚 Learn**
 - `BackgroundTasks`
 - SMTP basics
 - Why side effects that can fail belong outside the request
 
 ---
 
-### Epic 5 — Profile
-
-#### US-5.1 My profile and completed trainings
-**Story:** As an employee, I can see my profile with my completed and upcoming trainings, so I have an overview of my learning.
+#### 🖥️ FE-4.1 Notification bell
+**Story:** As a user, I see a bell with an unread count and can open, read and follow notifications.
 
 **Acceptance criteria**
-- `/profile` shows name, email, client, level and team lead
-- An "Upcoming" section: approved enrollments for trainings that haven't ended
-- A "Completed" section: approved enrollments for trainings that have ended and weren't cancelled, newest first
-- A "Pending requests" section
+- The bell in the top bar shows the unread count and polls every 30 s (`refetchInterval`)
+- The dropdown lists the latest 20. Clicking one marks it read and navigates to its `link`.
+- "Mark all as read"
+- The dropdown is keyboard-accessible: focus moves into it, and Escape closes it
 
-🧠 **Think**
-- **❓ Q10:** "Completed" means *enrolled and the date passed*. Nobody checks attendance. Is that good enough, or should the trainer or admin mark attendance? 💡 Good enough for now; attendance could be a later story.
-- Can users edit their own profile (name, level)? ❓ 💡 No, because level decides which trainings you can see. Only admins change it.
+**Depends on:** FE-0.1, FE-2.2 (TanStack Query). Mocks until BE-4.1 is merged.
 
-🎨 **Design**
-- `GET /api/me/enrollments` → grouped or filterable by status and time
-- Profile wireframe
-
-⚙️ **Backend**
-- A query with `ends_at < now()` vs `>=`, sharing logic with US-2.3
-
-🖥️ **Frontend**
-- Profile page, reusing `TrainingCard`
-
-📚 **Learn**
-- Reusing queries and components
-- Dates and "now" in tests: freeze time, e.g. with `time-machine` or by injecting a clock
+**📚 Learn**
+- Polling with TanStack Query
+- Click-outside and focus management
+- Accessible menus
 
 ---
 
-### Epic 6 — Seat reservations
+### F5 — Profile
 
-#### US-6.1 Seats and office layout
-**Story:** As a developer, I have the office seats in the database with their zone and position, so the map can be drawn.
-
-**Acceptance criteria**
-- `seats` table matches section 4.3 (via a migration)
-- The seed creates seats for every zone, laid out like the real office (or a reasonable fake)
-
-🧠 **Think**
-- **❓ Q11:** Is there a real floor plan? How many seats per zone? One floor or several? This decides whether we need a `floor` column.
-- Grid coordinates (row and column), or free x/y in pixels? 💡 A grid is much simpler to draw and to seed.
-- Can seats be temporarily unavailable (broken, reserved for visitors)? ❓ 💡 Later, with an `is_active` flag.
-
-🎨 **Design**
-- Sketch the floor plan as a grid on paper, with zones as coloured areas
-
-⚙️ **Backend**
-- `Seat` model, a migration, and seed data
-
-🖥️ **Frontend**
-- none
-
-📚 **Learn**
-- Modelling physical things in a database
-- Seed data as code
-
----
-
-#### US-6.2 See the seat map for a day
-**Story:** As an employee, I can pick a date and see the office map with free and taken seats, so I know where I can sit.
-
-**Acceptance criteria**
-- `/seats` has a date picker (default: today; can't pick past days)
-- The map shows every seat. **Free = white, taken = red** (as in the spec), and **my own reservation** in a third colour. Seats of **other clients** are greyed out and not clickable.
-- Hovering or focusing a taken seat shows who took it ❓ (see Think)
-- There's a legend explaining the colours
-- It works with the keyboard (Tab to a seat, Enter to select), not just the mouse
-
-🧠 **Think**
-- **❓ Q12:** Can people see *who* reserved a seat? It's useful ("sit near Ana"), but is it OK privacy-wise?
-- How far ahead can you book? ❓ 💡 2 weeks.
-- Weekends: allowed or blocked? ❓ 💡 Blocked.
-- Colour alone isn't accessible (colour-blind users). 💡 Also use an icon or pattern plus text in the tooltip.
-- Draw with CSS Grid or SVG? 💡 CSS Grid (buttons in a grid) is easier, and accessible by default.
-
-🎨 **Design**
-- `GET /api/seats?date=2026-10-14` →
-  ```json
-  [{"id": 3, "label": "DKB-03", "zone": "DKB", "pos_x": 2, "pos_y": 0,
-    "status": "free" | "taken" | "mine", "bookable": true}]
+#### 🤝 Together: Think & Design
+- **❓ Q10:** "Completed" = approved + training ended + not cancelled, with no attendance check? 💡 Yes.
+- **❓ Q15:** Can users edit their own level or client? 💡 No, admins only (level decides which trainings you see).
+- **Contract:**
   ```
-- A map wireframe with the legend:
+  GET /api/me/enrollments  → 200 {upcoming: [TrainingSummary], pending: [TrainingSummary], completed: [TrainingSummary]}
+  ```
+- Wireframe: a profile header card plus three sections
+
+#### ⚙️ BE-5.1 My enrollments endpoint
+**Story:** As an employee, I can get my upcoming, pending and completed trainings in one call.
+
+**Acceptance criteria**
+- Matches the contract, reusing the query building from BE-2.2
+- Tests use a **frozen clock** so "completed" vs "upcoming" is deterministic
+
+**Depends on:** BE-3.3
+
+**📚 Learn**
+- Reusing query fragments
+- Controlling "now" in tests (`time-machine`, or injecting a clock)
+
+---
+
+#### 🖥️ FE-5.1 Profile page 🔁 swap candidate
+**Story:** As an employee, my profile shows my details and my trainings.
+
+**Acceptance criteria**
+- `/profile` shows name, email, client, level and team lead (from `/me`), then Upcoming, Pending and Completed sections reusing `TrainingCard`
+- Empty states for each section
+
+**Depends on:** FE-2.2. Mocks until BE-5.1 is merged.
+
+**📚 Learn**
+- Composition: building a page from existing components
+
+---
+
+### F6 — Seat reservations
+
+#### 🤝 Together: Think & Design
+- **❓ Q11:** Is there a real floor plan? How many seats per zone and floors? 💡 A fake grid on one floor, about 10 seats per zone, as grid coordinates (not pixels).
+- **❓ Q12:** Can people see *who* took a seat? 💡 Yes, name only.
+- **❓ Q14:** How far ahead can seats be booked, and are weekends allowed? 💡 2 weeks, no weekends.
+- **❓ Q3:** One seat per person per day? 💡 Yes. Clicking another seat *moves* your reservation.
+- Colours: **free = white, taken = red** (from your spec), **mine = green**, **other client = greyed out**. Colour alone isn't accessible, so also use an icon or pattern and a text label.
+- The map is drawn with CSS Grid made of `<button>`s (accessible by default) rather than SVG.
+- **Contract:**
+  ```
+  GET    /api/seats?date=2026-10-14   → 200 [{id, label, zone, pos_x, pos_y,
+                                               status: "free"|"taken"|"mine",
+                                               taken_by: {id, name} | null,
+                                               bookable: bool}]
+                                      → 422 past / too far / weekend
+  POST   /api/reservations  {seat_id, date} → 201 ReservationRead
+                                      → 403 other client · 409 {code: "seat_taken"} · 422 bad date
+                                        (if I already had a seat that day, it's moved)
+  GET    /api/reservations/me         → 200 [ReservationRead]   # upcoming only
+  DELETE /api/reservations/{id}       → 204 · 403 not yours · 409 in the past
+  ```
+- Map wireframe:
   ```
    Date: [ 14 Oct 2026 ▾ ]        ⬜ free  🟥 taken  🟩 mine  ▒ other client
 
@@ -818,98 +917,140 @@ Stories are numbered **US-epic.story**. "Developer" stories are enablers: they d
    └────────────────────┘  └────────────────────┘
   ```
 
-⚙️ **Backend**
-- A single query: seats `LEFT JOIN` reservations for that date. Compute `status` and `bookable` for the current user.
+#### ⚙️ BE-6.1 Seats and office layout
+**Story:** As the BE dev, I have every office seat in the database with its zone and grid position.
 
-🖥️ **Frontend**
-- `SeatMap` and `Seat` components, a date picker, and a query keyed by date (the cache per date comes for free with TanStack Query)
+**Acceptance criteria**
+- `Seat` model plus a migration. Seed data follows the agreed layout.
+- Share the seed layout (a small table or picture) with FE, so the mocks look the same
 
-📚 **Learn**
-- `LEFT JOIN`
-- Query keys and caching per parameter
-- CSS Grid
-- Basic accessibility (buttons, `aria-label`, `aria-pressed`)
+**Depends on:** BE-1.1
+
+**📚 Learn**
+- Modelling physical things
+- Seed data as code
 
 ---
 
-#### US-6.3 Reserve a seat
-**Story:** As an employee, I can click a free seat in my client's zone and reserve it for the chosen day.
+#### ⚙️ BE-6.2 Seat map endpoint
+**Story:** As an employee, I can get every seat's status for a given day.
 
 **Acceptance criteria**
-- Clicking a bookable free seat opens a confirmation ("Reserve DKB-03 for Tue 14 Oct?"). On confirm the seat turns to "mine".
-- Rejected with a clear message when: the seat belongs to another client, the date is past or too far ahead, the seat was just taken by someone else, or I already have a seat that day
-- If someone else took the seat a second earlier, I get a friendly "Sorry, this seat was just taken" and the map refreshes
+- `GET /api/seats?date=` matches the contract, using **one** query: seats `LEFT JOIN` reservations for that date
+- `bookable` = free, the zone matches my client, and the date is valid
+- Date rules (past, too far ahead, weekend) return 422
 
-🧠 **Think**
-- **Race condition, again**, but solved differently than in US-3.2: here the **UNIQUE (`seat_id`, `date`) constraint** does the work. Insert the row, catch `IntegrityError`, return 409. Compare the two approaches as a team; it's a great learning moment.
-- If I already have a seat that day, should clicking another *move* my reservation? ❓ 💡 Yes, it's friendlier (delete the old one and create the new one in one transaction).
+**Depends on:** BE-6.1, BE-6.3 (for the reservations table). The endpoint can ship first with everything free.
 
-🎨 **Design**
-- `POST /api/reservations` with `{seat_id, date}` → `201`, or `409` if taken or I already have one, `403` for the wrong client, `422` for a bad date
+**📚 Learn**
+- `LEFT JOIN`
+- Query parameters and validation of dates
 
-⚙️ **Backend**
-- A reservation service with the rules, and tests for each rule, including the "two users, same seat" case
+---
 
-🖥️ **Frontend**
-- Confirmation dialog, a mutation, and handling of the 409 message
+#### ⚙️ BE-6.3 Reserve, move and cancel reservations
+**Story:** As an employee, I can reserve a seat, move it, see my reservations and cancel them.
 
-📚 **Learn**
+**Acceptance criteria**
+- `SeatReservation` model plus a migration, with both UNIQUE constraints
+- `POST` inserts and **catches `IntegrityError`** to return 409 `seat_taken` when someone was faster. If I already have a seat that day, the old one is deleted and the new one created in one transaction.
+- `GET /me` and `DELETE` match the contract, with owner-only checks
+- Tests cover every rule, including "two users, same seat, same day"
+
+**Depends on:** BE-6.1
+
+🧠 **Think:** compare this approach (a unique constraint, *optimistic*) with BE-3.2's row lock (*pessimistic*). Why does each fit its case? That's a great `learnings.md` entry.
+
+**📚 Learn**
 - Unique constraints as the source of truth
 - `IntegrityError`
-- Optimistic vs pessimistic concurrency (compare with US-3.2)
+- Optimistic vs pessimistic concurrency
 
 ---
 
-#### US-6.4 See and cancel my reservations
-**Story:** As an employee, I can see my upcoming reservations and cancel one, so the seat frees up if my plans change.
+#### 🖥️ FE-6.1 Seat map
+**Story:** As an employee, I can pick a date and see the office map with each seat's status.
 
 **Acceptance criteria**
-- A "My reservations" list on `/seats` (or the profile), upcoming only, sorted by date
-- A cancel button, with confirmation. The seat becomes free on the map.
-- Past reservations can't be cancelled
+- `/seats` has a date picker (default today, respecting the agreed date rules) and a legend
+- `SeatMap` and `Seat` components laid out on a CSS Grid from `pos_x`/`pos_y`, grouped by zone
+- Colours and icons as agreed. Hovering or focusing a taken seat shows who took it.
+- Keyboard: Tab through seats, with a useful `aria-label` like "DKB-03, taken by Ana Silva"
+- The query is keyed by date, so switching back to a date you've seen is instant
 
-⚙️ **Backend**
-- `GET /api/reservations/me` and `DELETE /api/reservations/{id}` (owner only)
+**Depends on:** FE-2.2 (TanStack Query). Mocks until BE-6.2 is merged.
 
-🖥️ **Frontend**
-- The list, and a cancel mutation that invalidates the map query for that date
-
-📚 **Learn**
-- DELETE semantics and ownership checks
-- Invalidating related queries
+**📚 Learn**
+- CSS Grid
+- Mapping data to layout
+- `aria-label` / `aria-pressed`
+- Query keys with parameters
 
 ---
 
-### Epic 7 — Quality and going live
-
-#### US-7.1 Deploy the backend and database
-**Story:** As a colleague, I can use the live GitHub Pages site with a working backend, so the platform is actually usable.
+#### 🖥️ FE-6.2 Reserve a seat
+**Story:** As an employee, I click a free seat in my zone, confirm, and it becomes mine.
 
 **Acceptance criteria**
-- The backend and MySQL run on a hosted service. The Pages site's `VITE_API_URL` points at it.
-- Migrations run automatically on deploy
+- Clicking a bookable seat opens "Reserve DKB-03 for Tue 14 Oct?". If I already have a seat that day, it says "Move your reservation from DKB-01 to DKB-03?".
+- On success the map updates (invalidate that date's query)
+- On 409 `seat_taken`: "Sorry, this seat was just taken", then the map refreshes
+
+**Depends on:** FE-6.1. Mocks until BE-6.3 is merged.
+
+**📚 Learn**
+- Mutations with parameters
+- Handling race conditions gracefully in the UI
+
+---
+
+#### 🖥️ FE-6.3 My reservations 🔁 swap candidate
+**Story:** As an employee, I see my upcoming reservations and can cancel one.
+
+**Acceptance criteria**
+- A "My reservations" list next to or under the map, sorted by date
+- Cancel with confirmation. The seat turns white on the map for that date.
+
+**Depends on:** FE-6.2
+
+**📚 Learn**
+- Invalidating related queries (the list *and* the map for that date)
+
+---
+
+### F7 — Going live
+
+#### 🤝 Together: Think & Design
+- **❓ Q13:** Where may the backend and database be hosted? Company infrastructure (Azure?), or a platform like Render, Railway or Fly.io plus managed MySQL? This is probably a company policy question: real employee data must not go to random hosts.
+- Revisit **D2** once the domains are known. Or move the frontend to the same host as the backend and avoid CORS entirely?
+
+#### ⚙️ BE-7.1 Deploy the backend and database
+**Story:** As a colleague, I can use the live site with a real backend.
+
+**Acceptance criteria**
+- A backend `Dockerfile` and a deploy workflow. Migrations run on deploy.
 - Secrets (DB password, JWT secret) live in the host's secret store, never in git
+- `CORS_ORIGINS` includes the frontend's real origin
 
-🧠 **Think**
-- **❓ Q13:** Where to host? Company infrastructure (Azure?), or a platform like Render, Railway or Fly.io plus managed MySQL? This is probably a company policy question: real employee data must not go to random hosts.
-- Revisit **D2** (the token in localStorage) once the domains are known
-- Should the frontend move off GitHub Pages to the same host, avoiding CORS entirely?
-
-⚙️ **Backend**
-- A `Dockerfile` for the backend, and a deploy workflow
-
-🖥️ **Frontend**
-- Set the `VITE_API_URL` repo variable
-
-📚 **Learn**
+**📚 Learn**
 - Containers
 - Environment-specific config
 - Secrets management
-- CORS in production
 
 ---
 
-#### US-7.2 Accessibility and responsive pass
+#### 🖥️ FE-7.1 Point the live site at the backend
+**Story:** As a colleague, the GitHub Pages site talks to the real backend instead of mocks.
+
+**Acceptance criteria**
+- The `VITE_API_URL` repo variable is set, and `VITE_USE_MOCKS` is off for production builds
+- A smoke test on the live URL: log in, open trainings, open seats
+
+**Depends on:** BE-7.1
+
+---
+
+#### 🖥️ FE-7.2 Accessibility and responsive pass
 **Story:** As any user, including keyboard and screen-reader users and phone users, I can use every feature.
 
 **Acceptance criteria**
@@ -917,54 +1058,74 @@ Stories are numbered **US-epic.story**. "Developer" stories are enablers: they d
 - Lighthouse accessibility score ≥ 90 on the main pages
 - Layouts work at 375 px width
 
-📚 **Learn**
+**📚 Learn**
 - Semantic HTML
 - ARIA only when needed
-- Responsive CSS (flex, grid, media queries)
+- Responsive CSS
 
 ---
 
-## 7. Suggested order
+## 7. Order and milestones
+
+### 7.1 Two swimlanes
+
+Each row is roughly one feature. 🤝 marks the joint sessions. FE always works against mocks first, so neither of you has to wait for the other.
+
+| Milestone | 🤝 Together | ⚙️ BE dev | 🖥️ FE dev | You can demo… |
+|---|---|---|---|---|
+| **M1: Walking skeleton** | Decisions D1–D14, F0 and F1 contracts | BE-0.1 → BE-0.2 → BE-0.3 → BE-1.1 → BE-1.2 | FE-0.1 → FE-0.2 → FE-0.3 → FE-1.1 | Logging in with a seeded user and clicking through empty pages |
+| **M2: Trainings** | F2 contract | BE-1.3 → BE-2.1 → BE-2.2 | FE-1.2 → FE-2.1 → FE-2.2 → FE-2.3 | Admin creates a training, and an employee sees it in the list |
+| **M3: Enrollment** | F3 contract | BE-3.1 → BE-3.2 → BE-3.3 → BE-2.3 | FE-3.1 → FE-3.2 → FE-3.3 → FE-2.4 | Request → lead approves → status updates; edit or cancel a training |
+| **M4: Seats** | F6 contract | BE-6.1 → BE-6.3 → BE-6.2 | FE-6.1 → FE-6.2 → FE-6.3 | Picking a day, reserving, moving and cancelling a seat |
+| **M5: Complete loop** | F4 and F5 contracts | BE-4.1 → BE-5.1 → (BE-4.2) | FE-4.1 → FE-5.1 | Notifications and profile |
+| **M6: Live** | F7 hosting decision | BE-7.1 | FE-7.1 → FE-7.2 | A real URL colleagues can use |
+
+### 7.2 Workload check
+
+| | ⚙️ BE | 🖥️ FE |
+|---|---|---|
+| Stories | 19 (1 stretch) | 19 |
+| Heaviest | BE-1.2 login, BE-2.2 queries, BE-3.2 locking, BE-6.3 concurrency | FE-0.2 mocks and types, FE-1.1 auth, FE-2.1 form, FE-6.1 seat map |
+
+The split is roughly even. If one of you gets ahead, pick a 🔁 swap candidate from the other lane instead of starting the next milestone alone. It's the best way to learn the other half of the stack.
+
+### 7.3 Dependencies across the two lanes
 
 ```mermaid
 flowchart LR
-    subgraph F[Epic 0 · Foundations]
-      U01[0.1 Docker DB] --> U02[0.2 Structure + Alembic] --> U03[0.3 Tests]
-      U04[0.4 App shell]
+    subgraph BE[⚙️ BE dev]
+      B01[BE-0.1 Docker] --> B02[BE-0.2 Structure] --> B03[BE-0.3 Tests]
+      B02 --> B11[BE-1.1 Users] --> B12[BE-1.2 Login] --> B13[BE-1.3 Permissions]
+      B13 --> B21[BE-2.1 Create] --> B22[BE-2.2 List] --> B31[BE-3.1 Request] --> B32[BE-3.2 Approve] --> B33[BE-3.3 Withdraw]
+      B22 --> B23[BE-2.3 Edit/cancel]
+      B33 --> B41[BE-4.1 Notifications] --> B42[BE-4.2 Email]
+      B23 --> B41
+      B33 --> B51[BE-5.1 My enrollments]
+      B11 --> B61[BE-6.1 Seats] --> B63[BE-6.3 Reserve] --> B62[BE-6.2 Map]
+      B62 --> B71[BE-7.1 Deploy]
+      B51 --> B71
     end
-    subgraph A[Epic 1 · Auth]
-      U11[1.1 Users] --> U12[1.2 Login] --> U13[1.3 Permissions]
+    subgraph FE[🖥️ FE dev]
+      F01[FE-0.1 Shell] --> F11[FE-1.1 Login] --> F12[FE-1.2 Nav]
+      F02[FE-0.2 Client+mocks] --> F11
+      F02 --> F03[FE-0.3 Tests]
+      F12 --> F21[FE-2.1 Form] --> F24[FE-2.4 Edit]
+      F11 --> F22[FE-2.2 List] --> F23[FE-2.3 Detail] --> F31[FE-3.1 Join] --> F33[FE-3.3 Withdraw]
+      F23 --> F24
+      F12 --> F32[FE-3.2 Approvals]
+      F22 --> F41[FE-4.1 Bell]
+      F22 --> F51[FE-5.1 Profile]
+      F22 --> F61[FE-6.1 Map] --> F62[FE-6.2 Reserve] --> F63[FE-6.3 My reservations]
+      F63 --> F71[FE-7.1 Go live] --> F72[FE-7.2 A11y]
     end
-    subgraph T[Trainings track]
-      U21[2.1 Create] --> U23[2.3 Browse] --> U24[2.4 Detail] --> U31[3.1 Request] --> U32[3.2 Approve]
-      U32 --> U41[4.1 Notifications] --> U51[5.1 Profile]
-      U41 --> U22[2.2 Edit/cancel]
-      U41 --> U33[3.3 Withdraw]
-      U41 --> U42[4.2 Email]
-    end
-    subgraph S[Seats track]
-      U61[6.1 Seats] --> U62[6.2 Map] --> U63[6.3 Reserve] --> U64[6.4 My reservations]
-    end
-    U03 --> U11
-    U04 --> U12
-    U13 --> U21
-    U13 --> U61
-    U51 --> U71[7.1 Deploy]
-    U64 --> U71
-    U71 --> U72[7.2 A11y pass]
+    B12 -. integrate .-> F11
+    B22 -. integrate .-> F22
+    B32 -. integrate .-> F32
+    B63 -. integrate .-> F62
+    B71 -. required .-> F71
 ```
 
-**Milestones:**
-
-| Milestone | Stories | You can demo… |
-|---|---|---|
-| **M1: Walking skeleton** | 0.1–0.4, 1.1, 1.2 | Logging in and clicking through empty pages |
-| **M2: Trainings MVP** | 1.3, 2.1, 2.3, 2.4, 3.1, 3.2 | Admin creates → employee requests → lead approves |
-| **M3: Seats MVP** | 6.1–6.3 | Picking a day and reserving a seat |
-| **M4: Complete loop** | 4.1, 5.1, 6.4, 2.2, 3.3 | Notifications, profile, cancellations |
-| **M5: Live** | 7.1, 7.2, (4.2) | A real URL colleagues can use |
-
-**Two tracks in parallel.** Once M1 and US-1.3 are done, the **Trainings track** and the **Seats track** barely depend on each other. If the dojo has enough people, split into two groups and swap halfway, so everyone touches both.
+Solid arrows = must happen first, within one lane. Dotted arrows = FE can build earlier on mocks, but switches to the real API once that BE story is merged. Only **FE-7.1** truly waits for BE.
 
 ---
 
@@ -974,17 +1135,18 @@ flowchart LR
 |---|---|---|
 | Q1 | Change 5: show an external trainer's name, or only "External"? | Optional name, shown when given |
 | Q2 | Change 6: drop `isTeamLead` and derive it from having reports? | Derive it |
-| Q3 | Change 10: at most one seat per person per day? | Yes |
+| Q3 | Change 10: at most one seat per person per day? | Yes, and clicking another seat moves it |
 | Q4 | D1: email + password login instead of SSO for now? | Yes |
-| Q5 | D8: styling approach? | CSS Modules |
-| Q6 | US-1.3: can admins approve enrollments? Who approves users without a team lead? | Admins can; users without a lead go to admins |
-| Q7 | US-3.1: do pending requests take up a seat? | No, only approved ones |
-| Q8 | US-3.1: can a rejected user request the same training again? | No |
-| Q9 | US-2.3: can users see trainings for other levels? | No |
-| Q10 | US-5.1: "completed" = approved + date passed (no attendance check)? | Yes |
-| Q11 | US-6.1: is there a real floor plan? How many seats per zone, and how many floors? | A fake grid on one floor, about 10 seats per zone |
-| Q12 | US-6.2: can people see *who* reserved a seat? | Yes, name only |
-| Q13 | US-7.1: where may the backend be hosted? Any company rules on employee data? | Decide at M5 |
-| Q14 | US-6.2: how far ahead can seats be booked? Weekends allowed? | 2 weeks, no weekends |
-| Q15 | US-5.1: can users edit their own level or client? | No, admins only |
+| Q5 | D8: styling approach? (the FE dev decides) | CSS Modules |
+| Q6 | F1: can admins approve enrollments? Who approves users without a team lead? | Admins can; users without a lead go to admins |
+| Q7 | F3: do pending requests take up a seat? | No, only approved ones |
+| Q8 | F3: can a rejected user request the same training again? | No |
+| Q9 | F2: can users see trainings for other levels? | No |
+| Q10 | F5: "completed" = approved + date passed (no attendance check)? | Yes |
+| Q11 | F6: is there a real floor plan? How many seats per zone, and how many floors? | A fake grid on one floor, about 10 seats per zone |
+| Q12 | F6: can people see *who* reserved a seat? | Yes, name only |
+| Q13 | F7: where may the backend be hosted? Any company rules on employee data? | Decide at M6 |
+| Q14 | F6: how far ahead can seats be booked? Weekends allowed? | 2 weeks, no weekends |
+| Q15 | F5: can users edit their own level or client? | No, admins only |
 | Q16 | Does the level order Junior → Expert → Senior → Architect → Senior Architect match the company ladder? (It matters if we ever show "this level and above".) | Yes, as written |
+| Q17 | D13/D14: are you both happy with MSW mocks and generated TypeScript types? They add some setup in F0 but remove a lot of waiting later. | Yes |

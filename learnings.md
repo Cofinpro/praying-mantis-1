@@ -62,6 +62,19 @@ We're both experienced developers (one from **Vue**, one from **Java**), so skip
 - `tags=["health"]` on the router only groups the endpoints in the `/docs` page.
 - A route declared as `"/"` under the prefix `/api` becomes `/api/`. Calling `/api` (no slash) answers with a **307 redirect** to `/api/`; browsers follow it, but it's an extra round trip, so call the exact path.
 - **`app.dependency_overrides[get_db] = lambda: db`**: swaps a dependency for the whole app, without touching the routes. It's FastAPI's version of `@MockBean` / `@TestConfiguration` in Spring, but it's just a dict: set it in a fixture and **clear it afterwards**, or it leaks into the next test.
+- **`Depends`** is FastAPI's dependency injection, but per request and by function instead of by class: `def me(user: CurrentUser)` makes FastAPI call `get_current_user` (which itself depends on `get_db` and the bearer token) before the endpoint. If a dependency raises `HTTPException`, the endpoint never runs. That's how one dependency protects every endpoint that asks for it, similar to a Spring Security filter plus `@AuthenticationPrincipal`, but opt-in per endpoint.
+- **`Annotated` aliases**: `CurrentUser = Annotated[User, Depends(get_current_user)]` bundles the type and the dependency into one name, so endpoints just write `user: CurrentUser`.
+- **`OAuth2PasswordBearer` vs `HTTPBearer`**: both only *read* the `Authorization: Bearer` header; neither checks the token (that's our `decode_access_token`). The difference is the `/docs` integration: `OAuth2PasswordBearer(tokenUrl=...)` gives a username/password form that posts **form data** to `tokenUrl`, while `HTTPBearer` gives a "paste your token" box. Our login takes JSON, so we use `HTTPBearer`.
+- **Gotcha: `EmailStr` rejects reserved domains** (`.test`, `.local`, `.localhost`, `.invalid`, ...), which are exactly the ones used for fake data. Fine for sign-up forms, wrong for login. See `decisions.md`.
+
+## Auth: JWT, hashing, encryption
+
+- **A JWT is `header.payload.signature`, each part base64url**, and base64 is not encryption: anyone holding the token can read the payload (paste one into jwt.io). The **signature** only proves the server made it and nobody changed it. So a JWT may carry the user id and expiry, **never a secret** (no password, no hash, nothing private).
+- **Signed with HS256** = an HMAC with `JWT_SECRET`. Whoever knows the secret can mint tokens for any user, so it lives in `.env`, never in git, and must be at least 32 bytes.
+- **Pin the algorithm** when decoding (`algorithms=["HS256"]`). Otherwise a token with `"alg": "none"` (no signature) or a swapped algorithm might be accepted. There's a test for the `none` case.
+- A JWT **can't be revoked** before it expires (the server keeps no session). That's the trade-off for being stateless, and why tokens are short-lived (8 h). Spring's JWT resource server works the same way.
+- **Hashing vs encryption**: encryption is two-way (with the key you get the data back), hashing is one-way. Passwords are **hashed** (Argon2id): at login we hash the attempt and compare, and even a database leak doesn't reveal the passwords. Argon2 is deliberately slow and memory-heavy, which makes brute-forcing leaked hashes expensive. A JWT is neither: it's **signed**.
+- **User enumeration**: "wrong password" vs "unknown email" messages, or even different response times, tell an attacker which emails exist. We return the same 401 message and run a dummy Argon2 check for unknown emails so both paths take about the same time.
 
 ## pytest
 
@@ -69,6 +82,7 @@ We're both experienced developers (one from **Vue**, one from **Java**), so skip
 - **`scope`** controls how often a fixture runs: `"function"` (default, per test) or `"session"` (once per run, like `@BeforeAll` across all classes). Our `engine` fixture is session-scoped (create the DB once), `db` and `client` are per test.
 - Fixtures can depend on other fixtures (`client` → `db` → `engine`). pytest resolves the graph, like DI for tests.
 - `conftest.py` is picked up automatically; its fixtures are available to every test in that folder, with no import.
+- **`@pytest.mark.parametrize`** runs one test with several inputs (like JUnit's `@ParameterizedTest`). `pytest.param(..., id="missing token")` names each case in the output.
 - Plain `assert x == y` is enough: pytest rewrites asserts to show both values on failure, so there's no `assertEquals`/AssertJ.
 
 ## Pydantic vs SQLAlchemy models

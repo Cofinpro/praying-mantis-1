@@ -94,13 +94,14 @@ What exists today:
     - `enums.py`: `Client` and `Level` (`StrEnum`), and `enum_column()` to store them as VARCHAR
     - `user.py`: `User`, with `team_lead` / `reports` (self-referencing) and the derived `is_team_lead`
   - `app/schemas/`: Pydantic request/response models (the API contract)
-  - `app/routers/`: one `APIRouter` per area. `health.py` has `/api/` and `/api/health/db`.
+  - `app/routers/`: one `APIRouter` per area. `health.py` has `/api/` and `/api/health/db`, `auth.py` has `/api/auth/login` and `/api/auth/me`.
+  - `app/dependencies.py`: shared dependencies. `CurrentUser` (requires a valid token, gives the `User`) and `DbSession`.
   - `app/services/`: business rules, no HTTP concerns
-  - `app/security.py`: password hashing (`pwdlib`, Argon2id)
+  - `app/security.py`: password hashing (`pwdlib`, Argon2id) and JWT create/decode (`PyJWT`, HS256)
   - `app/seed.py`: local seed users (`python -m app.seed`)
   - `alembic/`: migrations (`alembic/versions/`). `env.py` reads the DB URL from `app.config`.
   - `tests/`: pytest. `conftest.py` provides the `db` and `client` fixtures (see Testing below).
-  - `.env.example`: DB settings and `CORS_ORIGINS`. Copy it to `backend/.env` (git-ignored).
+  - `.env.example`: DB settings, `CORS_ORIGINS` and `JWT_SECRET`. Copy it to `backend/.env` (git-ignored).
 - `frontend/`: React 19 + TypeScript on Vite, managed with **pnpm**
   - `src/main.tsx`: mounts `<RouterProvider>` (from `react-router/dom`) and loads Inter and the global CSS
   - `src/router.tsx`: the route table. `/login` stands alone; every other page is a child of `Layout`
@@ -170,6 +171,8 @@ fastapi dev app/main.py   # http://localhost:8000, API docs at /docs
 
 Re-running the seed resets these users to the values above (matched by email) and never duplicates them.
 
+**Trying the API with a login:** open http://localhost:8000/docs, call `POST /api/auth/login` with a seed login, copy the `access_token`, click **Authorize** and paste it. Every request from `/docs` then sends `Authorization: Bearer <token>`.
+
 Check the database connection at http://localhost:8000/api/health/db (expects `{"database": "ok"}`).
 
 Migrations (run from `backend/`):
@@ -226,7 +229,8 @@ Until a backend is deployed, the Pages build runs on the MSW mocks (`VITE_USE_MO
   - Errors use FastAPI's `{"detail": ...}`. Business-rule conflicts return 409 with `{"detail": {"code": "...", "message": "..."}}`.
   - Datetimes are ISO 8601 in UTC (`...Z`), and dates are `YYYY-MM-DD`
 - **Backend:**
-  - DB access goes through the `get_db` dependency
+  - DB access goes through the `get_db` dependency (`db: DbSession`)
+  - An endpoint that needs a logged-in user takes `user: CurrentUser` (from `app/dependencies.py`). That's all it takes: missing, invalid or expired tokens get a 401 before the endpoint runs.
   - Business rules live in `services/`, not in routers
   - Pydantic schemas (`schemas/`) are the API contract; SQLAlchemy models (`models/`) are the database shape
   - Every schema change needs an Alembic migration (no `create_all`)

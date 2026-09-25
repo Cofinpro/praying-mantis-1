@@ -122,6 +122,23 @@ Template:
 - Services raise `Conflict` / `ValidationFailed` (`app/errors.py`); handlers in `main.py` turn them into 409 / 422.
 **Consequences:** FE's edit form can send the whole form or only changes; both work. Notifying enrolled people on cancel is a `TODO(BE-4.1)` in `cancel_training`.
 
+## 2026-09-25 — Seat map: per-zone grid positions, local days, built on mocks
+**Status:** Accepted
+**Context:** FE-6.1 builds `/seats` before BE-6.1/6.2, from the F6 contract (`GET /api/seats?date=` → seats with `status`, `taken_by`, `bookable`).
+**Decision:**
+- **`pos_x` / `pos_y` are 0-based positions *inside the seat's zone*.** The map is one card per zone (mine first), each a CSS Grid. **BE-6.1 should seed them that way**: the mocks use 10 seats per zone in 2 rows × 5, labels `DKB-01` … `UNION-10`.
+- **Dates are local calendar days** (`YYYY-MM-DD`, `lib/days.ts`), never derived from UTC. The picker shows two weeks from this Monday. Past days, weekends and anything past 14 days from today are disabled, and the default is today or the next weekday. The chosen day is in the URL (`?date=`).
+- **Seat states**:
+  - free (white)
+  - taken (crimson + lock, "Taken by …" tooltip on hover or focus)
+  - mine (green + check, `aria-pressed`)
+  - another client's zone (grey hatched)
+
+  Every seat is a `<button>` with an `aria-label` like "DKB-03, taken by Ana Silva". Unbookable seats use `aria-disabled`, so they stay in the Tab order.
+- The query key is `['seats', day]`. The seats types are hand-written in `api/seats.ts`.
+
+**Consequences:** FE-6.2 passes `onSelect` to `SeatMap` to make free seats in my zone clickable. Until BE-6.2 is merged, `/seats` shows the error state against the real backend.
+
 ## 2026-09-25 — Profile page: /me for the header, /api/me/enrollments for the sections
 **Status:** Accepted
 **Context:** FE-5.1 builds `/profile` before BE-5.1, from the F5 contract (`GET /api/me/enrollments → {upcoming, pending, completed}`).

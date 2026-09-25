@@ -2,6 +2,7 @@ import { http, HttpResponse } from 'msw'
 import type { CurrentUser, LoginRequest, TokenResponse } from '../api/auth'
 import type { DbHealthResponse, HelloResponse } from '../api/health'
 import type { NotificationList } from '../api/notifications'
+import type { Seat } from '../api/seats'
 import type { ApprovalItem, EnrollmentRead, MyEnrollments } from '../api/enrollments'
 import type { TrainingCreate, TrainingRead, TrainingSummary, TrainingUpdate } from '../api/trainings'
 import { isLevel } from '../trainings/levels'
@@ -19,6 +20,7 @@ import {
 } from './data/trainings'
 import type { UserSummary } from '../api/users'
 import { listMockNotifications, markMockRead } from './data/notifications'
+import { listMockSeats } from './data/seats'
 import { findSeedUserByEmail, findSeedUserById, searchSeedUsers, SEED_PASSWORD, toCurrentUser } from './data/users'
 
 // The mock token is just the user id. The real one is a signed JWT, but the app treats both as opaque.
@@ -204,5 +206,14 @@ export const handlers = [
     const user = userFromRequest(request)
     if (!user) return notAuthenticated()
     return HttpResponse.json<MyEnrollments>(listMockMyEnrollments(user.id))
+  }),
+
+  http.get('*/api/seats', ({ request }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    const result = listMockSeats(user, new URL(request.url).searchParams.get('date') ?? '')
+    return result.status === 200
+      ? HttpResponse.json<Seat[]>(result.seats)
+      : HttpResponse.json({ detail: result.detail }, { status: result.status })
   }),
 ]

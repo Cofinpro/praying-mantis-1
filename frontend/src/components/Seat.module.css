@@ -1,0 +1,84 @@
+.wrapper {
+  position: relative;
+}
+
+/* Design spec: 68 × 56, so "UNION-10" fits */
+.seat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 68px;
+  height: 56px;
+  padding: 0;
+  border: 1.5px solid;
+  border-radius: var(--radius-sm);
+  font: var(--font-caption);
+  cursor: default;
+}
+
+.label {
+  white-space: nowrap;
+}
+
+.free {
+  border-color: var(--color-seat-free-border);
+  background: var(--color-seat-free-bg);
+  color: var(--color-seat-free-fg);
+}
+
+.free:not([aria-disabled]) {
+  cursor: pointer;
+}
+
+.free:not([aria-disabled]):hover {
+  border-color: var(--color-border-focus);
+}
+
+.taken {
+  border-color: var(--color-seat-taken-border);
+  background: var(--color-seat-taken-bg);
+  color: var(--color-seat-taken-fg);
+}
+
+.mine {
+  border-color: var(--color-seat-mine-border);
+  background: var(--color-seat-mine-bg);
+  color: var(--color-seat-mine-fg);
+  font-weight: 600;
+}
+
+/* Another client's zone: grey and hatched, so it doesn't rely on colour */
+.unavailable {
+  border-color: var(--color-seat-unavailable-border);
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--color-seat-unavailable-bg) 0 6px,
+    var(--color-bg-surface) 6px 9px
+  );
+  color: var(--color-seat-unavailable-fg);
+}
+
+/* Figma "Tooltip": dark, above the seat, on hover and keyboard focus */
+.tooltip {
+  position: absolute;
+  bottom: calc(100% + var(--space-2));
+  left: 50%;
+  z-index: 10;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-inverse);
+  font: var(--font-caption);
+  color: var(--color-text-inverse);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%);
+  transition: opacity 0.1s;
+}
+
+.wrapper:hover .tooltip,
+.seat:focus-visible + .tooltip {
+  opacity: 1;
+}

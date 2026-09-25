@@ -1,10 +1,11 @@
 import type { CurrentUser } from '../../api/auth'
 import type { UserSummary } from '../../api/users'
+import { mockAvatarUrl } from './avatars'
 
 // Mirrors backend/app/seed.py, so the same logins work with and without the backend.
 export const SEED_PASSWORD = 'password123'
 
-type SeedUser = Omit<CurrentUser, 'is_team_lead' | 'team_lead'> & { teamLeadEmail: string | null }
+type SeedUser = Omit<CurrentUser, 'is_team_lead' | 'team_lead' | 'avatar_url'> & { teamLeadEmail: string | null }
 
 const seedUsers: SeedUser[] = [
   { id: 1, name: 'Alex Admin', email: 'admin@cofinpro.pt', client: 'DBIS', level: 'senior_architect', is_admin: true, teamLeadEmail: null },
@@ -33,6 +34,7 @@ export function toCurrentUser({ teamLeadEmail, ...user }: SeedUser): CurrentUser
     ...user,
     is_team_lead: seedUsers.some((u) => u.teamLeadEmail === user.email),
     team_lead: lead ? { id: lead.id, name: lead.name } : null,
+    avatar_url: mockAvatarUrl(user.id),
   }
 }
 

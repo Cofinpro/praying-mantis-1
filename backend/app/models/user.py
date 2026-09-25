@@ -1,10 +1,14 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey, String, false, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 from app.models.enums import Client, Level, enum_column
+
+if TYPE_CHECKING:
+    from app.models.avatar import UserAvatar
 
 
 class User(Base):
@@ -32,6 +36,16 @@ class User(Base):
     reports: Mapped[list["User"]] = relationship(
         back_populates="team_lead", passive_deletes=True
     )
+
+    # One-to-one; only the small columns load (UserAvatar.data is deferred)
+    avatar: Mapped["UserAvatar | None"] = relationship(cascade="all, delete-orphan", passive_deletes=True)
+
+    @property
+    def avatar_url(self) -> str | None:
+        """Where the picture is served. ?v= changes with every upload, so browsers can cache it forever."""
+        if self.avatar is None:
+            return None
+        return f"/api/users/{self.id}/avatar?v={int(self.avatar.updated_at.timestamp())}"
 
     @property
     def is_team_lead(self) -> bool:

@@ -39,7 +39,7 @@ export function TopBar() {
       <div className={styles.right}>
         <NotificationBell />
         <Link to="/profile" className={styles.user}>
-          <Avatar name={name} />
+          <Avatar name={name} src={user?.avatar_url} />
           <span className={styles.userName}>{name}</span>
         </Link>
         {/* Not in Figma, which has no logout control. An icon button like the bell keeps the bar unchanged. */}

@@ -23,6 +23,8 @@ class CurrentUserRead(BaseModel):
     is_admin: bool
     is_team_lead: bool
     team_lead: TeamLeadSummary | None
+    # e.g. "/api/users/16/avatar?v=1790350000", relative to the API's base URL; null = show initials
+    avatar_url: str | None
 
 
 class UserSummary(BaseModel):

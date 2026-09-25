@@ -89,6 +89,16 @@ We're both experienced developers (one from **Vue**, one from **Java**), so skip
 - **One change, two views** (FE-6.3): cancelling a reservation changes both the "My reservations" list and that day's map. The mutation invalidates `['reservations', 'me']` *and* `['seats', reservation.date]`, reading the date from its variables. Getting related queries right is most of the work with a server cache.
 - **`useSearchParams`** keeps UI state in the URL (`/trainings?level=senior`), like `route.query` in vue-router. It survives a refresh and can be shared, and it goes straight into the query key.
 
+## File uploads (React + FastAPI)
+
+- **The file input is still HTML**: a visually hidden `<input type="file" accept="image/*">`, opened by a normal button through a ref (`inputRef.current.click()`). `onChange` gives `event.target.files[0]`, a `File` (which is a `Blob` with a name). Reset `event.target.value = ''` afterwards, or picking the same file twice won't fire `onChange`. Vue does it the same way, but there `@change` and a template ref do the job.
+- **Resize in the browser**: `createImageBitmap(file, { imageOrientation: 'from-image' })` decodes the image and applies the phone's EXIF rotation. `canvas.drawImage` crops and scales it, and `canvas.toBlob(cb, 'image/jpeg', 0.85)` encodes it. `toBlob` takes a callback, so we wrap it in a Promise to `await` it.
+- **Send it as `FormData`**: `form.append('file', blob, 'avatar.jpg')`, and don't set `Content-Type` yourself. The browser adds `multipart/form-data; boundary=…`, and a hand-written header would lack the boundary. `client.ts` leaves `FormData` bodies alone.
+- **FastAPI side**: `file: Annotated[UploadFile, File()]` needs `python-multipart`, which `fastapi[standard]` includes. `await file.read(MAX + 1)` reads one byte past the limit, so an oversized upload is rejected without reading all of it. Don't trust `file.content_type` alone: check the first bytes (JPEG `FF D8 FF`, PNG `89 50 4E 47…`, WebP `RIFF…WEBP`).
+- **SQLAlchemy `deferred=True`**: a column that isn't loaded until you touch it. The avatar row loads for `avatar_url` (it needs `updated_at`) without pulling the image bytes. That's like JPA's `@Basic(fetch = LAZY)`, which Hibernate only honours with bytecode enhancement. SQLAlchemy just does it.
+- **MySQL BLOB sizes**: `BLOB` is 64 KB, `MEDIUMBLOB` 16 MB. `LargeBinary().with_variant(MEDIUMBLOB(), "mysql")` states it explicitly, so `alembic check` stays quiet.
+- **Cache forever, bust with a version**: `?v=<updated_at>` in the URL + `Cache-Control: immutable`. A new upload gives a new URL, so browsers never show a stale picture and never re-download an unchanged one.
+
 ## Dates and time zones (JavaScript)
 
 - **`<input type="datetime-local">`** gives `"2026-10-14T09:00"`, with no zone. `new Date(that)` reads it as **local** time, and `.toISOString()` gives UTC (`"2026-10-14T08:00:00.000Z"` in Lisbon summer time). That's the whole local → UTC conversion (`src/lib/datetime.ts`).

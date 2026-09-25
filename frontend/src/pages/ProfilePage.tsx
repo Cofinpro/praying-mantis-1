@@ -4,7 +4,7 @@ import { queryKeys } from '../api/queryClient'
 import type { TrainingSummary } from '../api/trainings'
 import { useAuth } from '../auth/useAuth'
 import { Alert } from '../components/Alert'
-import { Avatar } from '../components/Avatar'
+import { AvatarEditor } from '../components/AvatarEditor'
 import { Button } from '../components/Button'
 import { TrainingCard } from '../components/TrainingCard'
 import { levelLabel } from '../trainings/levels'
@@ -23,7 +23,7 @@ export function ProfilePage() {
 
       {/* Figma "ProfileHeader" */}
       <section className={styles.header} aria-label="Your details">
-        <Avatar name={user.name} size="md" />
+        <AvatarEditor user={user} />
         <div className={styles.identity}>
           <p className={styles.name}>{user.name}</p>
           <p className={styles.email}>{user.email}</p>

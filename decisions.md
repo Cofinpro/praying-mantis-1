@@ -26,6 +26,9 @@ Template:
 - Enrollment status colours: pending = purple, approved = green, rejected = red, withdrawn and cancelled = grey.
 - Seat "taken" is crimson (not orange-red, which would read as the brand), with a lock icon; "mine" is Cofinpro green with a check icon; other clients' seats are grey and hatched.
 - Figma mocks every page: Login, Trainings list, Training detail, Create/edit training, Approvals, Seats, Profile, plus the notifications dropdown. Full spec: `docs/superpowers/specs/2026-09-25-figma-design-design.md`.
+- Tooltips ("Taken by …") use two extra tokens: `color/bg/inverse` (neutral/900) and `color/text/inverse` (white).
+- The Figma file is [PreyingMantis — Design](https://www.figma.com/design/FFlbgdessRR1pHvP0MGpQh). The Starter plan allows only 3 pages, so the cover is a frame at the top of Foundations instead of its own page.
+- Seats are 68 × 56 so the longest label (`UNION-10`) fits.
 **Consequences:** FE-0.1 starts by copying the token values into a `tokens.css` of CSS custom properties. Figma is a reference, not a gate: when code diverges on purpose, update Figma. Dark mode would only need a second variable mode later.
 
 ---

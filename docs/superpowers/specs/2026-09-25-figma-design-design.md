@@ -53,6 +53,8 @@ Plus `neutral/0` = #FFFFFF.
 | `color/action/primary-hover` | orange/800 | primary button hover |
 | `color/action/danger` | red/500 | destructive button fill |
 | `color/brand/accent` | orange/500 | logo, decorative fills, large text only |
+| `color/bg/inverse` | neutral/900 | tooltip background |
+| `color/text/inverse` | neutral/0 | tooltip text |
 
 Status badges (a `bg` and an `fg` token per status, all ≥ 4.5:1):
 
@@ -110,7 +112,7 @@ Every component binds only to semantic tokens. Figma variants use the same prop 
 | NavItem | active, inactive, external |
 | NotificationBell | no unread, unread (count badge) |
 | NotificationItem | unread, read |
-| Seat | free, taken, mine, unavailable × default, hover, focus |
+| Seat | free, taken, mine, unavailable × default, hover, focus · 68 × 56 so `UNION-10` fits |
 | Tooltip | "Taken by <name>" |
 | Alert | error, success |
 | EmptyState | icon, title, text, optional action |
@@ -130,7 +132,9 @@ Every component binds only to semantic tokens. Figma variants use the same prop 
 
 ## 4. Figma file structure
 
-Pages: `Cover` · `Foundations` (colour, type, spacing, radius, shadow swatches) · `Components` · `Screens`.
+File: https://www.figma.com/design/FFlbgdessRR1pHvP0MGpQh
+
+Pages: `Foundations` (a cover frame at the top, then colour, type, spacing, radius and shadow swatches) · `Components` · `Screens`. The Starter plan caps a file at 3 pages, so there is no separate Cover page.
 
 ## 5. Out of scope
 

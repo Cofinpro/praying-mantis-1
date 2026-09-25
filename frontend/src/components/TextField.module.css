@@ -1,0 +1,50 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.label {
+  font: var(--font-label);
+  color: var(--color-text-primary);
+}
+
+.input {
+  height: 40px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+  font: var(--font-body);
+  color: var(--color-text-primary);
+}
+
+.input:hover {
+  border-color: var(--color-border-strong);
+}
+
+/* Figma's focus state is a 2px orange border, drawn as an outline so the text doesn't shift */
+.input:focus-visible {
+  border-color: var(--color-border-focus);
+  outline: 1px solid var(--color-border-focus);
+  outline-offset: 0;
+}
+
+.invalid,
+.invalid:hover {
+  border-color: var(--color-border-danger);
+}
+
+.input:disabled {
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+}
+
+.hint {
+  font: var(--font-caption);
+  color: var(--color-text-muted);
+}
+
+.hintError {
+  color: var(--color-text-danger);
+}

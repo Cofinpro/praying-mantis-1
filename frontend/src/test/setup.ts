@@ -11,6 +11,8 @@ afterEach(() => {
   cleanup()
   // Drop any `server.use(...)` overrides a test added, so the next one starts from the shared handlers.
   server.resetHandlers()
+  // jsdom keeps localStorage for the whole file, so a login token would leak into the next test.
+  localStorage.clear()
 })
 
 afterAll(() => server.close())

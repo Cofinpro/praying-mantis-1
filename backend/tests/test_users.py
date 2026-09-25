@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 
-from app.models import Client, Enrollment, EnrollmentStatus, Level, Notification, Training, TrainingLevel, User
+from app.models import Client, Enrollment, EnrollmentStatus, Level, Notification, Seat, Training, TrainingLevel, User
 from app.security import hash_password, verify_password
 from app.seed import (
     SEED_ENROLLMENTS,
@@ -14,6 +14,7 @@ from app.seed import (
     seed,
     seed_enrollments,
     seed_notifications,
+    seed_seats,
     seed_trainings,
 )
 
@@ -200,3 +201,35 @@ class TestSeedNotifications:
         assert first == second == db.scalar(select(text("COUNT(*)")).select_from(Notification))
         sofia = db.scalar(select(User).where(User.email == "sofia@preyingmantis.test"))
         assert any(n.user_id == sofia.id and n.link == "/approvals" for n in db.scalars(select(Notification)))
+
+
+class TestSeedSeats:
+    def test_ten_seats_per_client_zone_in_a_5_by_2_grid(self, db):
+        seats = seed_seats(db)
+
+        assert len(seats) == 50
+        for zone in Client:
+            in_zone = [s for s in seats if s.zone == zone]
+            assert len(in_zone) == 10
+            assert {(s.pos_x, s.pos_y) for s in in_zone} == {(x, y) for x in range(5) for y in range(2)}
+
+    def test_labels_match_the_design(self, db):
+        labels = {s.label for s in seed_seats(db)}
+
+        assert {"DKB-01", "DKB-03", "DEKA-10", "UNION-10"} <= labels
+        seat = db.scalar(select(Seat).where(Seat.label == "DKB-07"))
+        assert (seat.zone, seat.pos_x, seat.pos_y) == (Client.DKB, 1, 1)
+
+    def test_running_twice_creates_no_duplicates(self, db):
+        seed_seats(db)
+        seed_seats(db)
+
+        assert db.scalar(select(text("COUNT(*)")).select_from(Seat)) == 50
+
+    def test_two_seats_cant_share_a_cell(self, db):
+        seed_seats(db)
+        db.add(Seat(label="DKB-99", zone=Client.DKB, pos_x=0, pos_y=0))
+
+        with pytest.raises(IntegrityError):
+            db.flush()
+        db.rollback()

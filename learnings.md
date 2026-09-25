@@ -204,6 +204,8 @@ We're both experienced developers (one from **Vue**, one from **Java**), so skip
 - **`db.get(Training, id, with_for_update=True)`** is `SELECT ... FOR UPDATE`: the row stays locked until the transaction commits, so a concurrent approval can't read an old `max_seats`. Like JPA's `@Lock(PESSIMISTIC_WRITE)`.
 - **CHECK constraints** (`CheckConstraint("max_seats > 0")`) are enforced since MySQL 8.0.16; older versions parsed and ignored them.
 - **Constraint naming convention** on `Base.metadata`: without it, MySQL invents names like `users_ibfk_1`, and a later migration that wants to drop that FK has to guess. With it, the name is predictable (`fk_users_team_lead_id_users`).
+- **Modelling physical things** (BE-6.1): store what's *true about the thing* (a seat's label, zone and grid cell), not how it's drawn (pixels, colours). Let constraints guard reality: UNIQUE (`zone`, `pos_x`, `pos_y`) means two desks can't occupy one spot, even through a bad seed or a manual `INSERT`.
+- **Seed data as code**: the 50 seats come from a 3-line function (`seat_layout()`) instead of 50 hand-written rows, so "10 per zone, 5 × 2, labels `DKB-01`…" is readable, testable, and changes in one place.
 - **Idempotent seed**: look rows up by a natural key (email), create the missing ones, update the rest, and link foreign keys in a second pass, so the order of the list doesn't matter. Running it twice gives the same result. It's like a Flyway repeatable migration, but in Python.
 
 ## Alembic (migrations)

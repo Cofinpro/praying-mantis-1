@@ -14,6 +14,17 @@ Template:
 
 ---
 
+## 2026-09-25 — Office layout: a 5 × 2 grid per client zone
+**Status:** Accepted (Q11 default: a fake layout until the company gives a real floor plan)
+**Context:** BE-6.1 needs every seat with a zone and a position. The design (Figma Seats screen) groups the map by client zone with about 10 seats each, and seats are 68 × 56 so `UNION-10` fits.
+**Decision:**
+- 5 zones (the `Client` enum), 10 seats each, laid out as **5 columns × 2 rows**.
+- `pos_x` / `pos_y` are grid cells **inside the zone** (not pixels, not a whole-floor grid), so FE draws each zone as its own CSS Grid and arranges the zones itself.
+- Labels are `<ZONE>-<nn>`, with the zone upper-cased (`DEKA-04`), numbered left to right, top row first.
+- The database guarantees the layout: UNIQUE `label`, UNIQUE (`zone`, `pos_x`, `pos_y`), and no negative positions.
+- The seed is code (`seat_layout()` in `app/seed.py`), idempotent by label.
+**Consequences:** A real floor plan later means changing `seat_layout()` (and possibly adding a floor column), not the API.
+
 ## 2026-09-25 — My enrollments (Profile): what goes in which section
 **Status:** Accepted
 **Context:** BE-5.1 implements `GET /api/me/enrollments` → `{upcoming, pending, completed}` of `TrainingSummary`, with Q10 answered by the default.

@@ -7,6 +7,7 @@ from app.database import Base
 from app.models.enrollment import Enrollment
 from app.models.enums import Client, EnrollmentStatus, Level, NotificationType
 from app.models.notification import Notification
+from app.models.seat import Seat
 from app.models.training import Training, TrainingLevel
 from app.models.user import User
 
@@ -18,6 +19,7 @@ __all__ = [
     "Level",
     "Notification",
     "NotificationType",
+    "Seat",
     "Training",
     "TrainingLevel",
     "User",

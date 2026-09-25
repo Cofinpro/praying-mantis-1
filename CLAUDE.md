@@ -97,6 +97,7 @@ What exists today:
     - `training.py`: `Training` and the `TrainingLevel` join table. `training.levels` reads/writes plain `Level`s through it.
     - `enrollment.py`: `Enrollment` (UNIQUE `training_id` + `user_id`), with `EnrollmentStatus` in `enums.py`
     - `notification.py`: `Notification` (type, message, link, read_at), with `NotificationType` in `enums.py`
+    - `seat.py`: `Seat` (label, zone, pos_x, pos_y), UNIQUE label and UNIQUE (zone, pos_x, pos_y)
     - `types.py`: `UtcDateTime`, the column type for every datetime the API exposes (stores UTC, returns aware UTC)
   - `app/schemas/`: Pydantic request/response models (the API contract)
   - `app/routers/`: one `APIRouter` per area. `health.py` has `/api/` and `/api/health/db`, `auth.py` has `/api/auth/login` and `/api/auth/me`, `users.py` has `/api/users` (admin only), `trainings.py` has `/api/trainings` (list, detail, create, `PATCH`, `/cancel`) and `GET /api/me/enrollments` (Profile), `enrollments.py` has `POST /api/trainings/{id}/enrollments`, `GET /api/approvals` and `POST /api/enrollments/{id}/approve` / `reject` / `withdraw`. `notifications.py` has `GET /api/notifications` and `POST /api/notifications/{id}/read` / `read-all`.
@@ -212,6 +213,16 @@ Trainings are matched by name, so re-running moves their dates relative to today
 - **Other outcomes**: Laura approved for SQLAlchemy in depth, Pedro **rejected** for React for Vue developers (so he can't request it again), Marta **withdrawn** from Intro to FastAPI (so she can request it again)
 - **Completed** (approved, past): Docker for developers (João, Marta, Pedro), Agile estimation (Sofia, Bruno). Laura was rejected for Agile estimation.
 - **Notifications** are rebuilt from these on every seed run: a request notification for each decider, and an approved/rejected one for each decided enrollment (older ones already read).
+
+**Seed seats (office layout):** one zone per client (`DKB`, `Deka`, `VV`, `DBIS`, `UNION`), each a **5 × 2 grid**, 50 seats in total. `pos_x` is the column (0–4) and `pos_y` the row (0–1) **inside the zone**. Labels are the zone in capitals plus a number, left to right, top row first:
+
+```
+        pos_x: 0        1        2        3        4
+pos_y 0     DKB-01   DKB-02   DKB-03   DKB-04   DKB-05
+pos_y 1     DKB-06   DKB-07   DKB-08   DKB-09   DKB-10
+```
+
+The same for `DEKA-01`…`DEKA-10`, `VV-…`, `DBIS-…` and `UNION-01`…`UNION-10`.
 
 **Trying the API with a login:** open http://localhost:8000/docs, call `POST /api/auth/login` with a seed login, copy the `access_token`, click **Authorize** and paste it. Every request from `/docs` then sends `Authorization: Bearer <token>`.
 

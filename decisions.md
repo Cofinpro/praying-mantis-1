@@ -14,6 +14,21 @@ Template:
 
 ---
 
+## 2026-09-25 — Notifications: events, recipients, and one transaction
+**Status:** Accepted
+**Context:** BE-4.1 implements the F4 contract (`GET /api/notifications`, `/{id}/read`, `/read-all`) and fills in the BE-2.3/BE-3.x hooks.
+**Decision:**
+- **Events → recipients:**
+  - request → the requester's team lead, or **every admin** if they have none (never yourself)
+  - approved or rejected → the requester (the rejection includes the comment)
+  - withdrawal of an **approved** enrollment → the decider(s). Withdrawing a pending request notifies nobody, because it just leaves the queue.
+  - training cancelled, or changed (only if a value actually changed) → everyone pending or approved. The change message lists what changed ("start time, end time").
+- `notify()` only adds rows, and the calling service commits once. A test makes `notify` fail and checks the approval wasn't saved.
+- Links point to FE routes: `/approvals` for requests, `/trainings/{id}` for everything else.
+- `unread_count` counts all unread, not just the returned page. Marking read is idempotent. Someone else's notification is a 404.
+- Seed notifications are rebuilt from the seed enrollments on every run (they're a log, not state).
+**Consequences:** FE polls `GET /api/notifications` every 30 s. Email for requests comes in BE-4.2.
+
 ## 2026-09-25 — Withdrawing, and one state machine for every status change
 **Status:** Accepted
 **Context:** BE-3.3 implements `POST /api/enrollments/{id}/withdraw`. Approve, reject and withdraw each change an enrollment's status.

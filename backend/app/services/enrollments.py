@@ -7,7 +7,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from app.errors import Conflict, Forbidden, NotFound
-from app.models import Enrollment, EnrollmentStatus, Training, User
+from app.models import Enrollment, EnrollmentStatus, NotificationType, Training, User
+from app.services import notifications
 
 
 # --- the status state machine ---
@@ -98,9 +99,15 @@ def request(db: Session, user: User, training_id: int) -> Enrollment:
         enrollment = Enrollment(training_id=training.id, user_id=user.id)
         db.add(enrollment)
 
+    notifications.notify(
+        db,
+        notifications.deciders_for(db, user),
+        NotificationType.ENROLLMENT_REQUESTED,
+        f"{user.name} requested a seat in {training.name}",
+        link="/approvals",
+    )
     try:
-        # TODO(BE-4.1): notify the user's team lead (or the admins, if they have none)
-        db.commit()
+        db.commit()  # the enrollment and its notification together
     except IntegrityError:
         # Two requests at the same moment: UNIQUE (training_id, user_id) lets one win
         db.rollback()
@@ -204,18 +211,31 @@ def approve(db: Session, decider: User, enrollment_id: int, comment: str | None 
         raise Conflict("training_full", "This training is full")
 
     _decide(enrollment, decider, EnrollmentStatus.APPROVED, comment)
-    # TODO(BE-4.1): notify the requester, in this same transaction
-    db.commit()
+    notifications.notify(
+        db,
+        [enrollment.user],
+        NotificationType.ENROLLMENT_APPROVED,
+        f"You're in: {decider.name} approved your seat in {training.name}",
+        link=notifications.training_link(training),
+    )
+    db.commit()  # the decision and its notification together
     db.refresh(enrollment)
     return enrollment
 
 
 def reject(db: Session, decider: User, enrollment_id: int, comment: str | None = None) -> Enrollment:
     """Rejects a pending request. The user can't request this training again (Q8)."""
-    enrollment, _ = _lock_for_decision(db, decider, enrollment_id, EnrollmentStatus.REJECTED)
+    enrollment, training = _lock_for_decision(db, decider, enrollment_id, EnrollmentStatus.REJECTED)
     _decide(enrollment, decider, EnrollmentStatus.REJECTED, comment)
-    # TODO(BE-4.1): notify the requester, in this same transaction
-    db.commit()
+    reason = f": {comment}" if comment else ""
+    notifications.notify(
+        db,
+        [enrollment.user],
+        NotificationType.ENROLLMENT_REJECTED,
+        f"{decider.name} rejected your request for {training.name}{reason}",
+        link=notifications.training_link(training),
+    )
+    db.commit()  # the decision and its notification together
     db.refresh(enrollment)
     return enrollment
 
@@ -238,8 +258,16 @@ def withdraw(db: Session, user: User, enrollment_id: int) -> Enrollment:
     if training.starts_at <= datetime.now(UTC):
         raise Conflict("training_started", "This training has already started")
 
+    was_approved = enrollment.status == EnrollmentStatus.APPROVED
     enrollment.status = EnrollmentStatus.WITHDRAWN
-    # TODO(BE-4.1): notify the team lead (or admins), in this same transaction
+    if was_approved:  # a pending request just disappears from the queue: no need to tell anyone
+        notifications.notify(
+            db,
+            notifications.deciders_for(db, user),
+            NotificationType.ENROLLMENT_WITHDRAWN,
+            f"{user.name} withdrew from {training.name}, so a seat is free again",
+            link=notifications.training_link(training),
+        )
     db.commit()
     db.refresh(enrollment)
     return enrollment

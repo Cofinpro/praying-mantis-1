@@ -95,11 +95,13 @@ What exists today:
     - `user.py`: `User`, with `team_lead` / `reports` (self-referencing) and the derived `is_team_lead`
     - `training.py`: `Training` and the `TrainingLevel` join table. `training.levels` reads/writes plain `Level`s through it.
     - `enrollment.py`: `Enrollment` (UNIQUE `training_id` + `user_id`), with `EnrollmentStatus` in `enums.py`
+    - `notification.py`: `Notification` (type, message, link, read_at), with `NotificationType` in `enums.py`
     - `types.py`: `UtcDateTime`, the column type for every datetime the API exposes (stores UTC, returns aware UTC)
   - `app/schemas/`: Pydantic request/response models (the API contract)
-  - `app/routers/`: one `APIRouter` per area. `health.py` has `/api/` and `/api/health/db`, `auth.py` has `/api/auth/login` and `/api/auth/me`, `users.py` has `/api/users` (admin only), `trainings.py` has `/api/trainings` (list, detail, create, `PATCH`, `/cancel`), `enrollments.py` has `POST /api/trainings/{id}/enrollments`, `GET /api/approvals` and `POST /api/enrollments/{id}/approve` / `reject` / `withdraw`.
+  - `app/routers/`: one `APIRouter` per area. `health.py` has `/api/` and `/api/health/db`, `auth.py` has `/api/auth/login` and `/api/auth/me`, `users.py` has `/api/users` (admin only), `trainings.py` has `/api/trainings` (list, detail, create, `PATCH`, `/cancel`), `enrollments.py` has `POST /api/trainings/{id}/enrollments`, `GET /api/approvals` and `POST /api/enrollments/{id}/approve` / `reject` / `withdraw`. `notifications.py` has `GET /api/notifications` and `POST /api/notifications/{id}/read` / `read-all`.
   - `app/dependencies.py`: shared dependencies. `CurrentUser` (requires a valid token, gives the `User`), `AdminUser` (also requires `is_admin`, else 403) and `DbSession`.
   - `app/services/`: business rules, no HTTP concerns. `enrollments.py` holds every enrollment rule (`request`, `approve`, `reject`, `withdraw`, `pending_for`, `can_decide`, `count_approved`). Status changes go through `check_move` (the state machine in `ALLOWED_MOVES`).
+    `notifications.py`: `notify(db, recipients, type, message, link)` adds rows **without committing**; the calling service commits once, so an action and its notifications are one transaction.
   - `app/errors.py`: `NotFound` (→ 404), `Forbidden` (→ 403), `Conflict` (→ 409 with a `code`) and `ValidationFailed` (→ 422 in Pydantic's format), raised by services and turned into responses by handlers registered in `main.py`
   - `app/security.py`: password hashing (`pwdlib`, Argon2id) and JWT create/decode (`PyJWT`, HS256)
   - `app/seed.py`: local seed users (`python -m app.seed`)
@@ -205,6 +207,7 @@ Trainings are matched by name, so re-running moves their dates relative to today
 - **Pending, one per decider**: Rita → Intro to FastAPI (Sofia decides), Miguel → React for Vue developers (Tiago), Hugo → Intro to FastAPI and Beatriz → React for Vue developers (Inês), Rafael → Intro to FastAPI (**admin**, he has no team lead)
 - **Other outcomes**: Laura approved for SQLAlchemy in depth, Pedro **rejected** for React for Vue developers (so he can't request it again), Marta **withdrawn** from Intro to FastAPI (so she can request it again)
 - **Completed** (approved, past): Docker for developers (João, Marta, Pedro), Agile estimation (Sofia, Bruno). Laura was rejected for Agile estimation.
+- **Notifications** are rebuilt from these on every seed run: a request notification for each decider, and an approved/rejected one for each decided enrollment (older ones already read).
 
 **Trying the API with a login:** open http://localhost:8000/docs, call `POST /api/auth/login` with a seed login, copy the `access_token`, click **Authorize** and paste it. Every request from `/docs` then sends `Authorization: Bearer <token>`.
 

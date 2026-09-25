@@ -104,8 +104,17 @@
   }
 }
 
-/* Phones: only the avatar is left of the user block (the name stays for screen readers) */
+/* Phones: only the avatar is left of the user block (the name stays for screen readers), and the
+   icons sit closer, so logo + bell + avatar + logout + menu fit in 375px */
 @media (max-width: 600px) {
+  .bar {
+    padding: 0 var(--space-3);
+  }
+
+  .right {
+    gap: var(--space-1);
+  }
+
   .userName {
     position: absolute;
     width: 1px;

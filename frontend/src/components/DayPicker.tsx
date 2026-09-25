@@ -1,8 +1,9 @@
-import { twoWeeks } from '../lib/days'
+import { formatDay, twoWeeks } from '../lib/days'
 import styles from './DayPicker.module.css'
 
 const weekday = new Intl.DateTimeFormat('en-GB', { weekday: 'short' })
-const dayMonth = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' })
+const dayOfMonth = new Intl.DateTimeFormat('en-GB', { day: 'numeric' })
+const month = new Intl.DateTimeFormat('en-GB', { month: 'short' })
 
 type DayPickerProps = {
   value: string
@@ -19,11 +20,15 @@ export function DayPicker({ value, onChange }: DayPickerProps) {
           type="button"
           className={`${styles.day} ${day === value ? styles.selected : ''}`}
           aria-pressed={day === value}
+          // The three lines would read as "Mon12Oct"; say it properly
+          aria-label={formatDay(day)}
           disabled={!bookable}
           onClick={() => onChange(day)}
         >
+          {/* Three short lines, so seven days fit side by side on a phone */}
           <span className={styles.weekday}>{weekday.format(date)}</span>
-          <span>{dayMonth.format(date)}</span>
+          <span className={styles.date}>{dayOfMonth.format(date)}</span>
+          <span className={styles.weekday}>{month.format(date)}</span>
         </button>
       ))}
     </div>

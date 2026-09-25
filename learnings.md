@@ -73,6 +73,7 @@ We're both experienced developers (one from **Vue**, one from **Java**), so skip
   - *Pessimistic* (what we chose): remove the row with `setQueryData` in `onSuccess`, only after the server said yes. It's a few hundred milliseconds slower, but an error shows on a row that never moved.
   - *Refetch only*: `invalidateQueries(['approvals'])` after each decision. It's simplest, but costs an extra request, and the row lingers until it returns.
 - **Keys in lists matter for state, not just speed**: each `ApprovalRow` keeps its own comment in `useState`. With `key={index}`, deciding row 1 would shift row 2's React state (its typed comment) onto the person who moved up. `key={enrollment.id}` keeps state with the right person. It's the same rule as `:key` in `v-for`, with a sharper consequence.
+- **Reusing patterns beats reusing code** (FE-3.3): Withdraw is `ConfirmDialog` + `useMutation` + prefix invalidation, the same three pieces as "Cancel training". There's no shared "confirm mutation" abstraction: two call sites aren't enough to know what it should look like.
 - **`useSearchParams`** keeps UI state in the URL (`/trainings?level=senior`), like `route.query` in vue-router. It survives a refresh and can be shared, and it goes straight into the query key.
 
 ## Dates and time zones (JavaScript)

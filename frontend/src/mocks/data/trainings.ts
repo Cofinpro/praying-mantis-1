@@ -68,7 +68,12 @@ export const mockTrainings: MockTraining[] = [
 ]
 
 export function toSummary({ enrollments, description: _description, ...training }: MockTraining, viewerId: number) {
-  return { ...training, my_enrollment_status: enrollments[viewerId] ?? null } satisfies TrainingSummary
+  const status = enrollments[viewerId] ?? null
+  return {
+    ...training,
+    my_enrollment_status: status,
+    my_enrollment_id: status ? training.id * 1000 + viewerId : null,
+  } satisfies TrainingSummary
 }
 
 // Same rules as backend/app/services/trainings.py (see decisions.md → "Listing trainings").
@@ -180,4 +185,19 @@ export function decideMockEnrollment(
   }
   training.enrollments[userId] = decision
   return { status: 200 as const, enrollment: mockEnrollment(training.id, userId, comment) }
+}
+
+// POST /api/enrollments/{id}/withdraw, with BE-3.3's rules.
+export function withdrawMockEnrollment(viewer: { id: number }, id: number) {
+  const training = mockTrainings.find((t) => t.id === Math.floor(id / 1000))
+  const userId = id % 1000
+  if (!training || !(userId in training.enrollments)) return { status: 404 as const, detail: 'Enrollment not found' }
+  if (userId !== viewer.id) return { status: 403 as const, detail: 'Not your enrollment' }
+  const refuse = (code: string, message: string) => ({ status: 409 as const, detail: { code, message } })
+  if (training.starts_at <= new Date().toISOString()) return refuse('training_started', 'This training has already started')
+  const status = training.enrollments[userId]
+  if (status !== 'pending' && status !== 'approved') return refuse('not_withdrawable', 'Only pending or approved requests can be withdrawn')
+  if (status === 'approved') training.seats_left += 1
+  training.enrollments[userId] = 'withdrawn'
+  return { status: 200 as const, enrollment: mockEnrollment(training.id, userId) }
 }

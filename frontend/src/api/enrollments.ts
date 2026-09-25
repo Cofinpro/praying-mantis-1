@@ -26,3 +26,6 @@ export const approveEnrollment = (id: number, comment: string | null) =>
 
 export const rejectEnrollment = (id: number, comment: string | null) =>
   api.post<EnrollmentRead>(`/api/enrollments/${id}/reject`, { comment })
+
+// Only my own, only while pending or approved, only before the training starts (409 training_started).
+export const withdrawEnrollment = (id: number) => api.post<EnrollmentRead>(`/api/enrollments/${id}/withdraw`)

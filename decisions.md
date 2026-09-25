@@ -46,6 +46,17 @@ Template:
 - Services raise `Conflict` / `ValidationFailed` (`app/errors.py`); handlers in `main.py` turn them into 409 / 422.
 **Consequences:** FE's edit form can send the whole form or only changes; both work. Notifying enrolled people on cancel is a `TODO(BE-4.1)` in `cancel_training`.
 
+## 2026-09-25 — Withdraw: needs `my_enrollment_id` on trainings (contract addition for BE-3.3)
+**Status:** Accepted (FE side); **BE-3.3 to add the field**
+**Context:** FE-3.3's Withdraw button calls `POST /api/enrollments/{id}/withdraw`, which needs the enrollment's id. The detail page only has the training (`GET /api/trainings/{id}`), and the F3 contract gives it `my_enrollment_status` but no id.
+**Decision:**
+- **Contract addition:** `TrainingSummary` and `TrainingRead` get `my_enrollment_id: int | null`, next to `my_enrollment_status`, and computed the same way (the viewer's enrollment for that training). BE-3.3 adds it.
+- Until then, FE types it by hand (`api/trainings.ts`) and hides Withdraw when the field is missing. So against today's backend the button simply doesn't appear, and nothing breaks.
+- Withdraw is shown while the status is pending or approved, the training isn't cancelled, and it hasn't started (`canWithdraw()`). It asks first in the same `ConfirmDialog` as "Cancel training", worded for a pending request ("Withdraw your request?") or a seat ("Give up your seat?"). A 409 shows inside the dialog. On success, every `['trainings']` query refetches, so the status and seats left update.
+- The mocks implement BE-3.3's rules and the new field.
+
+**Consequences:** When BE-3.3 lands with the field, run `pnpm gen:api` and drop the hand-written addition.
+
 ## 2026-09-25 — Approvals page: per-row mutations, comment as `{comment}`, built on mocks
 **Status:** Accepted
 **Context:** FE-3.2 builds `/approvals` before BE-3.2 exists, so it follows the F3 contract in `plan.md`.

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router'
 import { ApiError } from '../api/client'
 import { useAuth } from '../auth/useAuth'
@@ -9,7 +9,9 @@ import { TextField } from '../components/TextField'
 import styles from './LoginPage.module.css'
 
 // The seed password only exists locally and in the mocks, so the hint isn't shown against a real backend.
-const showSeedHint = import.meta.env.DEV || import.meta.env.VITE_USE_MOCKS === 'true'
+// The live demo on Render runs the same seed data, so the Pages build turns the hint on too.
+const showSeedHint =
+  import.meta.env.DEV || import.meta.env.VITE_USE_MOCKS === 'true' || import.meta.env.VITE_SHOW_SEED_HINT === 'true'
 
 // Outside the Layout route, so it has no TopBar (as in Figma).
 export function LoginPage() {
@@ -21,6 +23,18 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<{ title: string; hint: string } | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [slow, setSlow] = useState(false)
+
+  // Render's free plan sleeps after 15 idle minutes, and waking up takes about a minute.
+  // If the login takes more than a few seconds, say why instead of looking stuck.
+  useEffect(() => {
+    if (!submitting) return
+    const timer = setTimeout(() => setSlow(true), 4000)
+    return () => {
+      clearTimeout(timer)
+      setSlow(false)
+    }
+  }, [submitting])
 
   if (user) {
     return <Navigate to="/trainings" replace />
@@ -72,6 +86,11 @@ export function LoginPage() {
           <Button type="submit" disabled={submitting}>
             {submitting ? 'Logging in…' : 'Log in'}
           </Button>
+          {slow && (
+            <p className={styles.hint} role="status">
+              The server is waking up. This can take up to a minute.
+            </p>
+          )}
         </form>
         {showSeedHint && <p className={styles.hint}>Local seed users: password123</p>}
       </div>

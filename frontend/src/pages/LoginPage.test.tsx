@@ -1,6 +1,6 @@
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { http, HttpResponse } from 'msw'
+import { delay, http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { authToken } from '../api/client'
 import { server } from '../mocks/server'
@@ -40,6 +40,20 @@ describe('login', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent("Can't reach the server")
   })
+
+  it('explains a slow login (the backend waking up)', async () => {
+    server.use(
+      http.post('*/api/auth/login', async () => {
+        await delay(5000)
+        return HttpResponse.json({ detail: 'Invalid email or password' }, { status: 401 })
+      }),
+    )
+    renderRoute('/login')
+
+    await logIn('sofia@preyingmantis.test', 'password123')
+
+    expect(await screen.findByText('The server is waking up. This can take up to a minute.', {}, { timeout: 6000 })).toBeInTheDocument()
+  }, 10_000)
 
   it('redirects to /login when not logged in', async () => {
     const { router } = renderRoute('/seats')

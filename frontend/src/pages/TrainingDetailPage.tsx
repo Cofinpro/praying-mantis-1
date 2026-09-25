@@ -1,11 +1,15 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
 import { useParams } from 'react-router'
 import { ApiError } from '../api/client'
 import { queryKeys } from '../api/queryClient'
-import { getTraining, type TrainingSummary } from '../api/trainings'
+import { cancelTraining, getTraining, type TrainingRead, type TrainingSummary } from '../api/trainings'
+import { isAdmin } from '../auth/permissions'
+import { useAuth } from '../auth/useAuth'
 import { Alert } from '../components/Alert'
 import { BackLink } from '../components/BackLink'
-import { Button } from '../components/Button'
+import { Button, ButtonLink } from '../components/Button'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { LevelTag } from '../components/LevelTag'
 import { PageHeader } from '../components/PageHeader'
 import { StatusBadge } from '../components/StatusBadge'
@@ -23,6 +27,8 @@ export function TrainingDetailPage() {
   const id = Number(idParam)
   const validId = Number.isInteger(id) && id > 0
   const queryClient = useQueryClient()
+  const { user } = useAuth()
+  const [confirmingCancel, setConfirmingCancel] = useState(false)
 
   const training = useQuery<TrainingOrSummary>({
     queryKey: queryKeys.trainingDetail(id),
@@ -30,6 +36,16 @@ export function TrainingDetailPage() {
     enabled: validId,
     // Coming from the list, the card's data is already cached: show it at once while the description loads.
     placeholderData: () => findInCachedLists(queryClient.getQueriesData<TrainingSummary[]>({ queryKey: ['trainings', 'list'] }), id),
+  })
+
+  // useMutation for writes: it tracks pending/error for us, like useQuery does for reads.
+  const cancel = useMutation({
+    mutationFn: () => cancelTraining(id),
+    onSuccess: async (cancelled: TrainingRead) => {
+      queryClient.setQueryData(queryKeys.trainingDetail(id), cancelled)
+      await queryClient.invalidateQueries({ queryKey: queryKeys.trainings })
+      setConfirmingCancel(false)
+    },
   })
 
   if (!validId || (training.error instanceof ApiError && training.error.status === 404)) {
@@ -107,10 +123,40 @@ export function TrainingDetailPage() {
           <p className={styles.seats}>{seatsLabel(data)}</p>
           {isBadgeStatus(status) && <StatusBadge status={status} />}
           {!data.cancelled && <p className={styles.muted}>Requests to join open soon.</p>}
+          {user && isAdmin(user) && !data.cancelled && (
+            <div className={styles.adminActions}>
+              <ButtonLink to={`/admin/trainings/${data.id}/edit`} variant="ghost">
+                Edit training
+              </ButtonLink>
+              <Button variant="danger" onClick={() => setConfirmingCancel(true)}>
+                Cancel training
+              </Button>
+            </div>
+          )}
         </aside>
       </div>
+
+      <ConfirmDialog
+        open={confirmingCancel}
+        title={`Cancel “${data.name}”?`}
+        confirmLabel="Cancel training"
+        busy={cancel.isPending}
+        error={cancel.isError ? cancelErrorMessage(cancel.error) : null}
+        onConfirm={() => cancel.mutate()}
+        onClose={() => {
+          setConfirmingCancel(false)
+          cancel.reset()
+        }}
+      >
+        Everyone who asked to join will see it as cancelled. This can't be undone.
+      </ConfirmDialog>
     </>
   )
+}
+
+function cancelErrorMessage(error: Error) {
+  const detail = error instanceof ApiError ? (error.detail as { message?: unknown } | undefined) : undefined
+  return typeof detail?.message === 'string' ? detail.message : "Couldn't cancel the training. Try again."
 }
 
 // A training from any cached list (whatever the level filter), as a stand-in until the detail arrives.

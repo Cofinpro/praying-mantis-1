@@ -2,8 +2,9 @@ import type { ButtonHTMLAttributes } from 'react'
 import { Link, type LinkProps } from 'react-router'
 import styles from './Button.module.css'
 
-// Figma component "Button", size md. Primary is the main action; ghost is a quiet one like "Cancel".
-type Variant = 'primary' | 'ghost'
+// Figma component "Button", size md. Primary is the main action; ghost is a quiet one like "Cancel";
+// danger is for destructive actions like "Cancel training".
+type Variant = 'primary' | 'ghost' | 'danger'
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }
 

@@ -109,6 +109,7 @@ export interface paths {
         /**
          * Create Training
          * @description Admin only. Times must be sent in UTC (or with an offset); they come back in UTC.
+         *     An unknown trainer_id is a 422 like any other validation error.
          */
         post: operations["create_training_api_trainings_post"];
         delete?: never;
@@ -128,6 +129,32 @@ export interface paths {
         get: operations["get_training_api_trainings__training_id__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Training
+         * @description Admin only. Send only the fields to change; `null` clears the trainer fields.
+         *     409 if the training is cancelled, or max_seats would drop below the approved count.
+         */
+        patch: operations["update_training_api_trainings__training_id__patch"];
+        trace?: never;
+    };
+    "/api/trainings/{training_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel Training
+         * @description Admin only. A soft delete: the training stays, marked cancelled.
+         *     409 if it's already cancelled or has already started.
+         */
+        post: operations["cancel_training_api_trainings__training_id__cancel_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -298,6 +325,33 @@ export interface components {
             cancelled: boolean;
             /** My Enrollment Status */
             my_enrollment_status?: string | null;
+        };
+        /**
+         * TrainingUpdate
+         * @description PATCH /api/trainings/{id}: any subset of TrainingCreate's fields.
+         *
+         *     Only fields that were sent are applied (model_dump(exclude_unset=True)), so
+         *     "field missing" (keep it) and "field: null" (clear it) mean different things.
+         *     Rules that involve two fields (end after start, trainer XOR external) are
+         *     checked in the service against the training as it will be after the change.
+         */
+        TrainingUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Starts At */
+            starts_at?: string | null;
+            /** Ends At */
+            ends_at?: string | null;
+            /** Max Seats */
+            max_seats?: number | null;
+            /** Trainer Id */
+            trainer_id?: number | null;
+            /** External Trainer Name */
+            external_trainer_name?: string | null;
+            /** Levels */
+            levels?: components["schemas"]["Level"][] | null;
         };
         /**
          * UserSummary
@@ -603,6 +657,128 @@ export interface operations {
             };
             /** @description Not found, or not for your level */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_training_api_trainings__training_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                training_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrainingUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainingRead"];
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Training not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Business rule, e.g. {"detail": {"code": "training_cancelled", ...}} */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_training_api_trainings__training_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                training_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainingRead"];
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Training not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Business rule, e.g. {"detail": {"code": "training_cancelled", ...}} */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

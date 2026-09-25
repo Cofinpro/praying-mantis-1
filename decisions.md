@@ -46,6 +46,25 @@ Template:
 - Services raise `Conflict` / `ValidationFailed` (`app/errors.py`); handlers in `main.py` turn them into 409 / 422.
 **Consequences:** FE's edit form can send the whole form or only changes; both work. Notifying enrolled people on cancel is a `TODO(BE-4.1)` in `cancel_training`.
 
+## 2026-09-25 — Edit and cancel a training: one shared form, a native confirm dialog
+**Status:** Accepted
+**Context:** FE-2.4 adds `/admin/trainings/:id/edit` and cancelling, on BE-2.3's `PATCH /api/trainings/{id}` and `POST /api/trainings/{id}/cancel`.
+**Decision:**
+- **`components/TrainingForm.tsx`** is the FE-2.1 form, extracted and shared. `NewTrainingPage` and `EditTrainingPage` only set the heading, the labels and what submit does. 422s go onto fields; 409s show the backend's `message` in the alert.
+- **Edit sends only what changed** (`toTrainingUpdate(initial, form)`). The two trainer fields always travel together, as BE-2.3 requires. An unchanged start may be in the past, so an old training's typo can still be fixed.
+- **Edit and Cancel live in the detail page's "Your place" panel**, for admins and only while the training isn't cancelled. A cancelled training's edit URL shows "can't be edited".
+- **Cancel asks first** in a native `<dialog>` (`ConfirmDialog`): "Keep it" is focused first, and the danger button confirms. A 409 (`training_started`, `training_cancelled`) shows inside the dialog.
+- After a save or cancel, the response goes into the detail cache (`setQueryData`) and every training list is invalidated. "Cancelled" then shows everywhere: the card's badge and strikethrough, the detail banner and the panel badge.
+- New: a `danger` Button variant, and the `--color-bg-overlay` token for the dialog backdrop.
+
+**Consequences:** Any new field goes into `TrainingForm`, `trainingToForm()`, `toTrainingCreate()` and `toTrainingUpdate()`.
+
+## 2026-09-25 — All "Together" contracts agreed as written in plan.md
+**Status:** Accepted
+**Context:** The F2–F7 "Together" cards (SCRUM-26, 34, 41, 45, 48, 55) asked both devs to agree each feature's questions and API contract.
+**Decision:** Both devs accept the proposals in `plan.md` as they stand. Every 💡 answer (Q6–Q15) and every contract block (enrollments, approvals, notifications, profile, seats) is the agreed version. The Jira cards are marked done.
+**Consequences:** FE and BE build F3–F6 straight from `plan.md`. Any change to a contract is recorded here, as a new entry.
+
 ## 2026-09-25 — Training detail: cached card as placeholder, and an action panel for F3
 **Status:** Accepted
 **Context:** FE-2.3 builds `/trainings/:id` on `GET /api/trainings/{id}`.

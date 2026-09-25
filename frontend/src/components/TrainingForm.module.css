@@ -1,17 +1,3 @@
-/* Figma "04 New training": a 720px column, 24px between the heading, alert, card and buttons */
-.page {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-  max-width: 720px;
-  margin: 0 auto;
-}
-
-/* The page's own gap spaces the PageHeader, so drop its default bottom margin */
-.page :global(header) {
-  margin-bottom: 0;
-}
-
 .card {
   display: flex;
   flex-direction: column;

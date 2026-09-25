@@ -1,5 +1,5 @@
-import type { Level, TrainingCreate } from '../api/trainings'
-import { localInputToUtcIso } from '../lib/datetime'
+import type { Level, TrainingCreate, TrainingRead, TrainingUpdate } from '../api/trainings'
+import { localInputToUtcIso, utcIsoToLocalInput } from '../lib/datetime'
 
 // Everything the create form edits. Inputs hold strings (a number input's value is a string too), so the
 // form state stays close to the DOM and is converted once, in toTrainingCreate().
@@ -30,9 +30,26 @@ export const emptyTrainingForm: TrainingForm = {
   max_seats: '',
 }
 
+// Pre-fills the edit form from the API's training (UTC → local time for the inputs).
+export function trainingToForm(training: TrainingRead): TrainingForm {
+  return {
+    name: training.name,
+    description: training.description,
+    starts_at: utcIsoToLocalInput(training.starts_at),
+    ends_at: utcIsoToLocalInput(training.ends_at),
+    trainer: training.trainer
+      ? { kind: 'user', id: training.trainer.id, name: training.trainer.name }
+      : { kind: 'external' },
+    external_trainer_name: training.external_trainer_name ?? '',
+    levels: training.levels,
+    max_seats: String(training.max_seats),
+  }
+}
+
 // The rules agreed for F2 (plan.md), mirrored from TrainingCreate in backend/app/schemas/training.py.
 // They give fast feedback only: the backend checks them again and has the final say.
-export function validateTrainingForm(form: TrainingForm, now = new Date()): FieldErrors {
+// When editing, pass the `initial` form: an unchanged start may be in the past (fixing a typo afterwards).
+export function validateTrainingForm(form: TrainingForm, now = new Date(), initial?: TrainingForm): FieldErrors {
   const errors: FieldErrors = {}
 
   const name = form.name.trim()
@@ -44,7 +61,7 @@ export function validateTrainingForm(form: TrainingForm, now = new Date()): Fiel
   const startsAt = form.starts_at ? new Date(form.starts_at) : null
   const endsAt = form.ends_at ? new Date(form.ends_at) : null
   if (!startsAt) errors.starts_at = 'Choose when it starts'
-  else if (startsAt <= now) errors.starts_at = 'Start must be in the future'
+  else if (startsAt <= now && form.starts_at !== initial?.starts_at) errors.starts_at = 'Start must be in the future'
   if (!endsAt) errors.ends_at = 'Choose when it ends'
   else if (startsAt && endsAt <= startsAt) errors.ends_at = 'End must be after start'
 
@@ -73,6 +90,26 @@ export function toTrainingCreate(form: TrainingForm): TrainingCreate {
     external_trainer_name: external && form.external_trainer_name.trim() ? form.external_trainer_name.trim() : null,
     levels: form.levels,
   }
+}
+
+// PATCH body with only what changed, so an edit never overwrites a field someone else just changed.
+// The trainer is one choice spread over two API fields, so both are sent whenever either changes.
+export function toTrainingUpdate(initial: TrainingForm, form: TrainingForm): TrainingUpdate {
+  const before = toTrainingCreate(initial)
+  const after = toTrainingCreate(form)
+  const changes: TrainingUpdate = {}
+
+  if (after.name !== before.name) changes.name = after.name
+  if (after.description !== before.description) changes.description = after.description
+  if (after.starts_at !== before.starts_at) changes.starts_at = after.starts_at
+  if (after.ends_at !== before.ends_at) changes.ends_at = after.ends_at
+  if (after.max_seats !== before.max_seats) changes.max_seats = after.max_seats
+  if (after.levels.join() !== before.levels.join()) changes.levels = after.levels
+  if (after.trainer_id !== before.trainer_id || after.external_trainer_name !== before.external_trainer_name) {
+    changes.trainer_id = after.trainer_id
+    changes.external_trainer_name = after.external_trainer_name
+  }
+  return changes
 }
 
 type ValidationError = { loc: (string | number)[]; msg: string }

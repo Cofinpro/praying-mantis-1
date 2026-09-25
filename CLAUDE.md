@@ -85,7 +85,7 @@ Status flow: `pending → approved | rejected`; `pending | approved → withdraw
 ## Layout
 
 What exists today:
-- `docker-compose.yml`: local MySQL 8 with a named volume (`mysql-data`) and a health check
+- `docker-compose.yml`: local MySQL 8 with a named volume (`mysql-data`), a health check, and an init script that creates the test database `praying_mantis_test`
 - `backend/`: FastAPI + SQLAlchemy on MySQL (via PyMySQL)
   - `app/main.py`: creates the app, adds CORS, and includes every router under `/api`
   - `app/config.py`: `Settings` (pydantic-settings), read from env vars / `backend/.env`
@@ -95,7 +95,7 @@ What exists today:
   - `app/routers/`: one `APIRouter` per area. `health.py` has `/api/` and `/api/health/db`.
   - `app/services/`: business rules, no HTTP concerns
   - `alembic/`: migrations (`alembic/versions/`). `env.py` reads the DB URL from `app.config`.
-  - `tests/`: pytest (set up in BE-0.3)
+  - `tests/`: pytest. `conftest.py` provides the `db` and `client` fixtures (see Testing below).
   - `.env.example`: DB settings and `CORS_ORIGINS`. Copy it to `backend/.env` (git-ignored).
 - `frontend/`: React 19 + TypeScript on Vite, managed with **pnpm**
   - `src/main.tsx`: mounts `<RouterProvider>` (from `react-router/dom`) and loads Inter and the global CSS
@@ -107,6 +107,7 @@ What exists today:
   - `public/404.html` + the inline script in `index.html`: deep links on GitHub Pages (see `decisions.md`)
   - `src/pages/TrainingsPage.tsx` still calls the backend at `VITE_API_URL` directly, until FE-0.2
 - `.github/workflows/deploy-pages.yml`: builds `frontend/` and deploys it to GitHub Pages on every push to `main`
+- `.github/workflows/backend-tests.yml`: runs `pytest` and `alembic check` against a MySQL service container on every PR that touches `backend/`
 
 Planned next (FE-0.2): `frontend/src/{api/, mocks/}`
 
@@ -130,7 +131,7 @@ Port 3306 must be free. If MySQL is also installed locally (e.g. Homebrew), stop
 ```sh
 cd backend
 python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt   # app + test dependencies
 cp .env.example .env   # already matches docker-compose.yml
 alembic upgrade head      # apply all migrations to the database
 fastapi dev app/main.py   # http://localhost:8000, API docs at /docs
@@ -146,6 +147,18 @@ alembic upgrade head      # apply
 alembic downgrade -1      # undo the last one
 alembic check             # fails if the models and the migrations are out of sync
 ```
+
+Testing (run from `backend/`, with the Docker database running):
+
+```sh
+pytest                    # all tests
+pytest tests/test_health.py -k root   # one file / tests matching a name
+pytest -x                 # stop at the first failure
+```
+
+- Tests use a separate database, `<DB_NAME>_test` (`praying_mantis_test`). The session fixture drops and recreates it, then runs `alembic upgrade head`, so the migrations are tested too.
+- Each test runs inside a transaction that is rolled back, so every test starts empty. Use the `client` fixture for API calls and `db` for direct DB access in the same transaction.
+- The test database is created by `docker-compose.yml` only when the volume is **new**. With an older volume, either reset it (`docker compose down -v && docker compose up -d`) or run once: `docker exec -i praying-mantis-mysql mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS praying_mantis_test; GRANT ALL ON praying_mantis_test.* TO 'app'@'%';"`
 Allowed frontend origins are set by `CORS_ORIGINS` (comma-separated).
 
 ### Frontend
@@ -178,7 +191,7 @@ Once MSW is in place (FE-0.2), the Pages site can run on mocks until a backend e
   - Pydantic schemas (`schemas/`) are the API contract; SQLAlchemy models (`models/`) are the database shape
   - Every schema change needs an Alembic migration (no `create_all`)
   - Enums are stored as VARCHAR (`Enum(..., native_enum=False)`)
-  - Tests use pytest against a real MySQL test database
+  - Tests use pytest against a real MySQL test database (never SQLite). Every PR needs green CI.
 - **Frontend:**
   - React Router (v8, data mode with `createBrowserRouter`) for pages, TanStack Query for server data, CSS Modules for styles
   - `BrowserRouter`-style URLs with `basename` = Vite's `BASE_URL`. Deep links on GitHub Pages work through `public/404.html`

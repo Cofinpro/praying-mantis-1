@@ -29,6 +29,20 @@ Template:
 
 ---
 
+## 2026-09-25 — Test isolation: one rolled-back transaction per test
+**Status:** Accepted
+**Context:** BE-0.3 asks whether each test should start clean through a transaction rollback or by truncating tables.
+**Decision:**
+- Each test runs in an outer transaction that is rolled back afterwards. The session uses `join_transaction_mode="create_savepoint"`, so `session.commit()` in app code turns into a SAVEPOINT and doesn't escape.
+- The schema is built once per test run with `alembic upgrade head` on a freshly recreated `<DB_NAME>_test` database, so the migrations are tested too.
+- No SQLite: it behaves differently from MySQL (enums, constraints, locking, `SELECT … FOR UPDATE`).
+**Consequences:**
+- Fast (no DDL or deletes between tests) and needs no list of tables to truncate.
+- Only works when everything in a test goes through the **same connection**. Tests that need real concurrency (two sessions racing, e.g. the approval row lock in BE-3.2) must use their own connections and clean up by truncating. Add a separate fixture for those when we get there.
+- MySQL DDL commits implicitly, so tests must not create or alter tables.
+
+---
+
 ## 2026-09-25 — Visual design: PreyingMantis with Cofinpro theming and shared design tokens
 **Status:** Accepted
 **Context:** Nothing visual existed yet (the frontend used `system-ui`), and FE-0.1 needs a look and feel. We also want design and code to share one vocabulary.

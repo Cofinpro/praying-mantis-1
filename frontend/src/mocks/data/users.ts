@@ -58,3 +58,58 @@ export function canDecideFor(decider: { id: number; email: string; is_admin: boo
   if (!user) return false
   return user.teamLeadEmail === decider.email || (user.teamLeadEmail === null && decider.is_admin)
 }
+
+// --- admin user management (and passwords) while the mocks run ---
+
+// Passwords that differ from SEED_PASSWORD: set by an admin, or changed by the user
+const passwords = new Map<number, string>()
+
+export const mockPasswordMatches = (user: SeedUser, password: string) =>
+  (passwords.get(user.id) ?? SEED_PASSWORD) === password
+
+export const setMockPassword = (userId: number, password: string) => passwords.set(userId, password)
+
+export function listMockUsers(search = '') {
+  const term = search.trim().toLowerCase()
+  return seedUsers
+    .filter((u) => !term || u.name.toLowerCase().includes(term) || u.email.includes(term))
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(toCurrentUser)
+}
+
+type UserInput = Partial<Omit<SeedUser, 'id' | 'teamLeadEmail'>> & { team_lead_id?: number | null; password?: string }
+
+function leadEmail(teamLeadId: number | null | undefined) {
+  return teamLeadId == null ? null : (findSeedUserById(teamLeadId)?.email ?? null)
+}
+
+// POST /api/admin/users: 409 email_taken like the backend
+export function createMockUser({ team_lead_id, password, ...fields }: UserInput) {
+  const email = String(fields.email).toLowerCase()
+  if (findSeedUserByEmail(email)) return { status: 409 as const }
+  const user: SeedUser = {
+    id: Math.max(...seedUsers.map((u) => u.id)) + 1,
+    name: String(fields.name),
+    email,
+    client: fields.client ?? 'DKB',
+    level: fields.level ?? 'junior',
+    is_admin: fields.is_admin ?? false,
+    teamLeadEmail: leadEmail(team_lead_id),
+  }
+  seedUsers.push(user)
+  if (password) passwords.set(user.id, password)
+  return { status: 201 as const, user: toCurrentUser(user) }
+}
+
+// PATCH /api/admin/users/{id}
+export function updateMockUser(id: number, { team_lead_id, ...fields }: UserInput, actingAdminId: number) {
+  const user = findSeedUserById(id)
+  if (!user) return { status: 404 as const }
+  if (fields.is_admin === false && id === actingAdminId) return { status: 409 as const, code: 'cannot_demote_self' }
+  if (fields.email && fields.email.toLowerCase() !== user.email && findSeedUserByEmail(fields.email)) {
+    return { status: 409 as const, code: 'email_taken' }
+  }
+  Object.assign(user, fields, fields.email ? { email: fields.email.toLowerCase() } : {})
+  if (team_lead_id !== undefined) user.teamLeadEmail = leadEmail(team_lead_id)
+  return { status: 200 as const, user: toCurrentUser(user) }
+}

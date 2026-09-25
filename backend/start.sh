@@ -9,9 +9,10 @@ alembic upgrade head
 
 # Demo environments have no shell to run the seed by hand: SEED_ON_START=true
 # runs it on every start (it's idempotent, see app/seed.py). Never in real production.
+# --keep-existing: users that already exist keep their changes (passwords, levels, leads).
 if [ "${SEED_ON_START:-false}" = "true" ]; then
     echo "Seeding demo data..."
-    python -m app.seed
+    python -m app.seed --keep-existing
 fi
 
 # exec: the server replaces this shell, so it gets the host's stop signal directly

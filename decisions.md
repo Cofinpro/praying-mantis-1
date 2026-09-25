@@ -155,6 +155,30 @@ Template:
 - Services raise `Conflict` / `ValidationFailed` (`app/errors.py`); handlers in `main.py` turn them into 409 / 422.
 **Consequences:** FE's edit form can send the whole form or only changes; both work. Notifying enrolled people on cancel is a `TODO(BE-4.1)` in `cancel_training`.
 
+## 2026-09-25 — Admin user management and personal passwords
+**Status:** Accepted
+**Context:** Users only existed in the seed, and everyone shared `password123`, which the live login page shows. Admins need to add people, and everyone needs their own password.
+**Decision:**
+- **Admin API** (`/api/admin/users`, admins only):
+  - `GET` (with `?search=`) and `GET /{id}` return `UserAdminRead`
+  - `POST` creates a user (`EmailStr`, stored lower-case; password of 8+ characters)
+  - `PATCH /{id}` changes only the fields sent; `team_lead_id: null` removes the lead
+  - `POST /{id}/password` resets someone's password
+- **Rules**:
+  - 409 `email_taken`
+  - 422 `team_lead_not_found`
+  - 422 `team_lead_cycle`: the new lead can't be the user, or anyone who reports to them, directly or not
+  - 409 `cannot_demote_self`: an admin can't remove their own admin rights, so the last admin can't lock everyone out
+- **My password**: `POST /api/me/password {current_password, new_password}`. A wrong current password is a 422 on that field, and so is reusing the same one (`same_password`). Existing tokens stay valid until they expire (8 h); there's no token revocation.
+- **The demo keeps its users**: `start.sh` runs `python -m app.seed --keep-existing`, which only creates missing users. A Render restart no longer resets passwords, levels or leads changed in the app. A plain `python -m app.seed` still resets everything locally.
+- **Frontend**:
+  - `/admin/users` (a searchable list with photo, client, level, lead and roles) and a "Users" nav item for admins
+  - `/admin/users/new` and `/admin/users/:id/edit`, built on one `UserForm` like `TrainingForm`; edit sends only the changed fields and has a "Reset password" section
+  - "Change password" on the Profile page (current / new / again)
+- Users can't be deleted yet: deactivating would need an `active` flag everywhere a user can act.
+
+**Consequences:** The seed password still works for seed users who haven't changed theirs. Everyone should change theirs on the live demo.
+
 ## 2026-09-25 — Mobile cleanup: notifications panel, seat tooltips on tap, tap targets
 **Status:** Accepted
 **Context:** On phones, the notifications panel slid off the left edge of the screen, and a few other things were awkward.

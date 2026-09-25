@@ -9,6 +9,7 @@ Every seed user's password is SEED_PASSWORD.
 Local development only: never run this against a real environment.
 """
 
+import sys
 from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import delete, select
@@ -173,8 +174,12 @@ def rename_old_domains(db: Session) -> None:
     db.flush()
 
 
-def seed(db: Session) -> list[User]:
-    """Creates or updates every seed user, then commits."""
+def seed(db: Session, keep_existing: bool = False) -> list[User]:
+    """Creates or updates every seed user, then commits.
+
+    keep_existing=True (the demo's start-up seed): users that already exist are left exactly as they are.
+    Admins may have changed them, or people changed their own password, and a restart mustn't undo that.
+    """
     # Hash once: argon2 is slow on purpose, and every seed user shares the password
     password_hash = hash_password(SEED_PASSWORD)
 
@@ -188,8 +193,13 @@ def seed(db: Session) -> list[User]:
 
     # Pass 1: create or update every user, without team leads
     users: dict[str, User] = {}
+    kept: set[str] = set()
     for name, local_part, client, level, is_admin, _ in SEED_USERS:
         email = email_for(local_part)
+        if keep_existing and email in existing:
+            users[local_part] = existing[email]
+            kept.add(local_part)
+            continue
         user = existing.get(email) or User(email=email)
         user.name = name
         user.password_hash = password_hash
@@ -201,7 +211,8 @@ def seed(db: Session) -> list[User]:
 
     # Pass 2: link team leads (they all exist now, even on the first run)
     for _, local_part, _, _, _, lead in SEED_USERS:
-        users[local_part].team_lead = users[lead] if lead else None
+        if local_part not in kept:
+            users[local_part].team_lead = users[lead] if lead else None
 
     db.commit()
     return list(users.values())
@@ -362,8 +373,10 @@ def seed_notifications(db: Session) -> list[Notification]:
 
 
 def main() -> None:
+    # --keep-existing: don't overwrite users who already exist (their password, level, lead…)
+    keep_existing = "--keep-existing" in sys.argv
     with SessionLocal() as db:
-        users = seed(db)
+        users = seed(db, keep_existing=keep_existing)
         print(f"Seeded {len(users)} users. Every password is '{SEED_PASSWORD}'.")
         for user in users:
             lead = user.team_lead.name if user.team_lead else "-"

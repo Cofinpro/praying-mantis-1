@@ -128,6 +128,21 @@ class TestSeed:
         assert verify_password(SEED_PASSWORD, ines.password_hash)
 
 
+    def test_keep_existing_leaves_changed_users_alone(self, db):
+        from app.seed import email_for
+
+        seed(db)
+        sofia = db.scalar(select(User).where(User.email == email_for("sofia")))
+        sofia.level = Level.SENIOR
+        sofia.password_hash = hash_password("sofias-own-password")
+        db.flush()
+
+        seed(db, keep_existing=True)
+
+        db.refresh(sofia)
+        assert sofia.level == Level.SENIOR
+        assert verify_password("sofias-own-password", sofia.password_hash)
+
     def test_renames_users_from_the_old_domain_instead_of_duplicating_them(self, db):
         old = User(
             name="Sofia Martins",

@@ -117,7 +117,7 @@ What exists today:
 - `frontend/`: React 19 + TypeScript on Vite, managed with **pnpm**
   - `src/main.tsx`: mounts `<RouterProvider>` (from `react-router/dom`) and loads Inter and the global CSS
   - `src/router.tsx`: the route table. `/login` stands alone; every other page is a child of `Layout`
-  - `src/components/`: `Layout` (TopBar + `<Outlet />`), `TopBar` (with the logout button), `NavItem`, `Logo`, `Avatar`, `NotificationBell` (polls every 30 s, dropdown with mark-as-read), `PageHeader`, `AvatarEditor` (Profile: add/change/remove photo), `JoinButton` + `WithdrawButton` (detail page), `ApprovalRow` (approvals page), `TrainingForm` (the create/edit training form, shared by `NewTrainingPage` and `EditTrainingPage`), `ConfirmDialog` (native `<dialog>`, `confirmVariant` danger or primary), and the form pieces `TextField` / `TextArea`, `CheckboxGroup`, `TrainerPicker` (searchable combobox, with "External"), `Button` / `ButtonLink` (`primary`, `secondary`, `ghost` or `danger`), `Alert` (error), `BackLink`, `SelectField`, `TrainingCard`, `LevelTag`, `StatusBadge`, and for seats `DayPicker`, `SeatMap` + `SeatLegend`, `Seat`, `ReserveSeatDialog` and `MyReservations`. `PageHeader` takes `actions` for page buttons on the right. Each has a `.module.css`
+  - `src/components/`: `Layout` (TopBar + `<Outlet />`), `TopBar` (with the logout button), `NavItem`, `Logo`, `Avatar`, `NotificationBell` (polls every 30 s, dropdown with mark-as-read), `PageHeader`, `AvatarEditor` (Profile: add/change/remove photo), `ChangePassword` (Profile), `UserForm` (admin create/edit user), `JoinButton` + `WithdrawButton` (detail page), `ApprovalRow` (approvals page), `TrainingForm` (the create/edit training form, shared by `NewTrainingPage` and `EditTrainingPage`), `ConfirmDialog` (native `<dialog>`, `confirmVariant` danger or primary), and the form pieces `TextField` / `TextArea`, `CheckboxGroup`, `TrainerPicker` (searchable combobox, with "External"), `Button` / `ButtonLink` (`primary`, `secondary`, `ghost` or `danger`), `Alert` (error), `BackLink`, `SelectField`, `TrainingCard`, `LevelTag`, `StatusBadge`, and for seats `DayPicker`, `SeatMap` + `SeatLegend`, `Seat`, `ReserveSeatDialog` and `MyReservations`. `PageHeader` takes `actions` for page buttons on the right. Each has a `.module.css`
   - `src/auth/`: `AuthProvider` (the user from `/me`, `login()`, `logout()`), `useAuth()`, and `<RequireAuth>`, which wraps every route except `/login`
     - `permissions.ts`: `isAdmin`, `canApprove` (team lead or admin). Used by nav links (`visibleTo`), buttons and `<RequirePermission allow={...}>`, which shows `NotAllowedPage` in place of the page. Everything under `/admin` is guarded by `isAdmin`
   - `src/pages/`: one component per route (placeholders until their stories). `TrainingsPage` (cards + admin level filter) and `TrainingDetailPage` (details + the "Your place" action panel F3 fills in) read data with `useQuery`
@@ -194,7 +194,9 @@ fastapi dev app/main.py   # http://localhost:8000, API docs at /docs
 | `bernardo.santos@cofinpro.pt` | DBIS | senior_architect | **Admin**, no team lead |
 | `diogo.santos@cofinpro.pt` | DBIS | senior_architect | **Admin**, no team lead |
 
-Re-running the seed resets these users to the values above (matched by email) and never duplicates them.
+Re-running the seed resets these users to the values above (matched by email) and never duplicates them. `python -m app.seed --keep-existing` (what Render runs on every start) only creates missing users, so passwords and edits made in the app survive restarts.
+
+Admins manage users at `/admin/users` (create, edit, set team lead, make admin, reset password). Everyone can change their own password on the Profile page.
 
 **Seed trainings** (created by the admin, dates relative to the day you run the seed, 09:00 UTC):
 

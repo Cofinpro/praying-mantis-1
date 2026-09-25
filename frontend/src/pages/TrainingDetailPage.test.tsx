@@ -18,6 +18,7 @@ const training: TrainingRead = {
   external_trainer_name: null,
   max_seats: 12,
   seats_left: 4,
+  rating_count: 0,
   cancelled: false,
   my_enrollment_status: 'approved',
 }

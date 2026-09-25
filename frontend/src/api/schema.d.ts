@@ -161,6 +161,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/trainings/{training_id}/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Training Feedback
+         * @description The average and count for everyone, my own rating, and (admins and the trainer only) all comments.
+         */
+        get: operations["training_feedback_api_trainings__training_id__feedback_get"];
+        /**
+         * Rate Training
+         * @description Rate (1-5) and optionally comment on a training I completed. Sending it again edits it.
+         */
+        put: operations["rate_training_api_trainings__training_id__feedback_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/me/enrollments": {
         parameters: {
             query?: never;
@@ -622,6 +646,76 @@ export interface components {
          * @enum {string}
          */
         EnrollmentStatus: "pending" | "approved" | "rejected" | "withdrawn";
+        /** FeedbackAuthor */
+        FeedbackAuthor: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Avatar Url */
+            avatar_url: string | null;
+        };
+        /** FeedbackComment */
+        FeedbackComment: {
+            /** Rating */
+            rating: number;
+            /** Comment */
+            comment: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            user: components["schemas"]["FeedbackAuthor"];
+        };
+        /** FeedbackRead */
+        FeedbackRead: {
+            /** Rating */
+            rating: number;
+            /** Comment */
+            comment: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * FeedbackSummary
+         * @description GET /api/trainings/{id}/feedback. Everyone who can see the training sees the average.
+         *     The individual comments (with names) only go to admins and the training's trainer.
+         */
+        FeedbackSummary: {
+            /** Average Rating */
+            average_rating: number | null;
+            /** Rating Count */
+            rating_count: number;
+            mine: components["schemas"]["FeedbackRead"] | null;
+            /** Can Rate */
+            can_rate: boolean;
+            /** Comments */
+            comments: components["schemas"]["FeedbackComment"][] | null;
+        };
+        /**
+         * FeedbackWrite
+         * @description PUT /api/trainings/{id}/feedback: rate (1-5) and optionally comment. Again = edit.
+         */
+        FeedbackWrite: {
+            /** Rating */
+            rating: number;
+            /** Comment */
+            comment?: string | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -857,6 +951,15 @@ export interface components {
             my_enrollment_status?: string | null;
             /** My Enrollment Id */
             my_enrollment_id?: number | null;
+            /** Average Rating */
+            average_rating?: number | null;
+            /**
+             * Rating Count
+             * @default 0
+             */
+            rating_count: number;
+            /** My Rating */
+            my_rating?: number | null;
             /** Description */
             description: string;
         };
@@ -894,6 +997,15 @@ export interface components {
             my_enrollment_status?: string | null;
             /** My Enrollment Id */
             my_enrollment_id?: number | null;
+            /** Average Rating */
+            average_rating?: number | null;
+            /**
+             * Rating Count
+             * @default 0
+             */
+            rating_count: number;
+            /** My Rating */
+            my_rating?: number | null;
         };
         /**
          * TrainingUpdate
@@ -1408,6 +1520,107 @@ export interface operations {
                 content?: never;
             };
             /** @description Business rule, e.g. {"detail": {"code": "training_cancelled", ...}} */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    training_feedback_api_trainings__training_id__feedback_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                training_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedbackSummary"];
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Training not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rate_training_api_trainings__training_id__feedback_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                training_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeedbackWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedbackRead"];
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Training not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description not_completed */
             409: {
                 headers: {
                     [name: string]: unknown;

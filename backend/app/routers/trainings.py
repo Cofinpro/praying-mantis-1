@@ -5,12 +5,16 @@ from fastapi import APIRouter, HTTPException, Query, status
 from app.dependencies import AdminUser, CurrentUser, DbSession
 from app.models import Level
 from app.schemas.training import (
+    FeedbackRead,
+    FeedbackSummary,
+    FeedbackWrite,
     MyEnrollments,
     TrainingCreate,
     TrainingRead,
     TrainingSummary,
     TrainingUpdate,
 )
+from app.services import feedback as feedback_service
 from app.services import trainings as service
 
 router = APIRouter(prefix="/trainings", tags=["trainings"])
@@ -41,6 +45,10 @@ def training_fields(row: service.TrainingRow) -> dict:
         "cancelled": training.cancelled,
         "my_enrollment_status": row.my_enrollment_status,
         "my_enrollment_id": row.my_enrollment_id,
+        # MySQL's AVG gives a Decimal: one decimal place is plenty for "★ 4.3"
+        "average_rating": round(float(row.average_rating), 1) if row.average_rating is not None else None,
+        "rating_count": row.rating_count,
+        "my_rating": row.my_rating,
     }
 
 
@@ -98,6 +106,21 @@ def cancel_training(training_id: int, db: DbSession, admin: AdminUser) -> Traini
     if row is None:
         raise _not_found()
     return TrainingRead.model_validate(training_fields(row))
+
+
+@router.put(
+    "/{training_id}/feedback",
+    responses=UNAUTHORIZED | {404: {"description": "Training not found"}, 409: {"description": "not_completed"}},
+)
+def rate_training(training_id: int, body: FeedbackWrite, db: DbSession, user: CurrentUser) -> FeedbackRead:
+    """Rate (1-5) and optionally comment on a training I completed. Sending it again edits it."""
+    return FeedbackRead.model_validate(feedback_service.submit(db, user, training_id, body))
+
+
+@router.get("/{training_id}/feedback", responses=UNAUTHORIZED | {404: {"description": "Training not found"}})
+def training_feedback(training_id: int, db: DbSession, user: CurrentUser) -> FeedbackSummary:
+    """The average and count for everyone, my own rating, and (admins and the trainer only) all comments."""
+    return FeedbackSummary.model_validate(feedback_service.summary(db, user, training_id))
 
 
 # Mounted without the /trainings prefix: GET /api/me/enrollments

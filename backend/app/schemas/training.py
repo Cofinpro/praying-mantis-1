@@ -133,6 +133,10 @@ class TrainingSummary(BaseModel):
     # The viewer's own enrollment in this training, if they have one (any status)
     my_enrollment_status: str | None = None
     my_enrollment_id: int | None = None
+    # Feedback from people who completed it: average of 1-5 (null until someone rates), how many, and mine
+    average_rating: float | None = None
+    rating_count: int = 0
+    my_rating: int | None = None
 
     @field_validator("levels")
     @classmethod
@@ -150,3 +154,47 @@ class MyEnrollments(BaseModel):
     upcoming: list[TrainingSummary]
     pending: list[TrainingSummary]
     completed: list[TrainingSummary]
+
+
+# --- feedback (ratings after a completed training) ---
+
+FeedbackComment_ = Annotated[str, StringConstraints(strip_whitespace=True, max_length=2000)]
+
+
+class FeedbackWrite(BaseModel):
+    """PUT /api/trainings/{id}/feedback: rate (1-5) and optionally comment. Again = edit."""
+
+    rating: int = Field(ge=1, le=5)
+    comment: FeedbackComment_ | None = None
+
+
+class FeedbackRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    rating: int
+    comment: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class FeedbackAuthor(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    avatar_url: str | None
+
+
+class FeedbackComment(FeedbackRead):
+    user: FeedbackAuthor
+
+
+class FeedbackSummary(BaseModel):
+    """GET /api/trainings/{id}/feedback. Everyone who can see the training sees the average.
+    The individual comments (with names) only go to admins and the training's trainer."""
+
+    average_rating: float | None
+    rating_count: int
+    mine: FeedbackRead | None
+    can_rate: bool
+    comments: list[FeedbackComment] | None

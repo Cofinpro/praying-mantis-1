@@ -37,6 +37,7 @@ function training(
     external_trainer_name: 'external' in trainer ? trainer.external : null,
     max_seats: seats[1],
     seats_left: seats[0],
+    rating_count: 0,
     cancelled: false,
     enrollments: {},
     ...extra,
@@ -64,18 +65,80 @@ export const mockTrainings: MockTraining[] = [
     cancelled: true,
   }),
   training(7, 'Git Beyond the Basics', [-20, 14, 16], ['junior', 'senior'], { id: 3 }, [2, 12], {
-    enrollments: { 5: 'approved' },
+    // João can still rate it; Pedro and Beatriz already did (see the feedback below)
+    enrollments: { 5: 'approved', 7: 'approved', 12: 'approved' },
   }),
 ]
 
+// Ratings while the mocks run: training id → user id → feedback
+type MockFeedback = { rating: number; comment: string | null; created_at: string; updated_at: string }
+const feedback = new Map<number, Map<number, MockFeedback>>()
+
+function ratingsOf(trainingId: number) {
+  const all = [...(feedback.get(trainingId)?.values() ?? [])]
+  const average = all.length ? Math.round((all.reduce((sum, f) => sum + f.rating, 0) / all.length) * 10) / 10 : null
+  return { average, count: all.length }
+}
+
 export function toSummary({ enrollments, description: _description, ...training }: MockTraining, viewerId: number) {
   const status = enrollments[viewerId] ?? null
+  const { average, count } = ratingsOf(training.id)
   return {
     ...training,
     my_enrollment_status: status,
     my_enrollment_id: status ? training.id * 1000 + viewerId : null,
+    average_rating: average,
+    rating_count: count,
+    my_rating: feedback.get(training.id)?.get(viewerId)?.rating ?? null,
   } satisfies TrainingSummary
 }
+
+const hasCompleted = (t: MockTraining, userId: number) =>
+  t.enrollments[userId] === 'approved' && !t.cancelled && t.ends_at <= new Date().toISOString()
+
+// GET /api/trainings/{id}/feedback (null = not visible to this viewer)
+export function mockFeedbackSummary(viewer: { id: number; is_admin: boolean; level: Level }, trainingId: number) {
+  const training = getMockTraining(viewer, trainingId) && mockTrainings.find((t) => t.id === trainingId)
+  if (!training) return null
+  const { average, count } = ratingsOf(trainingId)
+  const entries = [...(feedback.get(trainingId)?.entries() ?? [])]
+  const mine = feedback.get(trainingId)?.get(viewer.id) ?? null
+  const seesComments = viewer.is_admin || training.trainer?.id === viewer.id
+  return {
+    average_rating: average,
+    rating_count: count,
+    mine,
+    can_rate: hasCompleted(training, viewer.id),
+    comments: seesComments
+      ? entries.map(([userId, f]) => {
+          const user = findSeedUserById(userId)
+          return { ...f, user: { id: userId, name: user?.name ?? 'Unknown', avatar_url: mockAvatarUrl(userId) } }
+        })
+      : null,
+  }
+}
+
+// PUT /api/trainings/{id}/feedback
+export function rateMockTraining(viewer: { id: number; is_admin: boolean; level: Level }, trainingId: number, rating: number, comment: string | null) {
+  const training = getMockTraining(viewer, trainingId) && mockTrainings.find((t) => t.id === trainingId)
+  if (!training) return { status: 404 as const }
+  if (!hasCompleted(training, viewer.id)) return { status: 409 as const }
+  const now = new Date().toISOString()
+  const forTraining = feedback.get(trainingId) ?? new Map<number, MockFeedback>()
+  const saved = { rating, comment, created_at: forTraining.get(viewer.id)?.created_at ?? now, updated_at: now }
+  forTraining.set(viewer.id, saved)
+  feedback.set(trainingId, forTraining)
+  return { status: 200 as const, feedback: saved }
+}
+
+// "Git Beyond the Basics" (id 7) is in the past: two ratings, so the demo shows an average
+feedback.set(
+  7,
+  new Map([
+    [7, { rating: 5, comment: 'Very practical, I used it the next day.', created_at: daysFromNow(-19, 9), updated_at: daysFromNow(-19, 9) }],
+    [12, { rating: 4, comment: null, created_at: daysFromNow(-18, 9), updated_at: daysFromNow(-18, 9) }],
+  ]),
+)
 
 // Same rules as backend/app/services/trainings.py (see decisions.md → "Listing trainings").
 export function listMockTrainings(viewer: { id: number; level: Level; is_admin: boolean }, level: Level | null) {

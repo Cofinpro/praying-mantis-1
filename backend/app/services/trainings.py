@@ -5,7 +5,16 @@ from sqlalchemy import ColumnElement, Select, func, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.errors import Conflict, ValidationFailed
-from app.models import Enrollment, EnrollmentStatus, Level, NotificationType, Training, TrainingLevel, User
+from app.models import (
+    Enrollment,
+    EnrollmentStatus,
+    Level,
+    NotificationType,
+    Training,
+    TrainingFeedback,
+    TrainingLevel,
+    User,
+)
 from app.services import enrollments as enrollment_service
 from app.services import notifications
 from app.schemas.training import TrainingCreate, TrainingUpdate
@@ -19,6 +28,9 @@ class TrainingRow:
     seats_left: int
     my_enrollment_status: str | None
     my_enrollment_id: int | None
+    average_rating: float | None
+    rating_count: int
+    my_rating: int | None
 
 
 def _check_trainer_exists(db: Session, trainer_id: int | None) -> None:
@@ -191,6 +203,38 @@ def my_enrollment_id_column(viewer: User) -> ColumnElement[int | None]:
     )
 
 
+def average_rating_column() -> ColumnElement[float | None]:
+    # (SELECT AVG(rating) FROM training_feedback WHERE training_id = trainings.id): NULL with no ratings
+    return (
+        select(func.avg(TrainingFeedback.rating))
+        .where(TrainingFeedback.training_id == Training.id)
+        .correlate(Training)
+        .scalar_subquery()
+        .label("average_rating")
+    )
+
+
+def rating_count_column() -> ColumnElement[int]:
+    return (
+        select(func.count())
+        .select_from(TrainingFeedback)
+        .where(TrainingFeedback.training_id == Training.id)
+        .correlate(Training)
+        .scalar_subquery()
+        .label("rating_count")
+    )
+
+
+def my_rating_column(viewer: User) -> ColumnElement[int | None]:
+    return (
+        select(TrainingFeedback.rating)
+        .where(TrainingFeedback.training_id == Training.id, TrainingFeedback.user_id == viewer.id)
+        .correlate(Training)
+        .scalar_subquery()
+        .label("my_rating")
+    )
+
+
 def _training_rows(viewer: User) -> Select:
     # Column order = TrainingRow's field order (rows are built with TrainingRow(*row))
     return select(
@@ -198,6 +242,9 @@ def _training_rows(viewer: User) -> Select:
         seats_left_column(),
         my_enrollment_status_column(viewer),
         my_enrollment_id_column(viewer),
+        average_rating_column(),
+        rating_count_column(),
+        my_rating_column(viewer),
     ).options(
         # Trainer in the same query (LEFT OUTER JOIN), not one query per training
         joinedload(Training.trainer),

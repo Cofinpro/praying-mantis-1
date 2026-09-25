@@ -84,6 +84,9 @@ def test_creates_a_training_and_returns_the_contract_shape(client, db, admin, tr
         "cancelled": False,
         "my_enrollment_status": None,
         "my_enrollment_id": None,
+        "average_rating": None,
+        "rating_count": 0,
+        "my_rating": None,
     }
     training = db.get(Training, body["id"])
     assert training.created_by_id == admin.id

@@ -10,6 +10,7 @@ import { Alert } from '../components/Alert'
 import { BackLink } from '../components/BackLink'
 import { Button, ButtonLink } from '../components/Button'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { FeedbackSection } from '../components/FeedbackSection'
 import { JoinButton } from '../components/JoinButton'
 import { LevelTag } from '../components/LevelTag'
 import { PageHeader } from '../components/PageHeader'
@@ -117,6 +118,8 @@ export function TrainingDetailPage() {
               <p className={styles.descriptionText}>{description}</p>
             )}
           </section>
+
+          <FeedbackSection trainingId={data.id} />
         </div>
 
         {/* The action panel: seats, my status, joining (FE-3.1), and admin actions */}

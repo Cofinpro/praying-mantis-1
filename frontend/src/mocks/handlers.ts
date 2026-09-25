@@ -12,6 +12,8 @@ import {
   getMockTraining,
   listMockApprovals,
   listMockMyEnrollments,
+  mockFeedbackSummary,
+  rateMockTraining,
   listMockTrainings,
   mockTrainings,
   requestMockEnrollment,
@@ -116,6 +118,7 @@ export const handlers = [
       external_trainer_name: body.external_trainer_name ?? null,
       max_seats: body.max_seats,
       seats_left: body.max_seats,
+      rating_count: 0,
       cancelled: false,
       enrollments: {},
     }
@@ -338,5 +341,22 @@ export const handlers = [
     }
     setMockPassword(user.id, body.new_password)
     return new HttpResponse(null, { status: 204 })
+  }),
+
+  http.get('*/api/trainings/:id/feedback', ({ request, params }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    const summary = mockFeedbackSummary(user, Number(params.id))
+    return summary ? HttpResponse.json(summary) : trainingNotFound()
+  }),
+
+  http.put('*/api/trainings/:id/feedback', async ({ request, params }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    const { rating, comment } = (await request.json()) as { rating: number; comment: string | null }
+    const result = rateMockTraining(user, Number(params.id), rating, comment)
+    if (result.status === 404) return trainingNotFound()
+    if (result.status === 409) return conflict('not_completed', "You can rate a training after you've completed it")
+    return HttpResponse.json(result.feedback)
   }),
 ]

@@ -101,4 +101,4 @@ Each Jira story gets a branch named after it (e.g. `SCRUM-12-be-login`) and a PR
 - `plan.md`: data model, user stories and milestones
 - `decisions.md`: why things are the way they are
 - `learnings.md`: notes on the stack, compared with Vue and Java
-- `Classroom.md`: a 15-minute tour of the frontend for Vue developers, with diagrams
+- `Classroom.md`: React for Vue developers: a 15-minute tour, then a deep dive with code from this repo and exercises

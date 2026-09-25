@@ -14,6 +14,17 @@ Template:
 
 ---
 
+## 2026-09-25 — My enrollments (Profile): what goes in which section
+**Status:** Accepted
+**Context:** BE-5.1 implements `GET /api/me/enrollments` → `{upcoming, pending, completed}` of `TrainingSummary`, with Q10 answered by the default.
+**Decision:**
+- **upcoming** = approved, not cancelled, not ended yet. A training in progress still counts as upcoming, soonest first.
+- **pending** = waiting for a decision, for a training that hasn't started, soonest first. A pending request for a training that already started is left out, because it can't be decided any more.
+- **completed** = approved, not cancelled, ended (Q10: no attendance check), most recent first.
+- Rejected, withdrawn and cancelled trainings appear in no section. The notification told the user.
+- It's one query: BE-2.2's training rows (seats left, my status) joined with the viewer's enrollments, then split in Python.
+**Consequences:** FE shows each section with `TrainingCard`. `my_enrollment_status` is on every item.
+
 ## 2026-09-25 — Email for approval requests: after the response, best effort
 **Status:** Accepted
 **Context:** BE-4.2 (stretch): team leads also get an email for new requests.

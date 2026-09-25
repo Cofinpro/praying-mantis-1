@@ -2,3 +2,5 @@
 pytest
 # Starlette's TestClient asks for httpx2 (plain httpx is deprecated there)
 httpx2
+# Freezes "now" in tests (BE-5.1)
+time-machine

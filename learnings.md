@@ -37,6 +37,9 @@ We're both experienced developers (one from **Vue**, one from **Java**), so skip
   - The API client can't call React code, so a 401 reaches the UI through a hand-rolled listener (`onUnauthorized`).
   - Nothing is cached: the user lives in a Context so other components don't fetch `/me` again.
   - TanStack Query (FE-2.2) handles most of this for us.
+- **Conditional rendering is plain JavaScript**: there's no `v-if`/`v-show`. Use `cond && <X />` or `cond ? <A /> : <B />` inside JSX, or an early `return`. Watch out with numbers: `{count && <Badge />}` renders a literal `0` when `count` is 0, because React renders numbers but skips `false`, `null` and `undefined`. Use `count > 0 && ...`. Nothing is hidden-but-mounted as with `v-show`: a component that isn't rendered doesn't exist, and its state is gone.
+- **Guarding a group of routes**: a route with a `path` but no page, whose `element` is a guard around `<Outlet />`, protects every child at once (`/admin/*` → `<RequirePermission allow={isAdmin}><Outlet /></RequirePermission>`). It's the React Router version of `meta: { requiresAdmin: true }` plus a `beforeEach` in vue-router.
+- **Hiding UI is not security**: anyone can call the API with a token from devtools, so the backend checks every rule (BE-1.3's `require_admin`, 401 vs 403). The frontend only hides what a user can't use, to keep the screens clean.
 - **Where to keep the token**:
   - **localStorage** (our choice): survives refreshes and tabs, but any injected script can read it (XSS).
   - **Memory only**: safer, but you're logged out on every refresh.

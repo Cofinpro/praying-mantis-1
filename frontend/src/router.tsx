@@ -1,5 +1,7 @@
-import { createBrowserRouter, Navigate, type RouteObject } from 'react-router'
+import { createBrowserRouter, Navigate, Outlet, type RouteObject } from 'react-router'
+import { canApprove, isAdmin } from './auth/permissions'
 import { RequireAuth } from './auth/RequireAuth'
+import { RequirePermission } from './auth/RequirePermission'
 import { Layout } from './components/Layout'
 import { ApprovalsPage } from './pages/ApprovalsPage'
 import { LoginPage } from './pages/LoginPage'
@@ -27,8 +29,25 @@ export const routes: RouteObject[] = [
       { path: 'trainings/:id', element: <TrainingDetailPage /> },
       { path: 'seats', element: <SeatsPage /> },
       { path: 'profile', element: <ProfilePage /> },
-      { path: 'approvals', element: <ApprovalsPage /> },
-      { path: 'admin/trainings/new', element: <NewTrainingPage /> },
+      {
+        path: 'approvals',
+        element: (
+          <RequirePermission allow={canApprove}>
+            <ApprovalsPage />
+          </RequirePermission>
+        ),
+      },
+      // Everything under /admin is for admins only. The guard wraps an <Outlet />, so new admin pages
+      // only need to be added as children.
+      {
+        path: 'admin',
+        element: (
+          <RequirePermission allow={isAdmin}>
+            <Outlet />
+          </RequirePermission>
+        ),
+        children: [{ path: 'trainings/new', element: <NewTrainingPage /> }],
+      },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

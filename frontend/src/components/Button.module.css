@@ -9,6 +9,7 @@
   background: var(--color-action-primary);
   font: var(--font-label);
   color: var(--color-text-on-brand);
+  text-decoration: none;
   cursor: pointer;
 }
 

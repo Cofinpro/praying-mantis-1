@@ -87,19 +87,21 @@ Status flow: `pending → approved | rejected`; `pending | approved → withdraw
 What exists today:
 - `docker-compose.yml`: local MySQL 8 with a named volume (`mysql-data`) and a health check
 - `backend/`: FastAPI + SQLAlchemy on MySQL (via PyMySQL)
-  - `app/main.py`: the app and its routes (`/`, `/health/db`), plus CORS
+  - `app/main.py`: creates the app, adds CORS, and includes every router under `/api`
+  - `app/config.py`: `Settings` (pydantic-settings), read from env vars / `backend/.env`
   - `app/database.py`: engine, `SessionLocal`, `Base`, and the `get_db` dependency
+  - `app/models/`: SQLAlchemy models. Import each one in `models/__init__.py`, or Alembic won't see it.
+  - `app/schemas/`: Pydantic request/response models (the API contract)
+  - `app/routers/`: one `APIRouter` per area. `health.py` has `/api/` and `/api/health/db`.
+  - `app/services/`: business rules, no HTTP concerns
+  - `alembic/`: migrations (`alembic/versions/`). `env.py` reads the DB URL from `app.config`.
+  - `tests/`: pytest (set up in BE-0.3)
   - `.env.example`: DB settings and `CORS_ORIGINS`. Copy it to `backend/.env` (git-ignored).
 - `frontend/`: React 19 + TypeScript on Vite, managed with **pnpm**
   - `src/App.tsx` calls the backend at `VITE_API_URL` (default `http://localhost:8000`)
 - `.github/workflows/deploy-pages.yml`: builds `frontend/` and deploys it to GitHub Pages on every push to `main`
 
-Planned structure (story BE-0.2):
-```
-backend/app/{main.py, config.py, database.py, models/, schemas/, routers/, services/}
-backend/alembic/   backend/tests/
-frontend/src/{pages/, components/, api/, mocks/}
-```
+Planned frontend structure (FE-0.1): `frontend/src/{pages/, components/, api/, mocks/}`
 
 ## Commands
 
@@ -123,10 +125,20 @@ cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env   # already matches docker-compose.yml
+alembic upgrade head      # apply all migrations to the database
 fastapi dev app/main.py   # http://localhost:8000, API docs at /docs
 ```
 
-Check the database connection at http://localhost:8000/health/db (expects `{"database": "ok"}`).
+Check the database connection at http://localhost:8000/api/health/db (expects `{"database": "ok"}`).
+
+Migrations (run from `backend/`):
+
+```sh
+alembic revision --autogenerate -m "add users"   # after changing models; ALWAYS read the generated file
+alembic upgrade head      # apply
+alembic downgrade -1      # undo the last one
+alembic check             # fails if the models and the migrations are out of sync
+```
 Allowed frontend origins are set by `CORS_ORIGINS` (comma-separated).
 
 ### Frontend
@@ -150,7 +162,7 @@ Once MSW is in place (FE-0.2), the Pages site can run on mocks until a backend e
 
 - Use pnpm for the frontend, never npm or yarn.
 - **API:**
-  - REST + JSON, all routes under `/api` (the existing `/` and `/health/db` move there in BE-0.2)
+  - REST + JSON, all routes under `/api` (routers are included with `prefix="/api"` in `main.py`)
   - Errors use FastAPI's `{"detail": ...}`. Business-rule conflicts return 409 with `{"detail": {"code": "...", "message": "..."}}`.
   - Datetimes are ISO 8601 in UTC (`...Z`), and dates are `YYYY-MM-DD`
 - **Backend:**

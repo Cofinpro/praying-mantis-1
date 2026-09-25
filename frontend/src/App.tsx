@@ -6,7 +6,7 @@ function App() {
   const [message, setMessage] = useState('Contacting backend...')
 
   useEffect(() => {
-    fetch(`${API_URL}/`)
+    fetch(`${API_URL}/api/`)
       .then((res) => res.json())
       .then((data: { message: string }) => setMessage(data.message))
       .catch(() => setMessage(`Backend unreachable at ${API_URL}`))

@@ -1,30 +1,16 @@
-import os
-
-from fastapi import Depends, FastAPI
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import text
-from sqlalchemy.orm import Session
 
-from app.database import get_db
+from app.config import settings
+from app.routers import health
 
 app = FastAPI(title="Praying Mantis API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.getenv(
-        "CORS_ORIGINS", "http://localhost:5173,https://cofinpro.github.io"
-    ).split(","),
+    allow_origins=settings.cors_origin_list,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
-@app.get("/")
-def root():
-    return {"message": "Hello from FastAPI"}
-
-
-@app.get("/health/db")
-def health_db(db: Session = Depends(get_db)):
-    db.execute(text("SELECT 1"))
-    return {"database": "ok"}
+app.include_router(health.router, prefix="/api")

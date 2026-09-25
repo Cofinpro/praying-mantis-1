@@ -2,4 +2,5 @@ fastapi[standard]
 sqlalchemy
 pymysql
 cryptography
-python-dotenv
+pydantic-settings
+alembic

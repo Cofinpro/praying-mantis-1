@@ -10,6 +10,7 @@ import { Alert } from '../components/Alert'
 import { BackLink } from '../components/BackLink'
 import { Button, ButtonLink } from '../components/Button'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { JoinButton } from '../components/JoinButton'
 import { LevelTag } from '../components/LevelTag'
 import { PageHeader } from '../components/PageHeader'
 import { StatusBadge } from '../components/StatusBadge'
@@ -118,11 +119,11 @@ export function TrainingDetailPage() {
           </section>
         </div>
 
-        {/* The action panel. F3 puts "Request to join" and "Withdraw" here. */}
+        {/* The action panel: seats, my status, joining (FE-3.1), and admin actions */}
         <aside className={styles.panel} aria-label="Your place">
           <p className={styles.seats}>{seatsLabel(data)}</p>
           {isBadgeStatus(status) && <StatusBadge status={status} />}
-          {!data.cancelled && <p className={styles.muted}>Requests to join open soon.</p>}
+          <JoinButton training={data} />
           {user && isAdmin(user) && !data.cancelled && (
             <div className={styles.adminActions}>
               <ButtonLink to={`/admin/trainings/${data.id}/edit`} variant="ghost">

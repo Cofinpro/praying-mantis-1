@@ -161,6 +161,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/trainings/{training_id}/enrollments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request To Join
+         * @description Ask for a seat. Creates a pending enrollment for the team lead (or an admin) to decide.
+         */
+        post: operations["request_to_join_api_trainings__training_id__enrollments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -190,6 +210,31 @@ export interface components {
             is_team_lead: boolean;
             team_lead: components["schemas"]["TeamLeadSummary"] | null;
         };
+        /** EnrollmentRead */
+        EnrollmentRead: {
+            /** Id */
+            id: number;
+            /** Training Id */
+            training_id: number;
+            /** User Id */
+            user_id: number;
+            status: components["schemas"]["EnrollmentStatus"];
+            /** Decision Comment */
+            decision_comment: string | null;
+            /**
+             * Requested At
+             * Format: date-time
+             */
+            requested_at: string;
+            /** Decided At */
+            decided_at: string | null;
+        };
+        /**
+         * EnrollmentStatus
+         * @description pending -> approved | rejected; pending | approved -> withdrawn.
+         * @enum {string}
+         */
+        EnrollmentStatus: "pending" | "approved" | "rejected" | "withdrawn";
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -778,6 +823,65 @@ export interface operations {
                 content?: never;
             };
             /** @description Business rule, e.g. {"detail": {"code": "training_cancelled", ...}} */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_to_join_api_trainings__training_id__enrollments_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                training_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnrollmentRead"];
+                };
+            };
+            /** @description Missing, invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not for your level */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Training not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description already_requested | request_rejected | training_full | training_started | training_cancelled */
             409: {
                 headers: {
                     [name: string]: unknown;

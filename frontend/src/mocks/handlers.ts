@@ -1,9 +1,17 @@
 import { http, HttpResponse } from 'msw'
 import type { CurrentUser, LoginRequest, TokenResponse } from '../api/auth'
 import type { DbHealthResponse, HelloResponse } from '../api/health'
+import type { EnrollmentRead } from '../api/enrollments'
 import type { TrainingCreate, TrainingRead, TrainingSummary, TrainingUpdate } from '../api/trainings'
 import { isLevel } from '../trainings/levels'
-import { getMockTraining, listMockTrainings, mockTrainings, toSummary, updateMockTraining } from './data/trainings'
+import {
+  getMockTraining,
+  listMockTrainings,
+  mockTrainings,
+  requestMockEnrollment,
+  toSummary,
+  updateMockTraining,
+} from './data/trainings'
 import type { UserSummary } from '../api/users'
 import { findSeedUserByEmail, findSeedUserById, searchSeedUsers, SEED_PASSWORD, toCurrentUser } from './data/users'
 
@@ -127,5 +135,14 @@ export const handlers = [
     if (result === 'not_found') return trainingNotFound()
     if (result === 'cancelled') return conflict('training_cancelled', 'This training was already cancelled')
     return HttpResponse.json<TrainingRead>({ ...toSummary(result, user.id), description: result.description })
+  }),
+
+  http.post('*/api/trainings/:id/enrollments', ({ request, params }) => {
+    const user = userFromRequest(request)
+    if (!user) return notAuthenticated()
+    const result = requestMockEnrollment(user, Number(params.id))
+    return result.status === 201
+      ? HttpResponse.json<EnrollmentRead>(result.enrollment, { status: 201 })
+      : HttpResponse.json({ detail: result.detail }, { status: result.status })
   }),
 ]

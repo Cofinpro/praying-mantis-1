@@ -14,6 +14,17 @@ Template:
 
 ---
 
+## 2026-09-25 — Seat map: one LEFT JOIN, and what "bookable" means
+**Status:** Accepted
+**Context:** BE-6.2 implements `GET /api/seats?date=` per the F6 contract.
+**Decision:**
+- One query: `seats LEFT JOIN seat_reservations (that date) LEFT JOIN users`. A query-count test pins it at 1 (plus the current user), even for 34 seats.
+- `status`: `mine` if I'm on it, `taken` if someone else is, else `free`. `taken_by` is `{id, name}` for taken **and** mine (Q12: names only), and `null` when free.
+- `bookable` = free **and** in my client's zone. An invalid date never reaches this point, because it's a 422 on `["query", "date"]` with the same codes as reserving (`date_in_past`, `date_too_far`, `date_weekend`), so in a 200 the date is always bookable.
+- Sorted by zone in the `Client` order (DKB, Deka, VV, DBIS, UNION, a SQL `CASE`, not alphabetical), then row, then column.
+- `date` is required: FE sends the picked day (today or the next weekday).
+**Consequences:** FE draws "other client" (greyed, hatched) from `bookable: false` + `status: "free"` + a zone that isn't the user's `client`.
+
 ## 2026-09-25 — Seat reservations: optimistic, by unique constraint
 **Status:** Accepted
 **Context:** BE-6.3 implements reserve / move / list / cancel per the F6 contract, with Q3 and Q14 answered by the defaults.

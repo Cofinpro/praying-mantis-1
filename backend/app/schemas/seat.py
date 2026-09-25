@@ -1,4 +1,5 @@
 import datetime as dt
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -24,3 +25,23 @@ class ReservationRead(BaseModel):
     id: int
     date: dt.date
     seat: SeatRef
+
+
+class Occupant(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+
+
+class SeatStatus(BaseModel):
+    """GET /api/seats?date=: one seat on one day."""
+
+    id: int
+    label: str
+    zone: Client
+    pos_x: int
+    pos_y: int
+    status: Literal["free", "taken", "mine"]
+    taken_by: Occupant | None  # Q12: people can see who took a seat (name only)
+    bookable: bool  # free, in my client's zone, and the date is bookable

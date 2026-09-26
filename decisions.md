@@ -539,6 +539,7 @@ Template:
 - **Backend:** a Render free web service built from `backend/Dockerfile`. Render redeploys on every push to `main`, and its dashboard stores the secrets.
 - **Database:** Aiven's free MySQL 8 (1 CPU, 1 GB RAM, 1 GB storage, no card). It's real MySQL, so migrations, CHECK constraints and the collation behave as they do locally. Connections use TLS and verify Aiven's CA (`DB_SSL_CA`).
 - **Migrations run on start** (`start.sh`), because Render's pre-deploy command isn't available on the free plan. With one instance, "on start" = "on deploy".
+- **Wait for the database first**: `start.sh` runs `python -m app.wait_for_db` (up to 20 tries, 3 s apart) before `alembic upgrade head`. A deploy once failed because the Aiven host briefly didn't resolve (`Name or service not known`), and a single failed connect stopped the container.
 - **Demo data:** `SEED_ON_START=true`, because the free plan has no shell to run the seed by hand.
 **Consequences:**
 - **Cold starts:** Render's free services sleep after 15 minutes idle, and the next request takes about a minute. FE should show a "waking up" state (FE-7.1).

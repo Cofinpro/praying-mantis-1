@@ -4,6 +4,10 @@ set -e
 
 # Migrations run on every deploy, before the new version takes traffic.
 # Alembic only applies the ones that are missing, so this is a no-op when up to date.
+# Retry the first connection: a new container can start before the DB host
+# resolves or accepts connections, and one failed connect would fail the deploy.
+python -m app.wait_for_db
+
 echo "Running migrations..."
 alembic upgrade head
 

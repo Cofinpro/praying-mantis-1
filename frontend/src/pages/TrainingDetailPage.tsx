@@ -127,17 +127,21 @@ export function TrainingDetailPage() {
 
         {/* The action panel: seats, my status, joining (FE-3.1), and admin actions */}
         <aside className={styles.panel} aria-label="Your place">
-          <p className={styles.seats}>{seatsLabel(data)}</p>
+          {/* Once it has ended the join button says "Ended", so the seats line would only repeat it */}
+          {new Date(data.ends_at) > new Date() && seatsLabel(data) && <p className={styles.seats}>{seatsLabel(data)}</p>}
           {isBadgeStatus(status) && <StatusBadge status={status} />}
           <JoinButton training={data} />
           {user && isAdmin(user) && !data.cancelled && (
             <div className={styles.adminActions}>
-              <ButtonLink to={`/admin/trainings/${data.id}/edit`} variant="ghost">
+              <ButtonLink to={`/admin/trainings/${data.id}/edit`} variant="secondary">
                 Edit training
               </ButtonLink>
-              <Button variant="danger" onClick={() => setConfirmingCancel(true)}>
-                Cancel training
-              </Button>
+              {/* The backend refuses to cancel a training that has started, so don't offer it */}
+              {new Date(data.starts_at) > new Date() && (
+                <Button variant="danger" onClick={() => setConfirmingCancel(true)}>
+                  Cancel training
+                </Button>
+              )}
             </div>
           )}
         </aside>

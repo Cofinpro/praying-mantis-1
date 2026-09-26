@@ -48,14 +48,16 @@ async function openSeats() {
 }
 
 describe('seat map', () => {
-  it('has a two-week day picker: weekends and past days disabled, next weekday selected', async () => {
+  it('has a two-week day picker: on a weekend it starts next week, weekends disabled, next weekday selected', async () => {
     const dates = serveSeats()
     await openSeats()
 
     const picker = screen.getByRole('group', { name: 'Day' })
-    expect(within(picker).getByRole('button', { name: /Fri\s*9 Oct/ })).toBeDisabled() // past
-    expect(within(picker).getByRole('button', { name: /Sat\s*10 Oct/ })).toBeDisabled() // today, a weekend
+    // Today is Saturday 10 Oct: nothing is bookable this week any more, so the picker starts at Monday 12
+    expect(within(picker).queryByRole('button', { name: /Fri\s*9 Oct/ })).not.toBeInTheDocument()
+    expect(within(picker).getAllByRole('button')[0]).toHaveAccessibleName(/Mon\s*12 Oct/)
     expect(within(picker).getByRole('button', { name: /Mon\s*12 Oct/ })).toHaveAttribute('aria-pressed', 'true')
+    expect(within(picker).getByRole('button', { name: /Fri\s*23 Oct/ })).toBeEnabled() // within 14 days
     expect(within(picker).getByRole('button', { name: /Tue\s*13 Oct/ })).toBeEnabled()
     expect(within(picker).getByRole('button', { name: /Sat\s*17 Oct/ })).toBeDisabled()
     expect(dates).toEqual(['2026-10-12'])

@@ -1,7 +1,7 @@
 import type { TrainingSummary } from '../api/trainings'
 
 // What the join button shows, derived from the training on every render (never stored in state).
-export type JoinState = 'can_join' | 'join_waitlist' | 'waitlisted' | 'pending' | 'enrolled' | 'completed' | 'rejected' | 'cancelled' | 'started'
+export type JoinState = 'can_join' | 'join_waitlist' | 'waitlisted' | 'pending' | 'enrolled' | 'completed' | 'rejected' | 'cancelled' | 'started' | 'ended'
 
 export function joinState(training: TrainingSummary, now = new Date()): JoinState {
   if (training.cancelled) return 'cancelled'
@@ -10,6 +10,7 @@ export function joinState(training: TrainingSummary, now = new Date()): JoinStat
   if (training.my_enrollment_status === 'approved') return new Date(training.ends_at) <= now ? 'completed' : 'enrolled'
   if (training.my_enrollment_status === 'rejected') return 'rejected'
   // No enrollment, or withdrawn earlier: joining is possible again unless it's too late. Full = the waitlist
+  if (new Date(training.ends_at) <= now) return 'ended'
   if (new Date(training.starts_at) <= now) return 'started'
   if (training.seats_left <= 0) return 'join_waitlist'
   return 'can_join'
@@ -25,6 +26,7 @@ export const JOIN_LABELS: Record<JoinState, string> = {
   rejected: 'Rejected',
   cancelled: 'Cancelled',
   started: 'Already started',
+  ended: 'Ended',
 }
 
 // Why the button is disabled (or, for the waitlist, what joining means), shown under it.
@@ -35,6 +37,7 @@ export const JOIN_HINTS: Partial<Record<JoinState, string>> = {
   rejected: 'Your request was rejected.',
   join_waitlist: 'No seats left. Join the waitlist: when a place opens up, the first in line moves up.',
   started: 'Requests close when a training starts.',
+  ended: 'This training has already taken place.',
 }
 
 // Both buttons send something: the rest are disabled.

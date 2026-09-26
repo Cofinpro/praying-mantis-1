@@ -27,7 +27,7 @@ export function SeatMap({ seats, myZone, onSelect }: SeatMapProps) {
               {zone}
               {zone === myZone && <span className={styles.yours}>Your zone</span>}
             </h2>
-            <div className={styles.grid} style={{ gridTemplateColumns: `repeat(${columns}, var(--seat-width))` }}>
+            <div className={styles.grid} style={{ gridTemplateColumns: `repeat(${columns}, minmax(var(--seat-width), 1fr))` }}>
               {zoneSeats.map((seat) => (
                 <Seat key={seat.id} seat={seat} state={seatState(seat, myZone)} onSelect={onSelect} />
               ))}

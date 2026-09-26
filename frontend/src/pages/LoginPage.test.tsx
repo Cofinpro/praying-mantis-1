@@ -30,6 +30,7 @@ describe('login', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Invalid email or password')
     expect(router.state.location.pathname).toBe('/login')
+    expect(screen.getByLabelText('Password')).toBeInvalid() // wrong credentials: the fields are marked
   })
 
   it("says it can't reach the server when the request itself fails", async () => {
@@ -39,6 +40,7 @@ describe('login', () => {
     await logIn('sofia@cofinpro.pt', 'password123')
 
     expect(await screen.findByRole('alert')).toHaveTextContent("Can't reach the server")
+    expect(screen.getByLabelText('Password')).not.toBeInvalid() // not the user's typing: fields stay normal
   })
 
   it('explains a slow login (the backend waking up)', async () => {

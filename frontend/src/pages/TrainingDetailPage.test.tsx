@@ -49,6 +49,26 @@ describe('training detail', () => {
     expect(screen.getByText(/Hooks, state and effects\./)).toHaveTextContent('Hooks, state and effects. Bring a laptop.')
   })
 
+  it('says a past training has ended, and has nothing to join', async () => {
+    serveTraining({ ...training, starts_at: '2020-10-15T08:00:00Z', ends_at: '2020-10-15T11:00:00Z', my_enrollment_status: null })
+    await openAsEmployee('/trainings/12')
+
+    const panel = await screen.findByRole('complementary', { name: 'Your place' })
+    expect(within(panel).getByRole('button', { name: 'Ended' })).toBeDisabled()
+    expect(within(panel).getByText('This training has already taken place.')).toBeInTheDocument()
+    expect(within(panel).queryByText(/seats left/)).not.toBeInTheDocument()
+  })
+
+  it("doesn't offer admins to cancel a training that has started", async () => {
+    serveTraining({ ...training, starts_at: '2020-10-15T08:00:00Z', ends_at: '2020-10-15T11:00:00Z' })
+    await storeLoginToken('admin@cofinpro.pt')
+    renderRoute('/trainings/12')
+
+    const panel = await screen.findByRole('complementary', { name: 'Your place' })
+    expect(within(panel).getByRole('link', { name: 'Edit training' })).toBeInTheDocument()
+    expect(within(panel).queryByRole('button', { name: 'Cancel training' })).not.toBeInTheDocument()
+  })
+
   it('shows an external trainer by name', async () => {
     serveTraining({ ...training, trainer: null, external_trainer_name: 'Acme Academy' })
     await openAsEmployee('/trainings/12')

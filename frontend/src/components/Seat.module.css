@@ -9,7 +9,9 @@
   align-items: center;
   justify-content: center;
   gap: 2px;
-  width: var(--seat-width, 68px);
+  /* Fills its grid cell (at least --seat-width), so a zone's seats span the whole card */
+  width: 100%;
+  min-width: var(--seat-width, 68px);
   height: 56px;
   padding: 0;
   border: 1.5px solid;

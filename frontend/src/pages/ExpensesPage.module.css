@@ -8,6 +8,8 @@
 }
 
 .row {
+  /* position: relative for the title link's ::after, which makes the whole row clickable */
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto 180px;
   align-items: center;
@@ -35,6 +37,29 @@
   color: var(--color-text-primary);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* The link stays the one accessible name for the row; its ::after stretches the click area over the row */
+.title::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+}
+
+.row:hover {
+  background: var(--color-bg-subtle);
+}
+
+.row:first-child:hover {
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.row:last-child:hover {
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.row:only-child:hover {
+  border-radius: var(--radius-lg);
 }
 
 .amount {

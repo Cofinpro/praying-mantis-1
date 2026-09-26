@@ -16,12 +16,12 @@ const isWeekend = (date: Date) => date.getDay() === 0 || date.getDay() === 6
 
 export type PickerDay = { day: string; date: Date; bookable: boolean }
 
-// Two weeks, Monday to Sunday, starting this week. Bookable: today up to 14 days ahead, no weekends
-// (plan.md → F6, Q14).
+// Two weeks, Monday to Sunday, starting this week (or next week on a weekend, when nothing is left to book
+// in this one). Bookable: today up to 14 days ahead, no weekends (plan.md → F6, Q14).
 export function twoWeeks(today = new Date()): PickerDay[] {
   const start = new Date(today.getFullYear(), today.getMonth(), today.getDate())
   const monday = new Date(start)
-  monday.setDate(start.getDate() - ((start.getDay() + 6) % 7))
+  monday.setDate(start.getDate() - ((start.getDay() + 6) % 7) + (isWeekend(start) ? 7 : 0))
   const last = new Date(start)
   last.setDate(start.getDate() + 14)
 

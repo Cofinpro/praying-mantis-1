@@ -7,7 +7,14 @@ export function trainerLabel(training: Pick<TrainingSummary, 'trainer' | 'extern
   return training.external_trainer_name ? `External – ${training.external_trainer_name}` : 'External trainer'
 }
 
-export function seatsLabel({ seats_left, max_seats }: Pick<TrainingSummary, 'seats_left' | 'max_seats'>) {
+// Seats only matter while you can still join: a training that ended says so, and a cancelled one
+// shows nothing here (its "Cancelled" badge or banner says it all).
+export function seatsLabel(
+  { seats_left, max_seats, cancelled, ends_at }: Pick<TrainingSummary, 'seats_left' | 'max_seats' | 'cancelled' | 'ends_at'>,
+  now = new Date(),
+): string | null {
+  if (cancelled) return null
+  if (new Date(ends_at) <= now) return 'Ended'
   const left = `${seats_left} of ${max_seats} seats left`
   return seats_left <= 0 ? `Full · ${left}` : left
 }

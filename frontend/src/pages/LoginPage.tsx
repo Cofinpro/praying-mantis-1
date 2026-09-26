@@ -21,7 +21,7 @@ export function LoginPage() {
   // where Vue would use v-model.
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<{ title: string; hint: string } | null>(null)
+  const [error, setError] = useState<LoginError | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [slow, setSlow] = useState(false)
 
@@ -60,7 +60,7 @@ export function LoginPage() {
         <Logo />
         <div className={styles.heading}>
           <h1 className={styles.title}>Log in</h1>
-          <p className={styles.subtitle}>Book trainings and reserve your seat in the office.</p>
+          <p className={styles.subtitle}>Trainings, office seats and expenses, all in one place.</p>
         </div>
         {error && <Alert title={error.title}>{error.hint}</Alert>}
         <form className={styles.form} onSubmit={handleSubmit}>
@@ -71,8 +71,8 @@ export function LoginPage() {
             required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            help={error ? undefined : 'Use your company email'}
-            invalid={error !== null}
+            help={error?.badCredentials ? undefined : 'Use your company email'}
+            invalid={error?.badCredentials}
           />
           <TextField
             label="Password"
@@ -81,7 +81,7 @@ export function LoginPage() {
             required
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            invalid={error !== null}
+            invalid={error?.badCredentials}
           />
           <Button type="submit" disabled={submitting}>
             {submitting ? 'Logging in…' : 'Log in'}
@@ -92,17 +92,23 @@ export function LoginPage() {
             </p>
           )}
         </form>
-        {showSeedHint && <p className={styles.hint}>Local seed users: password123</p>}
+        {showSeedHint && <p className={styles.hint}>Demo accounts: every password is password123</p>}
       </div>
     </main>
   )
 }
 
-function loginErrorMessage(err: unknown) {
+// badCredentials: only then are the fields marked invalid. A server or network problem isn't the user's typing.
+type LoginError = { title: string; hint: string; badCredentials: boolean }
+
+function loginErrorMessage(err: unknown): LoginError {
+  if (err instanceof ApiError && err.status === 401) {
+    const title = typeof err.detail === 'string' ? err.detail : 'Wrong email or password'
+    return { title, hint: 'Check your details and try again.', badCredentials: true }
+  }
   if (err instanceof ApiError) {
-    const title = typeof err.detail === 'string' ? err.detail : `The server answered with an error (${err.status})`
-    return { title, hint: 'Check your details and try again.' }
+    return { title: `The server answered with an error (${err.status})`, hint: 'Try again in a moment.', badCredentials: false }
   }
   // fetch() itself failed: offline, blocked by the browser, or the server is down or still waking up
-  return { title: "Can't reach the server", hint: 'Check your connection and try again in a moment.' }
+  return { title: "Can't reach the server", hint: 'Check your connection and try again in a moment.', badCredentials: false }
 }

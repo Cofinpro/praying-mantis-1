@@ -1,0 +1,84 @@
+{
+    "$schema": "../../PaiDev/contracts/project.schema.json",
+    "version": "transferguard-0.1.0",
+    "name": "TransferGuard",
+    "description": "Educational validator for SEPA transfer batches: a payments operator checks a batch before it is sent and sees which payments are rejected and why. Synthetic data only; it never sends payments.",
+    "model": "google/gemini-3.1-pro-preview",
+    "architecture": "layered",
+    "stages": {
+        "refine": {
+            "archetype": "refinement",
+            "writeScopes": [],
+            "checks": []
+        },
+        "implement-backend": {
+            "archetype": "java-spring",
+            "writeScopes": ["backend"],
+            "checks": [
+                "mvn -f backend/pom.xml test",
+                "mvn -f backend/pom.xml spotless:check"
+            ]
+        },
+        "implement-frontend": {
+            "archetype": "nextjs-frontend",
+            "writeScopes": ["frontend"],
+            "checks": [
+                "npm --prefix frontend test",
+                "npm --prefix frontend run build"
+            ]
+        },
+        "implement-deploy": {
+            "archetype": "kubernetes",
+            "writeScopes": [
+                "deploy",
+                "scripts",
+                "backend/Dockerfile",
+                "frontend/Dockerfile"
+            ],
+            "checks": [
+                "kubectl kustomize deploy/k3d",
+                "kubectl kustomize deploy/k3d-database"
+            ]
+        },
+        "review": {
+            "archetype": "code-review",
+            "writeScopes": [],
+            "checks": []
+        }
+    },
+    "checks": {
+        "mvn -f backend/pom.xml test": ["mvn", "-f", "backend/pom.xml", "test"],
+        "mvn -f backend/pom.xml spotless:check": [
+            "mvn",
+            "-f",
+            "backend/pom.xml",
+            "spotless:check"
+        ],
+        "npm --prefix frontend test": ["npm", "--prefix", "frontend", "test"],
+        "npm --prefix frontend run build": [
+            "npm",
+            "--prefix",
+            "frontend",
+            "run",
+            "build"
+        ],
+        "kubectl kustomize deploy/k3d": ["kubectl", "kustomize", "deploy/k3d"],
+        "kubectl kustomize deploy/k3d-database": [
+            "kubectl",
+            "kustomize",
+            "deploy/k3d-database"
+        ]
+    },
+    "skills": {},
+    "standards": "../PaiDev-CompanyStandards",
+    "houseRules": [
+        "Use synthetic data only. Never add real personal, financial or production data, credentials or endpoints.",
+        "Every validation rule lives in the backend domain, reads its limits from ValidationProperties and comes with a JUnit test named after the behaviour it proves.",
+        "A rejected payment is data: reason codes from RejectionReason inside a 200 response, never an exception and never a 4xx.",
+        "A schema change is a new Flyway migration under backend/src/main/resources/db/migration; an applied migration is never edited.",
+        "The frontend never re-implements a rule: it shows what the backend reported."
+    ],
+    "evals": {
+        "afterRun": true
+    }
+}

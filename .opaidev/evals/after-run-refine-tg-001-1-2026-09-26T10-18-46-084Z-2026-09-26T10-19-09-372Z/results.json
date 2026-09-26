@@ -1,0 +1,736 @@
+{
+  "evalId": "eval-kfA-2026-09-26T10:19:21",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-09-26T10:19:21.980Z",
+    "prompts": [
+      {
+        "id": "51cbea4ee4f2484afeb7df0f7536cb3d140e213d711e14d9005f038631d9bf1e",
+        "raw": "{{stageId}} of {{workItemId}}",
+        "label": "after-run",
+        "provider": "google/gemini-3.1-pro-preview",
+        "metrics": {
+          "score": 0.6666666666666666,
+          "testPassCount": 0,
+          "testFailCount": 1,
+          "testErrorCount": 0,
+          "assertPassCount": 2,
+          "assertFailCount": 1,
+          "totalLatencyMs": 143,
+          "tokenUsage": {
+            "prompt": 18378,
+            "completion": 1898,
+            "cached": 0,
+            "total": 20276,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "namedScores": {
+            "no-tools": 0,
+            "session": 1,
+            "standard": 1
+          },
+          "namedScoresCount": {
+            "no-tools": 1,
+            "session": 1,
+            "standard": 1
+          },
+          "namedScoreWeights": {
+            "no-tools": 1,
+            "session": 1,
+            "standard": 1
+          },
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "error": "Tool \"*\" matched 2 time(s), which violates the inverse assertion",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.6666666666666666,
+          "reason": "Tool \"*\" matched 2 time(s), which violates the inverse assertion",
+          "namedScores": {
+            "no-tools": 0,
+            "session": 1,
+            "standard": 1
+          },
+          "namedScoreWeights": {
+            "no-tools": 1,
+            "session": 1,
+            "standard": 1
+          },
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "the session finished",
+              "assertion": {
+                "type": "javascript",
+                "value": "file:///Users/miguel.aguiar/Github/PaiDev/evals/after-run.ts:session",
+                "metric": "session"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "the answer met Cofinpro dojo standards",
+              "assertion": {
+                "type": "javascript",
+                "value": "file:///Users/miguel.aguiar/Github/PaiDev/evals/after-run.ts:standard",
+                "metric": "standard"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Tool \"*\" matched 2 time(s), which violates the inverse assertion",
+              "assertion": {
+                "type": "not-trajectory:tool-used",
+                "value": {
+                  "pattern": "*"
+                },
+                "metric": "no-tools"
+              }
+            }
+          ]
+        },
+        "id": "024b48dc-9bdb-4906-844f-a36ed5717689",
+        "latencyMs": 143,
+        "namedScores": {
+          "no-tools": 0,
+          "session": 1,
+          "standard": 1
+        },
+        "prompt": {
+          "raw": "refine of TG-001",
+          "label": "after-run",
+          "config": {}
+        },
+        "promptId": "51cbea4ee4f2484afeb7df0f7536cb3d140e213d711e14d9005f038631d9bf1e",
+        "promptIdx": 0,
+        "traceId": "5a6a33d5628b9b98ba9d7504599fab03",
+        "evaluationId": "eval-kfA-2026-09-26T10:19:21",
+        "provider": {
+          "id": "google/gemini-3.1-pro-preview",
+          "label": "google/gemini-3.1-pro-preview"
+        },
+        "response": {
+          "output": "{\n  \"id\": \"TG-001\",\n  \"requirement\": \"Add dark mode, switcher should in the nav bar, the sun must bright yellow. The moon should be blue. The switch must iterate between dark and light mode. The localstorage should own the state. In mobile the nav bar hamburger should have the switcher.\",\n  \"title\": \"Add dark mode switcher to navigation\",\n  \"story\": \"As a user, I want to toggle dark mode in the navigation bar, so that I can view the application comfortably.\",\n  \"storyPoints\": 3,\n  \"type\": \"feat\",\n  \"acceptanceCriteria\": [\n    \"A switcher in the navigation bar toggles the application between light and dark mode.\",\n    \"The switcher displays a bright yellow sun icon when the application is in light mode.\",\n    \"The switcher displays a blue moon icon when the application is in dark mode.\",\n    \"The selected mode is saved to local storage and applied automatically when reloading the application.\",\n    \"On mobile viewports, the switcher is located inside the hamburger menu instead of the main navigation bar.\"\n  ],\n  \"implementationDetails\": [\n    \"Create a switcher component with SVG icons for the sun and moon.\",\n    \"Update frontend/src/components/TopBar.tsx to include the switcher in the right panel for desktop, and within the expanded navigation menu for mobile.\",\n    \"Use a React hook or context to read from and write to local storage, applying a theme attribute to the document body or HTML element.\",\n    \"No backend or deployment changes are required.\"\n  ],\n  \"openQuestions\": [\n    \"The requirement specifies the icon colors but names no CSS variables or palette for the actual dark mode. What colors should be used for backgrounds, text, and borders when dark mode is active?\",\n    \"Should the application detect the system preference (prefers-color-scheme) if local storage is empty, or default to light mode?\",\n    \"What are the exact hex codes for 'bright yellow' and 'blue'?\"\n  ],\n  \"stages\": [\n    \"implement-frontend\"\n  ]\n}",
+          "tokenUsage": {
+            "prompt": 18378,
+            "completion": 1898,
+            "cached": 0,
+            "total": 20276,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0
+              }
+            }
+          },
+          "cost": 0,
+          "metadata": {
+            "route": "google/gemini-3.1-pro-preview",
+            "runId": "refine-tg-001-1",
+            "outcome": "passed",
+            "costUsd": 0.059531999999999995,
+            "durationMs": 23236,
+            "attempts": 1,
+            "toolCalls": [
+              "ls",
+              "read"
+            ]
+          }
+        },
+        "score": 0.6666666666666666,
+        "success": false,
+        "testCase": {
+          "description": "TG-001 refine attempt 1",
+          "vars": {
+            "workItemId": "TG-001",
+            "stageId": "refine",
+            "archetype": "refinement",
+            "requirement": "Add dark mode, switcher should in the nav bar, the sun must bright yellow. The moon should be blue. The switch must iterate between dark and light mode. The localstorage should own the state. In mobile the nav bar hamburger should have the switcher.",
+            "story": "",
+            "acceptanceCriteria": ""
+          },
+          "metadata": {
+            "kind": "refine",
+            "workItemId": "TG-001",
+            "stageId": "refine",
+            "archetype": "refinement",
+            "standards": "Cofinpro dojo standards",
+            "attempt": 1,
+            "problems": [],
+            "tracingEnabled": true,
+            "evaluationId": "eval-kfA-2026-09-26T10:19:21"
+          },
+          "assert": [
+            {
+              "type": "javascript",
+              "value": "file:///Users/miguel.aguiar/Github/PaiDev/evals/after-run.ts:session",
+              "metric": "session"
+            },
+            {
+              "type": "javascript",
+              "value": "file:///Users/miguel.aguiar/Github/PaiDev/evals/after-run.ts:standard",
+              "metric": "standard"
+            },
+            {
+              "type": "not-trajectory:tool-used",
+              "value": {
+                "pattern": "*"
+              },
+              "metric": "no-tools"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 0,
+        "tokenUsage": {
+          "prompt": 18378,
+          "completion": 1898,
+          "cached": 0,
+          "total": 20276,
+          "numRequests": 1,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          },
+          "assertions": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0,
+              "cacheReadInputTokens": 0,
+              "cacheCreationInputTokens": 0
+            }
+          }
+        },
+        "vars": {
+          "workItemId": "TG-001",
+          "stageId": "refine",
+          "archetype": "refinement",
+          "requirement": "Add dark mode, switcher should in the nav bar, the sun must bright yellow. The moon should be blue. The switch must iterate between dark and light mode. The localstorage should own the state. In mobile the nav bar hamburger should have the switcher.",
+          "story": "",
+          "acceptanceCriteria": ""
+        },
+        "metadata": {
+          "kind": "refine",
+          "workItemId": "TG-001",
+          "stageId": "refine",
+          "archetype": "refinement",
+          "standards": "Cofinpro dojo standards",
+          "attempt": 1,
+          "problems": [],
+          "tracingEnabled": true,
+          "evaluationId": "eval-kfA-2026-09-26T10:19:21",
+          "route": "google/gemini-3.1-pro-preview",
+          "runId": "refine-tg-001-1",
+          "outcome": "passed",
+          "costUsd": 0.059531999999999995,
+          "durationMs": 23236,
+          "attempts": 1,
+          "toolCalls": [
+            "ls",
+            "read"
+          ],
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      }
+    ],
+    "stats": {
+      "successes": 0,
+      "failures": 1,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 18378,
+        "completion": 1898,
+        "cached": 0,
+        "total": 20276,
+        "numRequests": 1,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0,
+            "cacheReadInputTokens": 0,
+            "cacheCreationInputTokens": 0
+          }
+        }
+      },
+      "durationMs": 487,
+      "evaluationDurationMs": 487
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "opaidev after-run: TG-001 refine attempt 1",
+    "prompts": [
+      {
+        "raw": "{{stageId}} of {{workItemId}}",
+        "label": "after-run"
+      }
+    ],
+    "providers": [
+      {
+        "id": "file:///Users/miguel.aguiar/Github/PaiDev/evals/replay-provider.ts",
+        "label": "google/gemini-3.1-pro-preview",
+        "config": {
+          "projectRoot": "/Users/miguel.aguiar/Github/praying-mantis-1",
+          "logPath": "/Users/miguel.aguiar/Github/praying-mantis-1/.opaidev/logs/refine-tg-001-1-2026-09-26T10-18-46-084Z.jsonl",
+          "receiver": "http://127.0.0.1:53327/v1/traces"
+        }
+      }
+    ],
+    "tests": [
+      {
+        "description": "TG-001 refine attempt 1",
+        "vars": {
+          "workItemId": "TG-001",
+          "stageId": "refine",
+          "archetype": "refinement",
+          "requirement": "Add dark mode, switcher should in the nav bar, the sun must bright yellow. The moon should be blue. The switch must iterate between dark and light mode. The localstorage should own the state. In mobile the nav bar hamburger should have the switcher.",
+          "story": "",
+          "acceptanceCriteria": ""
+        },
+        "metadata": {
+          "kind": "refine",
+          "workItemId": "TG-001",
+          "stageId": "refine",
+          "archetype": "refinement",
+          "standards": "Cofinpro dojo standards",
+          "attempt": 1,
+          "problems": []
+        },
+        "assert": [
+          {
+            "type": "javascript",
+            "value": "file:///Users/miguel.aguiar/Github/PaiDev/evals/after-run.ts:session",
+            "metric": "session"
+          },
+          {
+            "type": "javascript",
+            "value": "file:///Users/miguel.aguiar/Github/PaiDev/evals/after-run.ts:standard",
+            "metric": "standard"
+          },
+          {
+            "type": "not-trajectory:tool-used",
+            "value": {
+              "pattern": "*"
+            },
+            "metric": "no-tools"
+          }
+        ]
+      }
+    ],
+    "env": {},
+    "outputPath": [
+      "/Users/miguel.aguiar/Github/praying-mantis-1/.opaidev/evals/after-run-refine-tg-001-1-2026-09-26T10-18-46-084Z-2026-09-26T10-19-09-372Z/results.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "tracing": {
+      "enabled": true,
+      "otlp": {
+        "http": {
+          "enabled": true,
+          "port": 53327,
+          "host": "127.0.0.1",
+          "acceptFormats": [
+            "json",
+            "protobuf"
+          ]
+        }
+      }
+    },
+    "evaluateOptions": {}
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.123.1",
+    "nodeVersion": "v24.18.0",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-09-26T10:19:25.837Z",
+    "evaluationCreatedAt": "2026-09-26T10:19:21.980Z"
+  },
+  "vars": [
+    "workItemId",
+    "stageId",
+    "archetype",
+    "requirement",
+    "story",
+    "acceptanceCriteria"
+  ],
+  "runtimeOptions": {
+    "eventSource": "cli",
+    "showProgressBar": false,
+    "repeat": 1,
+    "maxConcurrency": 1,
+    "cache": false
+  },
+  "traces": [
+    {
+      "traceId": "5a6a33d5628b9b98ba9d7504599fab03",
+      "evaluationId": "eval-kfA-2026-09-26T10:19:21",
+      "testCaseId": "0-0",
+      "metadata": {
+        "testIdx": 0,
+        "promptIdx": 0,
+        "providerId": "google/gemini-3.1-pro-preview",
+        "repeatIndex": 0,
+        "vars": {
+          "workItemId": "TG-001",
+          "stageId": "refine",
+          "archetype": "refinement",
+          "requirement": "Add dark mode, switcher should in the nav bar, the sun must bright yellow. The moon should be blue. The switch must iterate between dark and light mode. The localstorage should own the state. In mobile the nav bar hamburger should have the switcher.",
+          "story": "",
+          "acceptanceCriteria": ""
+        }
+      },
+      "spans": [
+        {
+          "spanId": "7c339a53f27a4149",
+          "parentSpanId": "7a3d5fdcab9bfa38",
+          "name": "invoke_agent refine",
+          "startTime": 1790417926084,
+          "endTime": 1790417949320,
+          "attributes": {
+            "service.name": "opaidev",
+            "openinference.project.name": "TransferGuard",
+            "gen_ai.operation.name": "invoke_agent",
+            "gen_ai.agent.name": "refine",
+            "gen_ai.provider.name": "google",
+            "gen_ai.request.model": "gemini-3.1-pro-preview",
+            "gen_ai.usage.input_tokens": 18378,
+            "gen_ai.usage.output_tokens": 1898,
+            "opaidev.run_id": "refine-tg-001-1",
+            "opaidev.stage_id": "refine",
+            "opaidev.outcome": "passed",
+            "opaidev.attempts": 1,
+            "opaidev.cost_usd": 0.059531999999999995,
+            "opaidev.tool_calls": [
+              "ls",
+              "read"
+            ],
+            "openinference.span.kind": "AGENT",
+            "otel.scope.name": "opaidev",
+            "otel.span.kind": "internal",
+            "otel.span.kind_code": 1
+          },
+          "statusCode": 1
+        },
+        {
+          "spanId": "7beda24d79259ba7",
+          "parentSpanId": "7c339a53f27a4149",
+          "name": "chat gemini-3.1-pro-preview",
+          "startTime": 1790417931599,
+          "endTime": 1790417932256,
+          "attributes": {
+            "service.name": "opaidev",
+            "openinference.project.name": "TransferGuard",
+            "gen_ai.operation.name": "chat",
+            "gen_ai.provider.name": "google",
+            "gen_ai.request.model": "gemini-3.1-pro-preview",
+            "gen_ai.response.model": "gemini-3.1-pro-preview",
+            "gen_ai.response.finish_reasons": [
+              "toolUse"
+            ],
+            "gen_ai.usage.input_tokens": 5257,
+            "gen_ai.usage.output_tokens": 199,
+            "llm.provider": "google",
+            "llm.model_name": "gemini-3.1-pro-preview",
+            "llm.token_count.prompt": "<redacted>",
+            "llm.token_count.completion": "<redacted>",
+            "llm.token_count.total": "<redacted>",
+            "llm.token_count.prompt_details.cache_read": "<redacted>",
+            "llm.token_count.prompt_details.cache_write": "<redacted>",
+            "opaidev.cost_usd": 0.012901999999999999,
+            "openinference.span.kind": "LLM",
+            "otel.scope.name": "opaidev",
+            "otel.span.kind": "client",
+            "otel.span.kind_code": 3
+          },
+          "statusCode": 1
+        },
+        {
+          "spanId": "ef26b375a0fc5d09",
+          "parentSpanId": "7c339a53f27a4149",
+          "name": "execute_tool ls",
+          "startTime": 1790417932256,
+          "endTime": 1790417932267,
+          "attributes": {
+            "service.name": "opaidev",
+            "openinference.project.name": "TransferGuard",
+            "gen_ai.operation.name": "execute_tool",
+            "gen_ai.tool.name": "ls",
+            "tool.name": "ls",
+            "gen_ai.tool.call.id": "call_798472",
+            "opaidev.blocked": false,
+            "openinference.span.kind": "TOOL",
+            "otel.scope.name": "opaidev",
+            "otel.span.kind": "internal",
+            "otel.span.kind_code": 1
+          },
+          "statusCode": 1
+        },
+        {
+          "spanId": "d6f18399035c82b6",
+          "parentSpanId": "7c339a53f27a4149",
+          "name": "chat gemini-3.1-pro-preview",
+          "startTime": 1790417935260,
+          "endTime": 1790417935632,
+          "attributes": {
+            "service.name": "opaidev",
+            "openinference.project.name": "TransferGuard",
+            "gen_ai.operation.name": "chat",
+            "gen_ai.provider.name": "google",
+            "gen_ai.request.model": "gemini-3.1-pro-preview",
+            "gen_ai.response.model": "gemini-3.1-pro-preview",
+            "gen_ai.response.finish_reasons": [
+              "toolUse"
+            ],
+            "gen_ai.usage.input_tokens": 5973,
+            "gen_ai.usage.output_tokens": 157,
+            "llm.provider": "google",
+            "llm.model_name": "gemini-3.1-pro-preview",
+            "llm.token_count.prompt": "<redacted>",
+            "llm.token_count.completion": "<redacted>",
+            "llm.token_count.total": "<redacted>",
+            "llm.token_count.prompt_details.cache_read": "<redacted>",
+            "llm.token_count.prompt_details.cache_write": "<redacted>",
+            "opaidev.cost_usd": 0.01383,
+            "openinference.span.kind": "LLM",
+            "otel.scope.name": "opaidev",
+            "otel.span.kind": "client",
+            "otel.span.kind_code": 3
+          },
+          "statusCode": 1
+        },
+        {
+          "spanId": "0f60b4646a510dd2",
+          "parentSpanId": "7c339a53f27a4149",
+          "name": "execute_tool read",
+          "startTime": 1790417935633,
+          "endTime": 1790417935637,
+          "attributes": {
+            "service.name": "opaidev",
+            "openinference.project.name": "TransferGuard",
+            "gen_ai.operation.name": "execute_tool",
+            "gen_ai.tool.name": "read",
+            "tool.name": "read",
+            "gen_ai.tool.call.id": "call_821676",
+            "opaidev.blocked": false,
+            "openinference.span.kind": "TOOL",
+            "otel.scope.name": "opaidev",
+            "otel.span.kind": "internal",
+            "otel.span.kind_code": 1
+          },
+          "statusCode": 1
+        },
+        {
+          "spanId": "851f0f2e6e2dd95f",
+          "parentSpanId": "7c339a53f27a4149",
+          "name": "chat gemini-3.1-pro-preview",
+          "startTime": 1790417938735,
+          "endTime": 1790417949300,
+          "attributes": {
+            "service.name": "opaidev",
+            "openinference.project.name": "TransferGuard",
+            "gen_ai.operation.name": "chat",
+            "gen_ai.provider.name": "google",
+            "gen_ai.request.model": "gemini-3.1-pro-preview",
+            "gen_ai.response.model": "gemini-3.1-pro-preview",
+            "gen_ai.response.finish_reasons": [
+              "stop"
+            ],
+            "gen_ai.usage.input_tokens": 7148,
+            "gen_ai.usage.output_tokens": 1542,
+            "llm.provider": "google",
+            "llm.model_name": "gemini-3.1-pro-preview",
+            "llm.token_count.prompt": "<redacted>",
+            "llm.token_count.completion": "<redacted>",
+            "llm.token_count.total": "<redacted>",
+            "llm.token_count.prompt_details.cache_read": "<redacted>",
+            "llm.token_count.prompt_details.cache_write": "<redacted>",
+            "opaidev.cost_usd": 0.032799999999999996,
+            "openinference.span.kind": "LLM",
+            "otel.scope.name": "opaidev",
+            "otel.span.kind": "client",
+            "otel.span.kind_code": 3
+          },
+          "statusCode": 1
+        },
+        {
+          "spanId": "7a3d5fdcab9bfa38",
+          "parentSpanId": "440aef8ff493d762",
+          "name": "google/gemini-3.1-pro-preview",
+          "startTime": 1790417962332,
+          "endTime": 1790417962473.2979,
+          "attributes": {
+            "service.name": "promptfoo",
+            "service.version": "0.123.1",
+            "promptfoo.provider.id": "google/gemini-3.1-pro-preview",
+            "promptfoo.span.role": "target",
+            "promptfoo.target.type": "provider",
+            "promptfoo.target.label": "google/gemini-3.1-pro-preview",
+            "promptfoo.prompt.label": "after-run",
+            "promptfoo.eval.id": "eval-kfA-2026-09-26T10:19:21",
+            "promptfoo.test.index": 0
+          },
+          "statusCode": 1
+        },
+        {
+          "spanId": "6125077657991831",
+          "parentSpanId": "440aef8ff493d762",
+          "name": "grader not-trajectory:tool-used",
+          "startTime": 1790417962733,
+          "endTime": 1790417962734.9775,
+          "attributes": {
+            "service.name": "promptfoo",
+            "service.version": "0.123.1",
+            "promptfoo.grader.id": "not-trajectory:tool-used",
+            "gen_ai.evaluation.name": "not-trajectory:tool-used",
+            "promptfoo.span.role": "grader",
+            "promptfoo.eval.id": "eval-kfA-2026-09-26T10:19:21",
+            "promptfoo.test.index": 0,
+            "gen_ai.evaluation.score.label": "fail",
+            "gen_ai.evaluation.score.value": 0,
+            "gen_ai.evaluation.explanation": "Tool \"*\" matched 2 time(s), which violates the inverse assertion"
+          },
+          "statusCode": 1
+        },
+        {
+          "spanId": "2e0c75fffb90d2fc",
+          "parentSpanId": "440aef8ff493d762",
+          "name": "grader javascript",
+          "startTime": 1790417962732,
+          "endTime": 1790417962773.6995,
+          "attributes": {
+            "service.name": "promptfoo",
+            "service.version": "0.123.1",
+            "promptfoo.grader.id": "javascript",
+            "gen_ai.evaluation.name": "javascript",
+            "promptfoo.span.role": "grader",
+            "promptfoo.eval.id": "eval-kfA-2026-09-26T10:19:21",
+            "promptfoo.test.index": 0,
+            "gen_ai.evaluation.score.label": "pass",
+            "gen_ai.evaluation.score.value": 1,
+            "gen_ai.evaluation.explanation": "the session finished"
+          },
+          "statusCode": 1
+        },
+        {
+          "spanId": "f442cc432e67c443",
+          "parentSpanId": "440aef8ff493d762",
+          "name": "grader javascript",
+          "startTime": 1790417962733,
+          "endTime": 1790417962774.3242,
+          "attributes": {
+            "service.name": "promptfoo",
+            "service.version": "0.123.1",
+            "promptfoo.grader.id": "javascript",
+            "gen_ai.evaluation.name": "javascript",
+            "promptfoo.span.role": "grader",
+            "promptfoo.eval.id": "eval-kfA-2026-09-26T10:19:21",
+            "promptfoo.test.index": 0,
+            "gen_ai.evaluation.score.label": "pass",
+            "gen_ai.evaluation.score.value": 1,
+            "gen_ai.evaluation.explanation": "the answer met Cofinpro dojo standards"
+          },
+          "statusCode": 1
+        },
+        {
+          "spanId": "440aef8ff493d762",
+          "name": "promptfoo.test_case",
+          "startTime": 1790417962328,
+          "endTime": 1790417962775.1526,
+          "attributes": {
+            "service.name": "promptfoo",
+            "service.version": "0.123.1",
+            "promptfoo.span.role": "test_case",
+            "promptfoo.eval.id": "eval-kfA-2026-09-26T10:19:21",
+            "promptfoo.test.index": 0,
+            "promptfoo.test_case.id": "0-0",
+            "promptfoo.prompt.index": 0,
+            "promptfoo.provider.id": "google/gemini-3.1-pro-preview",
+            "promptfoo.prompt.label": "after-run",
+            "promptfoo.repeat.index": 0,
+            "promptfoo.test.success": false,
+            "promptfoo.test.score": 0.6666666666666666
+          },
+          "statusCode": 2,
+          "statusMessage": "Tool \"*\" matched 2 time(s), which violates the inverse assertion"
+        }
+      ]
+    }
+  ]
+}

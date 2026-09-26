@@ -1,0 +1,75 @@
+{
+  "description": "opaidev after-run: TG-001 refine attempt 1",
+  "prompts": [
+    {
+      "raw": "{{stageId}} of {{workItemId}}",
+      "label": "after-run"
+    }
+  ],
+  "providers": [
+    {
+      "id": "file:///Users/miguel.aguiar/Github/PaiDev/evals/replay-provider.ts",
+      "label": "google/gemini-3.1-pro-preview",
+      "config": {
+        "projectRoot": "/Users/miguel.aguiar/Github/praying-mantis-1",
+        "logPath": "/Users/miguel.aguiar/Github/praying-mantis-1/.opaidev/logs/refine-tg-001-1-2026-09-26T10-18-46-084Z.jsonl",
+        "receiver": "http://127.0.0.1:53327/v1/traces"
+      }
+    }
+  ],
+  "tests": [
+    {
+      "description": "TG-001 refine attempt 1",
+      "vars": {
+        "workItemId": "TG-001",
+        "stageId": "refine",
+        "archetype": "refinement",
+        "requirement": "Add dark mode, switcher should in the nav bar, the sun must bright yellow. The moon should be blue. The switch must iterate between dark and light mode. The localstorage should own the state. In mobile the nav bar hamburger should have the switcher.",
+        "story": "",
+        "acceptanceCriteria": ""
+      },
+      "metadata": {
+        "kind": "refine",
+        "workItemId": "TG-001",
+        "stageId": "refine",
+        "archetype": "refinement",
+        "standards": "Cofinpro dojo standards",
+        "attempt": 1,
+        "problems": []
+      },
+      "assert": [
+        {
+          "type": "javascript",
+          "value": "file:///Users/miguel.aguiar/Github/PaiDev/evals/after-run.ts:session",
+          "metric": "session"
+        },
+        {
+          "type": "javascript",
+          "value": "file:///Users/miguel.aguiar/Github/PaiDev/evals/after-run.ts:standard",
+          "metric": "standard"
+        },
+        {
+          "type": "not-trajectory:tool-used",
+          "value": {
+            "pattern": "*"
+          },
+          "metric": "no-tools"
+        }
+      ]
+    }
+  ],
+  "tracing": {
+    "enabled": true,
+    "otlp": {
+      "http": {
+        "enabled": true,
+        "port": 53327,
+        "host": "127.0.0.1",
+        "acceptFormats": [
+          "json",
+          "protobuf"
+        ]
+      }
+    }
+  }
+}

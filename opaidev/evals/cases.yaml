@@ -1,0 +1,280 @@
+# Ground truth for finding-classification evals in TransferGuard. Synthetic data only.
+# vars: archetype (selects the skills) and task (the prompt).
+# metadata: the closed taxonomy and the ground truth. Kept out of vars because promptfoo expands
+# list-valued vars into one test per combination.
+# vars are Nunjucks templates: a literal `{{` in code (JSX style objects, say) goes inside
+# {% raw %}…{% endraw %}, which the model never sees.
+#
+# The frontend cases use this project's archetype, nextjs-frontend. Every archetype in
+# opaidev/project.json needs at least one case.
+
+- description: refinement-ambiguity
+  vars:
+    archetype: refinement
+    task: >-
+      Analyze this synthetic banking story: 'Create a screen that validates high-value transfer instructions before scheduling.' Identify only facts that must be decided before deterministic implementation. Return exactly one JSON object whose findings array holds plain string ids, like {"findings":["first-id","second-id"]}. Every finding must be one of: missing-currency, missing-limit, missing-timezone, missing-ui-color. Do not use Markdown.
+  metadata:
+    difficulty: easy
+    allowedFindings: [missing-currency, missing-limit, missing-timezone, missing-ui-color]
+    expectedFindings: [missing-currency, missing-limit, missing-timezone]
+    criticalFindings: [missing-currency, missing-limit]
+    minimumF1: 0.85
+
+- description: java-money-and-iban
+  vars:
+    archetype: java-spring
+    task: >-
+      Review this synthetic Java code. The caller guarantees non-null arguments. Identify correctness defects only. Code: static boolean validIban(String iban) { return iban.matches("[A-Z]{2}[0-9A-Z]{13,32}"); } static boolean allowed(BigDecimal amount, BigDecimal limit) { return amount.doubleValue() > 0 && amount.doubleValue() <= limit.doubleValue(); } Return exactly one JSON object whose findings array holds plain string ids, like {"findings":["first-id","second-id"]}. Every finding must be one of: iban-checksum-not-validated, lossy-money-comparison, missing-null-handling, wrong-http-status. Do not use Markdown.
+  metadata:
+    difficulty: easy
+    allowedFindings: [iban-checksum-not-validated, lossy-money-comparison, missing-null-handling, wrong-http-status]
+    expectedFindings: [iban-checksum-not-validated, lossy-money-comparison]
+    criticalFindings: [iban-checksum-not-validated, lossy-money-comparison]
+    minimumF1: 1
+
+- description: kubernetes-security
+  vars:
+    archetype: kubernetes
+    task: >-
+      Review this synthetic Kubernetes container fragment: containers: [{ name: api, image: bank-api:latest, ports: [{containerPort: 8080}] }]. Identify operational or security omissions visible in the fragment. Return exactly one JSON object whose findings array holds plain string ids, like {"findings":["first-id","second-id"]}. Every finding must be one of: mutable-image-tag, missing-resource-bounds, root-not-disabled, missing-health-probes, configmap-not-encrypted. Do not use Markdown.
+  metadata:
+    difficulty: easy
+    allowedFindings: [mutable-image-tag, missing-resource-bounds, root-not-disabled, missing-health-probes, configmap-not-encrypted]
+    expectedFindings: [mutable-image-tag, missing-resource-bounds, root-not-disabled, missing-health-probes]
+    criticalFindings: [missing-resource-bounds, root-not-disabled]
+    minimumF1: 0.85
+
+- description: review-against-criteria
+  vars:
+    archetype: code-review
+    task: >-
+      You review a change for the acceptance criterion 'Reject payments above the configured limit of 10000 EUR'.
+      The declared write scope is backend/. Changed files: backend/src/main/java/com/cofinpro/dojo/transferguard/domain/PaymentBatchValidator.java
+      adds `if (amount.compareTo(properties.maximumAmount()) > 0) reasons.add("AMOUNT_ABOVE_LIMIT");`;
+      frontend/app/page.tsx changes the page title; backend/src/test/java/.../PaymentBatchValidatorTest.java is unchanged;
+      backend/src/main/resources/application.yaml sets maximum-amount: 10000.
+      Identify review findings only. Return exactly one JSON object whose findings array holds plain string ids, like {"findings":["first-id","second-id"]}. Every finding must be one of:
+      rule-without-test, change-outside-scope, lossy-money-comparison, hardcoded-limit, style-preference.
+      Do not use Markdown.
+  metadata:
+    difficulty: easy
+    allowedFindings: [rule-without-test, change-outside-scope, lossy-money-comparison, hardcoded-limit, style-preference]
+    expectedFindings: [rule-without-test, change-outside-scope]
+    criticalFindings: [rule-without-test, change-outside-scope]
+    minimumF1: 1
+
+- description: refinement-recurring-batch
+  vars:
+    archetype: refinement
+    task: >-
+      Analyze this synthetic story for a payments tool: 'Operators can schedule a recurring EUR batch to run on the last
+      business day of each month. If the batch total exceeds the daily ceiling, the run is skipped and the operator who
+      scheduled it is notified by email.' Identify only decisions that must be made before a deterministic implementation.
+      Return exactly one JSON object whose findings array holds plain string ids, like {"findings":["first-id","second-id"]}.
+      Every finding must be one of: missing-currency, missing-timezone, missing-holiday-calendar, missing-ceiling-value,
+      missing-notification-recipient, missing-skip-behavior. Do not use Markdown.
+  metadata:
+    difficulty: medium
+    allowedFindings: [missing-currency, missing-timezone, missing-holiday-calendar, missing-ceiling-value, missing-notification-recipient, missing-skip-behavior]
+    expectedFindings: [missing-timezone, missing-holiday-calendar, missing-ceiling-value]
+    criticalFindings: [missing-holiday-calendar, missing-ceiling-value]
+    minimumF1: 0.85
+
+- description: refinement-conflicting-limits
+  vars:
+    archetype: refinement
+    task: >-
+      Analyze these synthetic acceptance criteria for one story: (1) 'Reject any payment above 10,000 EUR.'
+      (2) 'Payments to trusted beneficiaries of up to 50,000 EUR are accepted.' (3) 'Each operator can configure their own
+      payment limit.' Identify only problems that must be resolved before a deterministic implementation.
+      Return exactly one JSON object whose findings array holds plain string ids, like {"findings":["first-id","second-id"]}.
+      Every finding must be one of: conflicting-criteria, undefined-term, missing-currency, boundary-unspecified,
+      missing-default-value. Do not use Markdown.
+  metadata:
+    difficulty: hard
+    allowedFindings: [conflicting-criteria, undefined-term, missing-currency, boundary-unspecified, missing-default-value]
+    expectedFindings: [conflicting-criteria, undefined-term, missing-default-value]
+    criticalFindings: [conflicting-criteria, undefined-term]
+    minimumF1: 0.8
+
+- description: java-controller-and-validator
+  vars:
+    archetype: java-spring
+    task: >-
+      Review this synthetic Spring Boot 4 code. House rules: limits come from @ConfigurationProperties; business
+      rejections are reason codes in a 200 response; there is no database. Code:
+      @RestController class BatchController { @Autowired BatchValidator validator;
+      @PostMapping("/api/batches/validate") ResponseEntity<BatchResponse> validate(@RequestBody BatchRequest request) {
+      return ResponseEntity.ok(validator.validate(request)); } }
+      @Service class BatchValidator { BatchResponse validate(BatchRequest request) { List<String> reasons = new ArrayList<>();
+      if (request.executionDate().isBefore(LocalDate.now())) reasons.add("EXECUTION_DATE_IN_PAST");
+      if (request.amount().equals(new BigDecimal("10000.00"))) reasons.add("AMOUNT_AT_LIMIT");
+      return new BatchResponse(reasons); } }
+      Identify defects only. Return exactly one JSON object whose findings array holds plain string ids, like
+      {"findings":["first-id","second-id"]}. Every finding must be one of: bigdecimal-equals, untestable-clock,
+      field-injection, missing-request-validation, hardcoded-limit, missing-transactional, wrong-http-status. Do not use Markdown.
+  metadata:
+    difficulty: medium
+    allowedFindings: [bigdecimal-equals, untestable-clock, field-injection, missing-request-validation, hardcoded-limit, missing-transactional, wrong-http-status]
+    expectedFindings: [bigdecimal-equals, untestable-clock, field-injection, missing-request-validation, hardcoded-limit]
+    criticalFindings: [bigdecimal-equals, untestable-clock]
+    minimumF1: 0.8
+
+- description: java-iban-and-duplicates
+  vars:
+    archetype: java-spring
+    task: >-
+      Review this synthetic Java 21 code. Specification: end-to-end identifiers are compared case-insensitively;
+      callers guarantee non-null values; returned lists are read-only by design. Code:
+      static boolean validIban(String iban) { String rearranged = iban.substring(4) + iban.substring(0, 4);
+      StringBuilder digits = new StringBuilder(); for (char c : rearranged.toUpperCase().toCharArray())
+      digits.append(Character.isLetter(c) ? String.valueOf(c - 'A' + 10) : String.valueOf(c));
+      return Long.parseLong(digits.toString()) % 97 == 1; }
+      static List<String> duplicates(List<Payment> payments) { Set<String> seen = new HashSet<>();
+      return payments.stream().map(Payment::endToEndId).filter(id -> !seen.add(id)).toList(); }
+      Identify defects only. Return exactly one JSON object whose findings array holds plain string ids, like
+      {"findings":["first-id","second-id"]}. Every finding must be one of: numeric-overflow, locale-sensitive-case,
+      case-sensitive-duplicate-check, missing-null-check, unmodifiable-list-returned. Do not use Markdown.
+  metadata:
+    difficulty: hard
+    allowedFindings: [numeric-overflow, locale-sensitive-case, case-sensitive-duplicate-check, missing-null-check, unmodifiable-list-returned]
+    expectedFindings: [numeric-overflow, locale-sensitive-case, case-sensitive-duplicate-check]
+    criticalFindings: [numeric-overflow, case-sensitive-duplicate-check]
+    minimumF1: 0.85
+
+- description: kubernetes-deployment-rules
+  vars:
+    archetype: kubernetes
+    task: >-
+      Review this synthetic Kubernetes Deployment. House rules: every object lives in namespace enterprise-ai-dojo;
+      containers declare requests and limits and both probes; no secret values in manifests. Manifest:
+      apiVersion: apps/v1, kind: Deployment, metadata: {name: transfer-guard-backend, namespace: default}, spec.template.spec.containers:
+      [{name: api, image: transfer-guard-backend:1.2.0, resources: {limits: {cpu: 500m, memory: 512Mi}},
+      readinessProbe: {httpGet: {path: /actuator/health, port: 8080}}, env: [{name: DB_PASSWORD, value: s3cr3t}]}]
+      Identify defects only. Return exactly one JSON object whose findings array holds plain string ids, like
+      {"findings":["first-id","second-id"]}. Every finding must be one of: missing-resource-requests, missing-liveness-probe,
+      mutable-image-tag, inline-secret, wrong-namespace, missing-readiness-probe. Do not use Markdown.
+  metadata:
+    difficulty: medium
+    allowedFindings: [missing-resource-requests, missing-liveness-probe, mutable-image-tag, inline-secret, wrong-namespace, missing-readiness-probe]
+    expectedFindings: [missing-resource-requests, missing-liveness-probe, inline-secret, wrong-namespace]
+    criticalFindings: [inline-secret, wrong-namespace]
+    minimumF1: 0.85
+
+- description: kubernetes-wiring
+  vars:
+    archetype: kubernetes
+    task: >-
+      Review how these synthetic pieces connect. Frontend nginx.conf: location /api/ { proxy_pass http://transfer-guard-backend:8080; }
+      Backend Service: metadata.name transfer-guard-api, spec.selector {app: backend}, ports [{port: 8080, targetPort: 8080}].
+      Backend pod template labels: {app.kubernetes.io/name: transfer-guard-backend}. Backend container listens on 8080 and
+      declares readinessProbe httpGet {path: /actuator/health, port: 8081} and a matching livenessProbe on 8080.
+      Identify defects only. Return exactly one JSON object whose findings array holds plain string ids, like
+      {"findings":["first-id","second-id"]}. Every finding must be one of: wrong-service-name, selector-mismatch,
+      probe-port-mismatch, missing-network-policy, missing-autoscaler. Do not use Markdown.
+  metadata:
+    difficulty: hard
+    allowedFindings: [wrong-service-name, selector-mismatch, probe-port-mismatch, missing-network-policy, missing-autoscaler]
+    expectedFindings: [wrong-service-name, selector-mismatch, probe-port-mismatch]
+    criticalFindings: [wrong-service-name, selector-mismatch]
+    minimumF1: 0.85
+
+- description: review-weekend-rule
+  vars:
+    archetype: code-review
+    task: >-
+      You review a change for the acceptance criterion 'Reject execution dates that fall on a weekend'. Declared write
+      scope: backend/. Changed files: domain/PaymentBatchValidator.java adds
+      `if (payment.executionDate().getDayOfWeek() == DayOfWeek.SATURDAY) reasons.add("EXECUTION_DATE_ON_WEEKEND");`
+      and the validator obtains today's date with LocalDate.now() in a new helper; PaymentBatchValidatorTest adds
+      rejectsSaturdayExecutionDate; backend/src/main/resources/application.yaml raises one log level.
+      Identify review findings only. Return exactly one JSON object whose findings array holds plain string ids, like
+      {"findings":["first-id","second-id"]}. Every finding must be one of: criterion-not-met, untestable-clock,
+      rule-without-test, change-outside-scope, style-preference. Do not use Markdown.
+  metadata:
+    difficulty: medium
+    allowedFindings: [criterion-not-met, untestable-clock, rule-without-test, change-outside-scope, style-preference]
+    expectedFindings: [criterion-not-met, untestable-clock]
+    criticalFindings: [criterion-not-met]
+    minimumF1: 0.8
+
+- description: review-test-misses-criterion
+  vars:
+    archetype: code-review
+    task: >-
+      You review a change for the acceptance criterion 'Reject duplicate end-to-end identifiers, compared
+      case-insensitively'. Declared write scope: backend/. The writer reports: all criteria covered, checks passed.
+      Changed files: domain/PaymentBatchValidator.java marks a payment DUPLICATE_END_TO_END_ID when
+      `seen.contains(payment.endToEndId())` for a HashSet<String> seen; PaymentBatchValidatorTest adds
+      rejectsDuplicateEndToEndId, which submits two payments with the identifier "E2E-001" and expects the reason code.
+      Identify review findings only. Return exactly one JSON object whose findings array holds plain string ids, like
+      {"findings":["first-id","second-id"]}. Every finding must be one of: criterion-not-met, test-misses-criterion,
+      rule-without-test, change-outside-scope, lossy-money-comparison. Do not use Markdown.
+  metadata:
+    difficulty: hard
+    allowedFindings: [criterion-not-met, test-misses-criterion, rule-without-test, change-outside-scope, lossy-money-comparison]
+    expectedFindings: [criterion-not-met, test-misses-criterion]
+    criticalFindings: [criterion-not-met, test-misses-criterion]
+    minimumF1: 1
+
+- description: nextjs-accessibility-and-boundaries
+  vars:
+    archetype: nextjs-frontend
+    task: >-
+      Review this synthetic Next.js App Router component. Identify defects only. Code:
+      "use client"; import { useState } from "react";
+      export default function BatchCheck() { const [iban, setIban] = useState(""); const [result, setResult] = useState<any>(null);
+      async function check() { setResult(await (await fetch("/api/batches/validate", { method: "POST", body: JSON.stringify({ iban }) })).json()) }
+      return (<div><input value={iban} onChange={(event) => setIban(event.target.value)} placeholder="IBAN" />
+      <div className="btn" onClick={check}>Validate</div>{result ? <p>{result.status}</p> : null}</div>) }
+      Return exactly one JSON object whose findings array holds plain string ids, like {"findings":["first-id","second-id"]}.
+      Every finding must be one of: fetch-in-client-component, clickable-div, missing-input-label, untyped-response,
+      missing-live-region, wrong-http-method. Do not use Markdown.
+  metadata:
+    difficulty: easy
+    allowedFindings: [fetch-in-client-component, clickable-div, missing-input-label, untyped-response, missing-live-region, wrong-http-method]
+    expectedFindings: [fetch-in-client-component, clickable-div, missing-input-label, untyped-response, missing-live-region]
+    criticalFindings: [fetch-in-client-component, clickable-div]
+    minimumF1: 0.8
+
+- description: nextjs-result-list
+  vars:
+    archetype: nextjs-frontend
+    task: >-
+      Review this synthetic React component. The errorMessage field is text returned by the API. Identify defects only. Code:
+      "use client"; import { useEffect, useState } from "react"; import type { BatchResult } from "@/lib/types";
+      export default function Results({ result }: { result: BatchResult }) { const [rows, setRows] = useState(result.payments);
+      useEffect(() => { setRows(result.payments) }, [result]);
+      function Row({ payment }: { payment: BatchResult["payments"][number] }) { return (<li><span>{payment.amount + " EUR"}</span>
+      <span dangerouslySetInnerHTML={% raw %}{{ __html: payment.errorMessage }}{% endraw %} /></li>) }
+      return <ul>{rows.map((payment) => <Row payment={payment} />)}</ul> }
+      Return exactly one JSON object whose findings array holds plain string ids, like {"findings":["first-id","second-id"]}.
+      Every finding must be one of: xss-dangerously-set-inner-html, props-copied-to-state, manual-number-format,
+      missing-key-in-list, component-defined-inside-component, server-component-needed. Do not use Markdown.
+  metadata:
+    difficulty: medium
+    allowedFindings: [xss-dangerously-set-inner-html, props-copied-to-state, manual-number-format, missing-key-in-list, component-defined-inside-component, server-component-needed]
+    expectedFindings: [xss-dangerously-set-inner-html, props-copied-to-state, manual-number-format, missing-key-in-list, component-defined-inside-component]
+    criticalFindings: [xss-dangerously-set-inner-html]
+    minimumF1: 0.8
+
+- description: nextjs-api-client-and-test
+  vars:
+    archetype: nextjs-frontend
+    task: >-
+      Review this synthetic TypeScript API client and its vitest test. House rules: the backend address stays on the server,
+      and tests inject a fake fetcher. api.ts: export async function validateBatch(batch: BatchSubmission,
+      fetcher: typeof fetch = fetch): Promise<BatchValidation> { const response = await fetcher(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/batches/validate`, { method: "POST", body: JSON.stringify(batch) });
+      return (await response.json()) as BatchValidation; }
+      api.test.ts: it("validates a batch", async () => { const result = await validateBatch(sampleBatch);
+      expect(result.acceptedCount).toBe(1) })
+      Return exactly one JSON object whose findings array holds plain string ids, like {"findings":["first-id","second-id"]}.
+      Every finding must be one of: missing-content-type, unchecked-http-status, test-reaches-network,
+      backend-url-exposed-to-client, wrong-http-method. Do not use Markdown.
+  metadata:
+    difficulty: hard
+    allowedFindings: [missing-content-type, unchecked-http-status, test-reaches-network, backend-url-exposed-to-client, wrong-http-method]
+    expectedFindings: [missing-content-type, unchecked-http-status, test-reaches-network, backend-url-exposed-to-client]
+    criticalFindings: [unchecked-http-status, test-reaches-network, backend-url-exposed-to-client]
+    minimumF1: 0.85

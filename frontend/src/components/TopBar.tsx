@@ -6,6 +6,7 @@ import { Avatar } from './Avatar'
 import { ExternalNavItem, NavItem } from './NavItem'
 import { Logo } from './Logo'
 import { NotificationBell } from './NotificationBell'
+import { ThemeSwitcher } from './ThemeSwitcher'
 import styles from './TopBar.module.css'
 
 export function TopBar() {
@@ -33,10 +34,16 @@ export function TopBar() {
           {externalNavLinks.map((link) => (
             <ExternalNavItem key={link.label} label={link.label} href={link.href} />
           ))}
+          <div className={styles.themeSwitcherMobile}>
+            <ThemeSwitcher />
+          </div>
         </nav>
       </div>
 
       <div className={styles.right}>
+        <div className={styles.themeSwitcherDesktop}>
+          <ThemeSwitcher />
+        </div>
         <NotificationBell onOpen={() => setMenuOpenedAt(null)} />
         <Link to="/profile" className={styles.user}>
           <Avatar name={name} src={user?.avatar_url} />

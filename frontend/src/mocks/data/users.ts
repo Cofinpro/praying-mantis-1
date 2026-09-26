@@ -8,6 +8,8 @@ export const SEED_PASSWORD = 'password123'
 type SeedUser = Omit<CurrentUser, 'is_team_lead' | 'team_lead' | 'avatar_url'> & { teamLeadEmail: string | null }
 
 const seedUsers: SeedUser[] = [
+  { id: 99, name: 'Test Lead 01', email: 'test.lead01@example.com', client: 'DKB', level: 'architect', is_admin: false, is_hr: false, teamLeadEmail: null },
+  { id: 100, name: 'Test Sub 01', email: 'test.sub01@example.com', client: 'DKB', level: 'junior', is_admin: false, is_hr: false, teamLeadEmail: 'test.lead01@example.com' },
   { id: 1, name: 'Alex Admin', email: 'admin@cofinpro.pt', client: 'DBIS', level: 'senior_architect', is_admin: true, is_hr: false, teamLeadEmail: null },
   { id: 2, name: 'Sofia Martins', email: 'sofia@cofinpro.pt', client: 'DKB', level: 'architect', is_admin: false, is_hr: false, teamLeadEmail: null },
   { id: 3, name: 'Tiago Costa', email: 'tiago@cofinpro.pt', client: 'Deka', level: 'senior_architect', is_admin: false, is_hr: false, teamLeadEmail: null },

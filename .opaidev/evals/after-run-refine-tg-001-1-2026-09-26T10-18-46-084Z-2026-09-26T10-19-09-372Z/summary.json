@@ -1,0 +1,32 @@
+{
+  "workItemId": "TG-001",
+  "stageId": "refine",
+  "attempt": 1,
+  "dir": "/Users/miguel.aguiar/Github/praying-mantis-1/.opaidev/evals/after-run-refine-tg-001-1-2026-09-26T10-18-46-084Z-2026-09-26T10-19-09-372Z",
+  "evalId": "eval-kfA-2026-09-26T10:19:21",
+  "passed": false,
+  "components": [
+    {
+      "metric": "session",
+      "pass": true,
+      "score": 1,
+      "reason": "the session finished",
+      "by": "code"
+    },
+    {
+      "metric": "standard",
+      "pass": true,
+      "score": 1,
+      "reason": "the answer met Cofinpro dojo standards",
+      "by": "code"
+    },
+    {
+      "metric": "no-tools",
+      "pass": false,
+      "score": 0,
+      "reason": "Tool \"*\" matched 2 time(s), which violates the inverse assertion",
+      "by": "code"
+    }
+  ],
+  "annotations": "not traced"
+}

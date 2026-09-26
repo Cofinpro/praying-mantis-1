@@ -1,0 +1,28 @@
+{
+    "id": "TG-001",
+    "requirement": "Add dark mode, switcher should in the nav bar, the sun must bright yellow. The moon should be blue. The switch must iterate between dark and light mode. The localstorage should own the state. In mobile the nav bar hamburger should have the switcher.",
+    "title": "Add dark mode switcher to navigation",
+    "story": "As a user, I want to toggle dark mode in the navigation bar, so that I can view the application comfortably.",
+    "storyPoints": 3,
+    "type": "feat",
+    "acceptanceCriteria": [
+        "A switcher in the navigation bar toggles the application between light and dark mode.",
+        "The switcher displays a bright yellow sun icon when the application is in light mode.",
+        "The switcher displays a blue moon icon when the application is in dark mode.",
+        "The selected mode is saved to local storage and applied automatically when reloading the application.",
+        "On mobile viewports, the switcher is located inside the hamburger menu instead of the main navigation bar."
+    ],
+    "implementationDetails": [
+        "Create a switcher component with SVG icons for the sun and moon.",
+        "Update frontend/src/components/TopBar.tsx to include the switcher in the right panel for desktop, and within the expanded navigation menu for mobile.",
+        "Use a React hook or context to read from and write to local storage, applying a theme attribute to the document body or HTML element.",
+        "No backend or deployment changes are required."
+    ],
+    "openQuestions": [
+        "The requirement specifies the icon colors but names no CSS variables or palette for the actual dark mode. What colors should be used for backgrounds, text, and borders when dark mode is active?",
+        "Should the application detect the system preference (prefers-color-scheme) if local storage is empty, or default to light mode?"
+    ],
+    "stages": ["implement-frontend", "review"],
+    "createdAt": "2026-09-26T10:18:24.487Z",
+    "refinedAt": "2026-09-26T10:19:09.321Z"
+}
